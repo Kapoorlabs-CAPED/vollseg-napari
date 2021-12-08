@@ -13,8 +13,11 @@ import napari
 from napari.qt.threading import thread_worker
 from napari.utils.colormaps import label_colormap
 from typing import List, Union
-
-
+import functools
+import time
+import numpy as np
+from pathlib import Path
+from warnings import warn
 def plugin_wrapper():
     
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
@@ -45,7 +48,22 @@ def plugin_wrapper():
     model_selected = None
 
     CUSTOM_MODEL = 'CUSTOM_MODEL'
-    model_type_choices = [('2D', SmartSeedPrediction2D), ('3D', SmartSeedPrediction3D), ('Custom 2D/3D', CUSTOM_MODEL)]
+    model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_MODEL)]
+
+    @functools.lru_cache(maxsize=None)
+    def get_model(model_type, model_star, model_unet):
+        if model_type == CUSTOM_MODEL:
+            path_star = Path(model_star)
+            path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
+            
+            path_unet = Path(model_unet)
+            path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
+            
+            config = model_configs[(model_type,model_star)]
+            model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
+            return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
+        else:
+            return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet)
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
