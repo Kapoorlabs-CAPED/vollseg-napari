@@ -62,8 +62,8 @@ def plugin_wrapper():
     model_selected = None
 
     CUSTOM_MODEL = 'CUSTOM_MODEL'
-    model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V) ('Custom 2D/3D', CUSTOM_MODEL)]
-
+    seg_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_MODEL)]
+    den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V) ('Custom N2V/CARE', CUSTOM_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(model_type, model_star, model_unet, model_care, model_n2v):
         if model_type == CUSTOM_MODEL:
