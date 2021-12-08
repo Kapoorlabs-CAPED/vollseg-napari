@@ -44,6 +44,19 @@ def plugin_wrapper():
     models2d_unet = [((_aliases2d_unet[m][0] if len(_aliases2d_unet[m]) > 0 else m),m) for m in _models2d_unet]
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
     
+    _models2d_denoise_care, _aliases2d_denoise_care = get_registered_models(CARE)
+    _models3d_denoise_care, _aliases3d_denoise_care = get_registered_models(CARE)
+    # use first alias for model selection (if alias exists)
+    models2d_denoise_care = [((_aliases2d_denoise_care[m][0] if len(_aliases2d_denoise_care[m]) > 0 else m),m) for m in _models2d_denoise_care]
+    models3d_denoise_care = [((_aliases3d_denoise_care[m][0] if len(_aliases3d_denoise_care[m]) > 0 else m),m) for m in _models3d_denoise_care]
+    
+    _models2d_denoise_n2v, _aliases2d_denoise_n2v = get_registered_models(N2V)
+    _models3d_denoise_n2v, _aliases3d_denoise_n2v = get_registered_models(N2V)
+    # use first alias for model selection (if alias exists)
+    models2d_denoise_n2v = [((_aliases2d_denoise_n2v[m][0] if len(_aliases2d_denoise_n2v[m]) > 0 else m),m) for m in _models2d_denoise_n2v]
+    models3d_denoise_n2v = [((_aliases3d_denoise_n2v[m][0] if len(_aliases3d_denoise_n2v[m]) > 0 else m),m) for m in _models3d_denoise_n2v]
+    
+    
     model_configs = dict()
     model_threshs = dict()
     model_selected = None
@@ -52,7 +65,7 @@ def plugin_wrapper():
     model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_MODEL)]
 
     @functools.lru_cache(maxsize=None)
-    def get_model(model_type, model_star, model_unet):
+    def get_model(model_type, model_star, model_unet, model_care, model_n2v):
         if model_type == CUSTOM_MODEL:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
@@ -62,9 +75,34 @@ def plugin_wrapper():
             
             config = model_configs[(model_type,model_star)]
             model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
-            return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
+            
+            if model_care is not None:
+                path_care = Path(model_care)
+                path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
+                return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
+            if model_n2v is not None:
+                path_n2v = Path(model_n2v)
+                path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
+                return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
+
+              
+            elif model_care == None and model_n2v == None:
+                
+                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
+        
+        
         else:
-            return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet)
+            
+            if model_care is not None:
+                
+                 return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_care) 
+            if model_n2v is not None:
+                
+                 return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_n2v)
+                
+            elif model_care == None and model_n2v == None:
+                
+                 return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet)
 
     class Output(Enum):
         Labels = 'Label Image'
