@@ -15,6 +15,7 @@ from napari.utils.colormaps import label_colormap
 from typing import List, Union
 import functools
 import time
+from enum import Enum
 import numpy as np
 from pathlib import Path
 from warnings import warn
@@ -64,6 +65,30 @@ def plugin_wrapper():
             return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
         else:
             return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet)
+
+    class Output(Enum):
+        Labels = 'Label Image'
+        Prob  = 'Probability Map'
+        Markers = 'Markers'
+        All   = 'All'
+    output_choices = [Output.Labels.value, Output.Prob.value, Output.Markers.value, Output.All.value]  
+    
+    DEFAULTS = dict (
+    model_type     = StarDist2D,
+    model2d        = models2d[0][1],
+    model2d_unet   = models2d_unet[0][1],
+    model3d        = models3d[0][1],
+    model3d_unet   = models3d_unet[0][1],
+    norm_image     = True,
+    perc_low       =  1.0,
+    perc_high      = 99.8,
+    norm_axes      = 'ZYX',
+    prob_thresh    = 0.5,
+    nms_thresh     = 0.4,
+    output_type    = Output.All.value,
+    n_tiles        = 'None'
+)                  
+     
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
