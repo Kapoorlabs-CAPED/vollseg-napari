@@ -122,7 +122,7 @@ def plugin_wrapper():
                 
               elif den_model_type != CUSTOM_MODEL and model_care == None and model_n2v == None:
                       
-                       return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
+                       return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet)
         
 
 
