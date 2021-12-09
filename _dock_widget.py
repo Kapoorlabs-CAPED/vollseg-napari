@@ -57,14 +57,17 @@ def plugin_wrapper():
     
     model_configs = dict()
     model_threshs = dict()
-    model_selected = None
-
+    model_selected_star = None
+    model_selected_unet = None
+    model_selected_care = None
+    model_selected_n2v = None
+    
     CUSTOM_MODEL = 'CUSTOM_MODEL'
     seg_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_MODEL)]
     den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V) ('Custom N2V/CARE', CUSTOM_MODEL)]
     @functools.lru_cache(maxsize=None)
-    def get_model(model_type, model_star, model_unet, model_care, model_n2v):
-        if model_type == CUSTOM_MODEL:
+    def get_model(seg_model_type, den_model_type, model_star, model_unet, model_care, model_n2v):
+        if seg_model_type == CUSTOM_MODEL:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
             
@@ -73,33 +76,55 @@ def plugin_wrapper():
             
             config = model_configs[(model_type,model_star)]
             model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
-            
-            if model_care is not None:
-                path_care = Path(model_care)
-                path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
-                return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
-            if model_n2v is not None:
-                path_n2v = Path(model_n2v)
-                path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
-                return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
-
-              
-            elif model_care == None and model_n2v == None:
+            if den_model_type == CUSTOM_MODEL:    
+                if model_care is not None:
+                    path_care = Path(model_care)
+                    path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
+                    return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
+                if model_n2v is not None:
+                    path_n2v = Path(model_n2v)
+                    path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
+                    return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
+    
+            elif den_model_type != CUSTOM_MODEL and model_care is not None:
                 
-                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
+                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), model_type.from_pretrained(model_care)
+             
+            elif den_model_type != CUSTOM_MODEL and model_n2v is not None:
+                
+                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), model_type.from_pretrained(model_n2v)
+                 
+                
+            elif den_model_type != CUSTOM_MODEL and model_care == None and model_n2v == None:
+                    
+                     return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
         
         else:
             
-            if model_care is not None:
+              if den_model_type == CUSTOM_MODEL:    
+                  if model_care is not None:
+                      path_care = Path(model_care)
+                      path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
+                      return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), CARE(None, name=path_care.name, basedir=str(path_care.parent))
+                  if model_n2v is not None:
+                      path_n2v = Path(model_n2v)
+                      path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
+                      return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
+      
+              elif den_model_type != CUSTOM_MODEL and model_n2v is not None:
+                  
+                   return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_n2v)
+                   
+              elif den_model_type != CUSTOM_MODEL and model_care is not None:
+                  
+                   return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_care)    
+               
                 
-                 return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_care) 
-            if model_n2v is not None:
-                
-                 return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_n2v)
-                
-            elif model_care == None and model_n2v == None:
-                
-                 return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet)
+              elif den_model_type != CUSTOM_MODEL and model_care == None and model_n2v == None:
+                      
+                       return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
+        
+
 
     class Output(Enum):
         Labels = 'Label Image'
@@ -174,7 +199,8 @@ def plugin_wrapper():
        image: napari.layers.Image,
        axes,
        label_nn,
-       model_type,
+       seg_model_type,
+       den_model_type,
        model2d_star,
        model3d_star,
        model2d_unet,
@@ -194,16 +220,15 @@ def plugin_wrapper():
        n_tiles,
        norm_axes,
        timelapse_opts,
-       cnn_output,
        set_thresholds,
        defaults_button,
        progress_bar: mw.ProgressBar,
    ) -> List[napari.types.LayerDataTuple]:
 
-       model = get_model(*model_selected)
-       if model._is_multiclass():
-           warn("multi-class mode not supported yet, ignoring classification output")
-
+       model_star = get_model(*model_selected_star)
+       model_unet = get_model(*model_selected_unet)
+       model_care = get_model(*model_selected_care)
+       model_n2v = get_model(*model_selected_n2v)
        lkwargs = {}
        x = get_data(image)
        axes = axes_check_and_normalize(axes, length=x.ndim)
@@ -249,7 +274,7 @@ def plugin_wrapper():
                # remove tiling value for time axis
                n_tiles = tuple(v for i,v in enumerate(n_tiles) if i != t)
            def progress(it, **kwargs):
-               progress_bar.label = 'StarDist Prediction (frames)'
+               progress_bar.label = 'VollSeg Prediction (frames)'
                progress_bar.range = (0, n_frames)
                progress_bar.value = 0
                progress_bar.show()
@@ -278,7 +303,7 @@ def plugin_wrapper():
                app.process_events()
        else:
            progress = False
-           progress_bar.label = 'StarDist Prediction'
+           progress_bar.label = 'VollSeg Prediction'
            progress_bar.range = (0, 0)
            progress_bar.show()
            use_app().process_events()
@@ -286,6 +311,9 @@ def plugin_wrapper():
        if 'T' in axes:
            x_reorder = np.moveaxis(x, t, 0)
            axes_reorder = axes.replace('T','')
+           
+           
+           
            res = tuple(zip(*tuple(model.predict_instances(_x, axes=axes_reorder,
                                            prob_thresh=prob_thresh, nms_thresh=nms_thresh,
                                            n_tiles=n_tiles,
