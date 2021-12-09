@@ -62,12 +62,13 @@ def plugin_wrapper():
     model_selected_care = None
     model_selected_n2v = None
     
-    CUSTOM_MODEL = 'CUSTOM_MODEL'
-    seg_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_MODEL)]
-    den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V) ('Custom N2V/CARE', CUSTOM_MODEL)]
+    CUSTOM_SEG_MODEL = 'CUSTOM_SEG_MODEL'
+    CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
+    seg_model_type_choices = [('2D', SmartSeedPrediction2D), ('3D', SmartSeedPrediction3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL)]
+    den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V) ('Custom N2V/CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_care, model_n2v):
-        if seg_model_type == CUSTOM_MODEL:
+        if seg_model_type == CUSTOM_SEG_MODEL:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
             
@@ -76,7 +77,7 @@ def plugin_wrapper():
             
             config = model_configs[(model_type,model_star)]
             model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
-            if den_model_type == CUSTOM_MODEL:    
+            if den_model_type == CUSTOM_DEN_MODEL:    
                 if model_care is not None:
                     path_care = Path(model_care)
                     path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
@@ -86,22 +87,22 @@ def plugin_wrapper():
                     path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
                     return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
     
-            elif den_model_type != CUSTOM_MODEL and model_care is not None:
+            elif den_model_type != CUSTOM_DEN_MODEL and model_care is not None:
                 
                  return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), model_type.from_pretrained(model_care)
              
-            elif den_model_type != CUSTOM_MODEL and model_n2v is not None:
+            elif den_model_type != CUSTOM_DEN_MODEL and model_n2v is not None:
                 
                  return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), model_type.from_pretrained(model_n2v)
                  
                 
-            elif den_model_type != CUSTOM_MODEL and model_care == None and model_n2v == None:
+            elif den_model_type != CUSTOM_DEN_MODEL and model_care == None and model_n2v == None:
                     
                      return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
         
         else:
             
-              if den_model_type == CUSTOM_MODEL:    
+              if den_model_type == CUSTOM_DEN_MODEL:    
                   if model_care is not None:
                       path_care = Path(model_care)
                       path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
@@ -111,16 +112,16 @@ def plugin_wrapper():
                       path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
                       return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
       
-              elif den_model_type != CUSTOM_MODEL and model_n2v is not None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_n2v is not None:
                   
                    return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_n2v)
                    
-              elif den_model_type != CUSTOM_MODEL and model_care is not None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_care is not None:
                   
                    return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_care)    
                
                 
-              elif den_model_type != CUSTOM_MODEL and model_care == None and model_n2v == None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_care == None and model_n2v == None:
                       
                        return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet)
         
@@ -313,7 +314,12 @@ def plugin_wrapper():
            axes_reorder = axes.replace('T','')
            
            
-           
+           if plugin.seg_model_type.value == SmartSeedPrediction3D:
+               
+               
+           else:
+               
+               
            res = tuple(zip(*tuple(model.predict_instances(_x, axes=axes_reorder,
                                            prob_thresh=prob_thresh, nms_thresh=nms_thresh,
                                            n_tiles=n_tiles,
