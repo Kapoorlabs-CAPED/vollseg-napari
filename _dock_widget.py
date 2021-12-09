@@ -19,6 +19,8 @@ from enum import Enum
 import numpy as np
 from pathlib import Path
 from warnings import warn
+from tifffile import imread, imwrite
+from vollseg import inrimage, klb, h5, spatial_image
 def plugin_wrapper():
     
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
@@ -127,6 +129,50 @@ def plugin_wrapper():
     n_tiles        = 'None'
 )                  
      
+
+
+def inrimage_file_reader(path):
+   array = inrimage.read_inrimage(path)
+   # return it as a list of LayerData tuples,
+   # here with no optional metadata
+   return [(array,)]
+
+def klbimage_file_reader(path):
+   array = klb.read_klb(path)
+   # return it as a list of LayerData tuples,
+   # here with no optional metadata
+   return [(array,)]
+
+def tifimage_file_reader(path):
+   array = imread(path)
+   # return it as a list of LayerData tuples,
+   # here with no optional metadata
+   return [(array,)]
+
+def h5image_file_reader(path):
+   array = h5.read_h5(path)
+   # return it as a list of LayerData tuples,
+   # here with no optional metadata
+   return [(array,)]
+
+
+@napari_hook_implementation
+def napari_get_reader(path):
+   # If we recognize the format, we return the actual reader function
+   if isinstance(path, str) and path.endswith(".inr"):
+      
+      return inrimage_file_reader
+   if isinstance(path, str) and path.endswith(".klb"):
+      return klbimage_file_reader
+   if isinstance(path, str) and path.endswith(".tif"):
+      return tifimage_file_reader
+   if isinstance(path, str) and path.endswith(".h5"):
+      return h5image_file_reader
+    
+   else:
+      # otherwise we return None.
+      return None
+
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
