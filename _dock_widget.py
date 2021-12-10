@@ -30,6 +30,8 @@ def plugin_wrapper():
     from stardist.models import StarDist2D, StarDist3D
     from vollseg import VollSeg3D, VollSeg2D
     from csbdeep.models import Config, CARE
+    
+    
     from n2v.models import N2V
     from stardist.utils import abspath
     
@@ -459,7 +461,7 @@ def plugin_wrapper():
     # don't want to load persisted values for these widgets
     plugin.axes.value = ''
     plugin.n_tiles.value = DEFAULTS['n_tiles']
-    plugin.label_head.value = '<small>Star-convex object detection for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/stardist/stardist#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="https://stardist.net" style="color:gray;">https://stardist.net</a></tt>'
+    plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html</a></tt>'
 
     # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
     for w in (plugin.label_head, plugin.label_nn, plugin.label_nms, plugin.label_adv):
@@ -468,8 +470,10 @@ def plugin_wrapper():
     # -------------------------------------------------------------------------
 
     widget_for_modeltype = {
-       StarDist2D:   plugin.model2d_star,
-       StarDist3D:   plugin.model3d_star,
+       VollSeg2D:   (plugin.model2d_star, plugin.model2d_unet),
+       VollSeg3D:   (plugin.model3d_star, plugin.model3d_unet),
+       CARE:         plugin.model_den_care,
+       N2V:          plugin.model_den_n2v,
        CUSTOM_SEG_MODEL: plugin.model_folder,
        CUSTOM_DEN_MODEL: plugin.model_folder,
     }
