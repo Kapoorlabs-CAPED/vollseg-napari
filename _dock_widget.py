@@ -15,6 +15,7 @@ from napari.utils.colormaps import label_colormap
 from typing import List, Union
 import functools
 import time
+from napari.layers import Image, Shapes
 from enum import Enum
 import numpy as np
 from pathlib import Path
@@ -62,23 +63,26 @@ def plugin_wrapper():
     # get available models
     _models2d_star, _aliases2d_star = get_registered_models(StarDist2D)
     _models3d_star, _aliases3d_star = get_registered_models(StarDist3D)
+    
+    
+    
     # use first alias for model selection (if alias exists)
     models2d_star = [((_aliases2d_star[m][0] if len(_aliases2d_star[m]) > 0 else m),m) for m in _models2d_star]
     models3d_star = [((_aliases3d_star[m][0] if len(_aliases3d_star[m]) > 0 else m),m) for m in _models3d_star]
     
-    _models2d_unet, _aliases2d_unet = get_registered_models(CARE)
-    _models3d_unet, _aliases3d_unet = get_registered_models(CARE)
+    _models2d_unet, _aliases2d_unet = get_registered_models(StarDist3D)
+    _models3d_unet, _aliases3d_unet = get_registered_models(StarDist3D)
     # use first alias for model selection (if alias exists)
     models2d_unet = [((_aliases2d_unet[m][0] if len(_aliases2d_unet[m]) > 0 else m),m) for m in _models2d_unet]
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
     
-    _models_denoise_care, _aliases_denoise_care = get_registered_models(CARE)
+    _models_den_care, _aliases_den_care = get_registered_models(StarDist3D)
     # use first alias for model selection (if alias exists)
-    models_denoise_care = [((_aliases_denoise_care[m][0] if len(_aliases_denoise_care[m]) > 0 else m),m) for m in _models_denoise_care]
+    models_den_care = [((_aliases_den_care[m][0] if len(_aliases_den_care[m]) > 0 else m),m) for m in _models_den_care]
     
-    _models_denoise_n2v, _aliases_denoise_n2v = get_registered_models(N2V)
+    _models_den_n2v, _aliases_den_n2v = get_registered_models(StarDist3D)
     # use first alias for model selection (if alias exists)
-    models_denoise_n2v = [((_aliases_denoise_n2v[m][0] if len(_aliases_denoise_n2v[m]) > 0 else m),m) for m in _models_denoise_n2v]
+    models_den_n2v = [((_aliases_den_n2v[m][0] if len(_aliases_den_n2v[m]) > 0 else m),m) for m in _models_den_n2v]
     
     
     model_configs = dict()
@@ -169,8 +173,8 @@ def plugin_wrapper():
             model2d_unet   = models2d_unet[0][1],
             model3d_star        = models3d_star[0][1],
             model3d_unet   = models3d_unet[0][1],
-            model_denoise_n2v  = models_denoise_n2v[0][1],
-            model_denoise_care  = models_denoise_care[0][1],
+            model_den_n2v  = models_den_n2v[0][1],
+            model_den_care  = models_den_care[0][1],
             norm_image     = True,
             perc_low       =  1.0,
             perc_high      = 99.8,
@@ -202,11 +206,12 @@ def plugin_wrapper():
         model2d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models2d_unet, value=DEFAULTS['model2d_unet']),
         model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS['model3d_unet']),
         
-        model_denoise_n2v   = dict(widget_type='ComboBox', visible=False, label='Pre-trained N2V Model', choices=models_denoise_n2v, value=DEFAULTS['model_denoise_n2v']), 
-        model_denoise_care   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Model', choices=models_denoise_care, value=DEFAULTS['model_denoise_care']),
+        model_den_care   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Model', choices=models_den_care, value=DEFAULTS['model_den_care']),
+        model_den_n2v   = dict(widget_type='ComboBox', visible=False, label='Pre-trained N2V Model', choices=models_den_n2v, value=DEFAULTS['model_den_n2v']), 
+       
         
         model_folder    = dict(widget_type='FileEdit', visible=False, label='Custom Model', mode='d'),
-        result_folder    = dict(widget_type='FileEdit', visible=False, label='Result Folderl', mode='d'),
+        result_folder    = dict(widget_type='FileEdit', visible=False, label='Result Folder', mode='d'),
         model_axes      = dict(widget_type='LineEdit', label='Model Axes', value=''),
         norm_image      = dict(widget_type='CheckBox', text='Normalize Image', value=DEFAULTS['norm_image']),
         label_nms       = dict(widget_type='Label', label='<br><b>NMS Postprocessing:</b>'),
@@ -235,8 +240,7 @@ def plugin_wrapper():
     def plugin (
        viewer: napari.Viewer,
        label_head,
-       image: napari.layers.Image,
-       name: napari.layers.Image.name,
+       image: Image,
        axes,
        label_nn,
        seg_model_type,
@@ -265,7 +269,6 @@ def plugin_wrapper():
        label_adv,
        n_tiles,
        norm_axes,
-       timelapse_opts,
        set_thresholds,
        defaults_button,
        progress_bar: mw.ProgressBar,
@@ -486,7 +489,27 @@ def plugin_wrapper():
     def widgets_valid(*widgets, valid):
        for widget in widgets:
            widget.native.setStyleSheet("" if valid else "background-color: lightcoral")
+   
+    # allow some widgets to shrink because their size depends on user input
+    plugin.image.native.setMinimumWidth(240)
+    plugin.model2d_star.native.setMinimumWidth(240)
+    plugin.model3d_star.native.setMinimumWidth(240)
+   
 
+    plugin.label_head.native.setOpenExternalLinks(True)
+    # make reset button smaller
+    # plugin.defaults_button.native.setMaximumWidth(150)
+
+    # plugin.model_axes.native.setReadOnly(True)
+    plugin.model_axes.enabled = False
+
+    # push 'call_button' and 'progress_bar' to bottom
+    layout = plugin.native.layout()
+    layout.insertStretch(layout.count()-2)
+   
+    return plugin
+   
+    
 def inrimage_file_reader(path):
    array = inrimage.read_inrimage(path)
    # return it as a list of LayerData tuples,
