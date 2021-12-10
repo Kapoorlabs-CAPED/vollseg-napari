@@ -28,7 +28,7 @@ def plugin_wrapper():
     from csbdeep.utils import load_json
     DEBUG = False
     from stardist.models import StarDist2D, StarDist3D
-    from vollseg import SmartSeedPrediction3D, SmartSeedPrediction2D
+    from vollseg import VollSeg3D, VollSeg2D
     from csbdeep.models import Config, CARE
     from n2v.models import N2V
     
@@ -64,7 +64,7 @@ def plugin_wrapper():
     
     CUSTOM_SEG_MODEL = 'CUSTOM_SEG_MODEL'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
-    seg_model_type_choices = [('2D', SmartSeedPrediction2D), ('3D', SmartSeedPrediction3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL)]
+    seg_model_type_choices = [('2D', VollSeg2D), ('3D', VollSeg3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL)]
     den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V) ('Custom N2V/CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_care, model_n2v):
@@ -137,7 +137,7 @@ def plugin_wrapper():
     output_choices = [Output.Labels.value, Output.Binary_mask.value, Output.Denoised_image.value, Output.Prob.value, Output.Markers.value, Output.All.value]  
     
     DEFAULTS = dict (
-            seg_model_type = SmartSeedPrediction3D,
+            seg_model_type = VollSeg3D,
             den_model_type = N2V,
             model2d_star        = models2d_star[0][1],
             model2d_unet   = models2d_unet[0][1],
@@ -152,7 +152,10 @@ def plugin_wrapper():
             prob_thresh    = 0.5,
             nms_thresh     = 0.4,
             output_type    = Output.All.value,
-            n_tiles        = 'None'
+            n_tiles        = 'None',
+            dounet         = True,
+            prob_map_watershed = True,
+            min_size = 5,
     )                  
      
     logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
@@ -174,6 +177,7 @@ def plugin_wrapper():
         model_denoise_care   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Model', choices=models_denoise_care, value=DEFAULTS['model_denoise_care']),
         
         model_folder    = dict(widget_type='FileEdit', visible=False, label='Custom Model', mode='d'),
+        result_folder    = dict(widget_type='FileEdit', visible=False, label='Result Folderl', mode='d'),
         model_axes      = dict(widget_type='LineEdit', label='Model Axes', value=''),
         norm_image      = dict(widget_type='CheckBox', text='Normalize Image', value=DEFAULTS['norm_image']),
         label_nms       = dict(widget_type='Label', label='<br><b>NMS Postprocessing:</b>'),
@@ -186,6 +190,7 @@ def plugin_wrapper():
         label_adv       = dict(widget_type='Label', label='<br><b>Advanced Options:</b>'),
         n_tiles         = dict(widget_type='LiteralEvalLineEdit', label='Number of Tiles', value=DEFAULTS['n_tiles']),
         timelapse_opts  = dict(widget_type='ComboBox', label='Time-lapse Labels ', choices=timelapse_opts, value=DEFAULTS['timelapse_opts']),
+        prob_map_watershed      = dict(widget_type='CheckBox', text='Use Probability Map (watershed)', value=DEFAULTS['prob_map_watershed']),
         set_thresholds  = dict(widget_type='PushButton', text='Set optimized postprocessing thresholds (for selected model)'),
         defaults_button = dict(widget_type='PushButton', text='Restore Defaults'),
         progress_bar    = dict(label=' ', min=0, max=0, visible=False),
@@ -198,6 +203,7 @@ def plugin_wrapper():
        viewer: napari.Viewer,
        label_head,
        image: napari.layers.Image,
+       name: napari.layers.Image.name,
        axes,
        label_nn,
        seg_model_type,
@@ -209,6 +215,7 @@ def plugin_wrapper():
        model_den_n2v,
        model_den_care,
        model_folder,
+       result_folder,
        model_axes,
        norm_image,
        perc_low,
@@ -313,13 +320,24 @@ def plugin_wrapper():
            x_reorder = np.moveaxis(x, t, 0)
            axes_reorder = axes.replace('T','')
            
-           
-           if plugin.seg_model_type.value == SmartSeedPrediction3D:
+           if isinstance(model, VollSeg3D):
+          
+                       
+                  res = tuple(zip(*tuple( VollSeg3D( _x,  UnetModel, StarModel, axes='ZYX', NoiseModel = None, min_size_mask = 100, min_size = 100, max_size = 100000,
+                  n_tiles = (1,2,2), UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0, dounet = True, seedpool = True, otsu = False, startZ = 0)
+                                                   for _x in progress(x_reorder))))
+            
+          
+                  res = tuple(zip(*tuple(model.predict_instances(_x, axes=axes_reorder,
+                                                  prob_thresh=prob_thresh, nms_thresh=nms_thresh,
+                                                  n_tiles=n_tiles,
+                                                  sparse=(not cnn_output), return_predict=cnn_output)
+                                                   for _x in progress(x_reorder))))
+                  
                
+            else:
                
-           else:
-               
-               
+               SizedSmartSeeds, SizedMask, StarImage, ProbabilityMap, Markers, denimage 
            res = tuple(zip(*tuple(model.predict_instances(_x, axes=axes_reorder,
                                            prob_thresh=prob_thresh, nms_thresh=nms_thresh,
                                            n_tiles=n_tiles,
