@@ -19,26 +19,10 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     packages=find_packages(),
-    python_requires='>=3.6',
-    use_scm_version=True,
-    install_requires=install_deps,
-    setup_requires=['setuptools_scm', 'pytest-runner'],
-    tests_require=['pytest', 'pytest-qt'],
-    extras_require={
-      "docs": [
-        'sphinx>=3.0',
-        'sphinxcontrib-apidoc',
-        'sphinx_rtd_theme',
-        'sphinx-prompt',
-        'sphinx-autodoc-typehints',
-      ]
-    },
+    install_requires=install_deps
     include_package_data=True,
     classifiers=[
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Operating System :: OS Independent',
         'License :: OSI Approved :: BSD License',
