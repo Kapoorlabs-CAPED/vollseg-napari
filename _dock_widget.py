@@ -366,7 +366,7 @@ def plugin_wrapper():
                       noise_model = model_n2v 
                   if model_care == None and model_n2v == None:
                       noise_model = None
-                  res = tuple(zip(*tuple( VollSeg3D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                  res = tuple(zip(*tuple( VollSeg3D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                                                    for _x in progress(x_reorder))))
             
@@ -378,7 +378,7 @@ def plugin_wrapper():
                       noise_model = model_n2v 
                   if model_care == None and model_n2v == None:
                       noise_model = None
-                  res = tuple(zip(*tuple( VollSeg2D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                  res = tuple(zip(*tuple( VollSeg2D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                                                    for _x in progress(x_reorder))))
                
@@ -407,7 +407,7 @@ def plugin_wrapper():
                       noise_model = model_n2v 
                   if model_care == None and model_n2v == None:
                       noise_model = None
-                  pred =  VollSeg3D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                  pred =  VollSeg3D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
             
            elif isinstance(model_star, VollSeg2D):
@@ -418,7 +418,7 @@ def plugin_wrapper():
                       noise_model = model_n2v 
                   if model_care == None and model_n2v == None:
                       noise_model = None
-                  pred = VollSeg2D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                  pred = VollSeg2D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                   
                   
