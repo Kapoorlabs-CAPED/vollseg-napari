@@ -539,11 +539,11 @@ typing.Tuple[()]
 typing.Tuple[int, str]
 <class 'pipenv.vendor.packaging.version.Version'>
 <class 'str'>
-<function NewType.<locals>.new_type at 0x7f97bbd02f28>
+<function NewType.<locals>.new_type at 0x7ffb91ba8f28>
 <class 'pipenv.vendor.packaging.version.Version'>
 typing.Union[typing.Tuple[()], typing.Tuple[int, str]]
 typing.FrozenSet[pipenv.vendor.packaging.tags.Tag]
-<function NewType.<locals>.new_type at 0x7f97bbd02f28>
+<function NewType.<locals>.new_type at 0x7ffb91ba8f28>
 <class 'pipenv.vendor.packaging.version.Version'>
 <class 'pipenv.vendor.packaging.version.Version'>
 <class 'pipenv.vendor.packaging.version.LegacyVersion'>
@@ -628,11 +628,11 @@ typing.Tuple[typing.Union[pipenv.patched.notpip._vendor.packaging._structures.In
 <class 'NoneType'>
 <class 'pipenv.patched.notpip._vendor.packaging.version.Version'>
 <class 'str'>
-<function NewType.<locals>.new_type at 0x7f97bc534950>
+<function NewType.<locals>.new_type at 0x7ffb923f4950>
 <class 'pipenv.patched.notpip._vendor.packaging.version.Version'>
 typing.Union[typing.Tuple[()], typing.Tuple[int, str]]
 typing.FrozenSet[pipenv.patched.notpip._vendor.packaging.tags.Tag]
-<function NewType.<locals>.new_type at 0x7f97bc534950>
+<function NewType.<locals>.new_type at 0x7ffb923f4950>
 <class 'pipenv.patched.notpip._vendor.packaging.version.Version'>
 <class 'pipenv.patched.notpip._vendor.packaging.version.Version'>
 <class 'pipenv.patched.notpip._vendor.packaging.version.LegacyVersion'>
@@ -969,7 +969,7 @@ typing.Any
 <class 'dict'>
 <class 'int'>
 typing.Any
-<function NewType.<locals>.new_type at 0x7f97bd114048>
+<function NewType.<locals>.new_type at 0x7ffb93113048>
 <class 'str'>
 typing.Union[int, str]
 typing.Dict[str, str]
@@ -1138,11 +1138,11 @@ typing.Tuple[typing.Union[packaging._structures.InfinityType, packaging._structu
 <class 'NoneType'>
 <class 'packaging.version.Version'>
 <class 'str'>
-<function NewType.<locals>.new_type at 0x7f97bd2ab9d8>
+<function NewType.<locals>.new_type at 0x7ffb932ab9d8>
 <class 'packaging.version.Version'>
 typing.Union[typing.Tuple[()], typing.Tuple[int, str]]
 typing.FrozenSet[packaging.tags.Tag]
-<function NewType.<locals>.new_type at 0x7f97bd2ab9d8>
+<function NewType.<locals>.new_type at 0x7ffb932ab9d8>
 <class 'packaging.version.Version'>
 <class 'packaging.version.Version'>
 <class 'packaging.version.LegacyVersion'>
@@ -1184,40 +1184,5 @@ typing.Dict[str, str]
 #    pipenv lock --requirements
 #
 
-<class 'str'>
-<class 'pipenv.patched.notpip._internal.commands.CommandInfo'>
-<class 'pipenv.patched.notpip._vendor.packaging.requirements.Requirement'>
-typing.Union[pipenv.patched.notpip._vendor.packaging.version.LegacyVersion, pipenv.patched.notpip._vendor.packaging.version.Version]
-typing.List[pipenv.patched.notpip._vendor.packaging.requirements.Requirement]
-NormalizedName
-<class 'pipenv.patched.notpip._internal.operations.check.PackageDetails'>
-NormalizedName
-<class 'pipenv.patched.notpip._vendor.packaging.requirements.Requirement'>
-NormalizedName
-typing.Union[pipenv.patched.notpip._vendor.packaging.version.LegacyVersion, pipenv.patched.notpip._vendor.packaging.version.Version]
-<class 'pipenv.patched.notpip._vendor.packaging.requirements.Requirement'>
-typing.Tuple[ForwardRef('NormalizedName'), pipenv.patched.notpip._vendor.packaging.requirements.Requirement]
-NormalizedName
-typing.List[typing.Tuple[ForwardRef('NormalizedName'), pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]
-typing.Tuple[ForwardRef('NormalizedName'), typing.Union[pipenv.patched.notpip._vendor.packaging.version.LegacyVersion, pipenv.patched.notpip._vendor.packaging.version.Version], pipenv.patched.notpip._vendor.packaging.requirements.Requirement]
-NormalizedName
-typing.List[typing.Tuple[ForwardRef('NormalizedName'), typing.Union[pipenv.patched.notpip._vendor.packaging.version.LegacyVersion, pipenv.patched.notpip._vendor.packaging.version.Version], pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]
-typing.Dict[ForwardRef('NormalizedName'), typing.List[typing.Tuple[ForwardRef('NormalizedName'), pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]]
-typing.Dict[ForwardRef('NormalizedName'), typing.List[typing.Tuple[ForwardRef('NormalizedName'), typing.Union[pipenv.patched.notpip._vendor.packaging.version.LegacyVersion, pipenv.patched.notpip._vendor.packaging.version.Version], pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]]
-typing.Dict[ForwardRef('NormalizedName'), pipenv.patched.notpip._internal.operations.check.PackageDetails]
-typing.Tuple[typing.Dict[ForwardRef('NormalizedName'), typing.List[typing.Tuple[ForwardRef('NormalizedName'), pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]], typing.Dict[ForwardRef('NormalizedName'), typing.List[typing.Tuple[ForwardRef('NormalizedName'), typing.Union[pipenv.patched.notpip._vendor.packaging.version.LegacyVersion, pipenv.patched.notpip._vendor.packaging.version.Version], pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]]]
-typing.Dict[ForwardRef('NormalizedName'), pipenv.patched.notpip._internal.operations.check.PackageDetails]
-<class 'bool'>
-<class 'bool'>
-<class 'pipenv.patched.notpip._internal.req.req_install.InstallRequirement'>
-typing.List[pipenv.patched.notpip._internal.req.req_install.InstallRequirement]
-typing.List[pipenv.patched.notpip._internal.req.req_install.InstallRequirement]
-typing.Tuple[typing.Dict[ForwardRef('NormalizedName'), pipenv.patched.notpip._internal.operations.check.PackageDetails], typing.Tuple[typing.Dict[ForwardRef('NormalizedName'), typing.List[typing.Tuple[ForwardRef('NormalizedName'), pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]], typing.Dict[ForwardRef('NormalizedName'), typing.List[typing.Tuple[ForwardRef('NormalizedName'), typing.Union[pipenv.patched.notpip._vendor.packaging.version.LegacyVersion, pipenv.patched.notpip._vendor.packaging.version.Version], pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]]]]
-typing.Tuple[typing.Dict[ForwardRef('NormalizedName'), pipenv.patched.notpip._internal.operations.check.PackageDetails], typing.Tuple[typing.Dict[ForwardRef('NormalizedName'), typing.List[typing.Tuple[ForwardRef('NormalizedName'), pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]], typing.Dict[ForwardRef('NormalizedName'), typing.List[typing.Tuple[ForwardRef('NormalizedName'), typing.Union[pipenv.patched.notpip._vendor.packaging.version.LegacyVersion, pipenv.patched.notpip._vendor.packaging.version.Version], pipenv.patched.notpip._vendor.packaging.requirements.Requirement]]]]]
-<class 'NoneType'>
-<class 'str'>
-<class 'str'>
-<class 'str'>
-<class 'pipenv.patched.notpip._internal.metadata.base.BaseDistribution'>
-<class 'pipenv.patched.notpip._internal.metadata.base.BaseDistribution'>
-<class 'NoneType'>
+-i https://pypi.org/simple
+
