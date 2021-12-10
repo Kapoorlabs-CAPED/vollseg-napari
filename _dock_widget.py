@@ -26,12 +26,36 @@ def plugin_wrapper():
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
     from csbdeep.models.pretrained import get_registered_models, get_model_folder
     from csbdeep.utils import load_json
-    DEBUG = False
+    
     from stardist.models import StarDist2D, StarDist3D
     from vollseg import VollSeg3D, VollSeg2D
     from csbdeep.models import Config, CARE
     from n2v.models import N2V
+    from stardist.utils import abspath
     
+    
+    DEBUG = False
+    def get_data(image):
+       image = image.data[0] if image.multiscale else image.data
+       # enforce dense numpy array in case we are given a dask array etc
+       return np.asarray(image)
+
+    def change_handler(*widgets, init=True, debug=DEBUG):
+       def decorator_change_handler(handler):
+           @functools.wraps(handler)
+           def wrapper(*args):
+               source = Signal.sender()
+               emitter = Signal.current_emitter()
+               if debug:
+                   # print(f"{emitter}: {source} = {args!r}")
+                   print(f"{str(emitter.name).upper()}: {source.name} = {args!r}")
+               return handler(*args)
+           for widget in widgets:
+               widget.changed.connect(wrapper)
+               if init:
+                   widget.changed(widget.value)
+           return wrapper
+       return decorator_change_handler
     
     # get available models
     _models2d_star, _aliases2d_star = get_registered_models(StarDist2D)
@@ -75,7 +99,7 @@ def plugin_wrapper():
             path_unet = Path(model_unet)
             path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
             
-            config = model_configs[(model_type,model_star)]
+            config = model_configs[(seg_model_type,model_star)]
             model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
             if den_model_type == CUSTOM_DEN_MODEL:    
                 if model_care is not None:
@@ -89,11 +113,11 @@ def plugin_wrapper():
     
             elif den_model_type != CUSTOM_DEN_MODEL and model_care is not None:
                 
-                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), model_type.from_pretrained(model_care)
+                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_care)
              
             elif den_model_type != CUSTOM_DEN_MODEL and model_n2v is not None:
                 
-                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), model_type.from_pretrained(model_n2v)
+                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_n2v)
                  
                 
             elif den_model_type != CUSTOM_DEN_MODEL and model_care == None and model_n2v == None:
@@ -106,24 +130,24 @@ def plugin_wrapper():
                   if model_care is not None:
                       path_care = Path(model_care)
                       path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
-                      return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), CARE(None, name=path_care.name, basedir=str(path_care.parent))
+                      return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), CARE(None, name=path_care.name, basedir=str(path_care.parent))
                   if model_n2v is not None:
                       path_n2v = Path(model_n2v)
                       path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
-                      return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
+                      return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
       
               elif den_model_type != CUSTOM_DEN_MODEL and model_n2v is not None:
                   
-                   return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_n2v)
+                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_n2v)
                    
               elif den_model_type != CUSTOM_DEN_MODEL and model_care is not None:
                   
-                   return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet), model_type.from_pretrained(model_care)    
+                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_care)    
                
                 
               elif den_model_type != CUSTOM_DEN_MODEL and model_care == None and model_n2v == None:
                       
-                       return model_type.from_pretrained(model_star), model_type.from_pretrained(model_unet)
+                       return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet)
         
 
 
@@ -148,6 +172,9 @@ def plugin_wrapper():
             norm_image     = True,
             perc_low       =  1.0,
             perc_high      = 99.8,
+            min_size_mask = 100,
+            min_size = 100,
+            max_size = 10000,
             norm_axes      = 'ZYX',
             prob_thresh    = 0.5,
             nms_thresh     = 0.4,
@@ -155,7 +182,7 @@ def plugin_wrapper():
             n_tiles        = 'None',
             dounet         = True,
             prob_map_watershed = True,
-            min_size = 5,
+            
     )                  
      
     logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
@@ -181,6 +208,10 @@ def plugin_wrapper():
         model_axes      = dict(widget_type='LineEdit', label='Model Axes', value=''),
         norm_image      = dict(widget_type='CheckBox', text='Normalize Image', value=DEFAULTS['norm_image']),
         label_nms       = dict(widget_type='Label', label='<br><b>NMS Postprocessing:</b>'),
+        min_size_mask        = dict(widget_type='FloatSpinBox', label='Min Size UNET',     min=0.0, max=1000.0, step=1,  value=DEFAULTS['min_size_mask']),
+        min_size       = dict(widget_type='FloatSpinBox', label='Min Size Star',             min=0.0, max=1000.0, step=1,  value=DEFAULTS['min_size']),
+        max_size       = dict(widget_type='FloatSpinBox', label='Max Size Star',             min=1000, max=100000.0, step=100,  value=DEFAULTS['max_size']),
+        
         perc_low        = dict(widget_type='FloatSpinBox', label='Percentile low',              min=0.0, max=100.0, step=0.1,  value=DEFAULTS['perc_low']),
         perc_high       = dict(widget_type='FloatSpinBox', label='Percentile high',             min=0.0, max=100.0, step=0.1,  value=DEFAULTS['perc_high']),
         norm_axes       = dict(widget_type='LineEdit',     label='Normalization Axes',                                         value=DEFAULTS['norm_axes']),
@@ -189,8 +220,8 @@ def plugin_wrapper():
         output_type     = dict(widget_type='ComboBox', label='Output Type', choices=output_choices, value=DEFAULTS['output_type']),
         label_adv       = dict(widget_type='Label', label='<br><b>Advanced Options:</b>'),
         n_tiles         = dict(widget_type='LiteralEvalLineEdit', label='Number of Tiles', value=DEFAULTS['n_tiles']),
-        timelapse_opts  = dict(widget_type='ComboBox', label='Time-lapse Labels ', choices=timelapse_opts, value=DEFAULTS['timelapse_opts']),
         prob_map_watershed      = dict(widget_type='CheckBox', text='Use Probability Map (watershed)', value=DEFAULTS['prob_map_watershed']),
+        dounet      = dict(widget_type='CheckBox', text='Use UNET for binary mask (else denoised)', value=DEFAULTS['dounet']),
         set_thresholds  = dict(widget_type='PushButton', text='Set optimized postprocessing thresholds (for selected model)'),
         defaults_button = dict(widget_type='PushButton', text='Restore Defaults'),
         progress_bar    = dict(label=' ', min=0, max=0, visible=False),
@@ -220,9 +251,14 @@ def plugin_wrapper():
        norm_image,
        perc_low,
        perc_high,
+       min_size_mask,
+       min_size,
+       max_size,
        label_nms,
        prob_thresh,
        nms_thresh,
+       prob_map_watershed,
+       dounet,
        output_type,
        label_adv,
        n_tiles,
@@ -241,8 +277,8 @@ def plugin_wrapper():
        x = get_data(image)
        axes = axes_check_and_normalize(axes, length=x.ndim)
 
-       if not axes.replace('T','').startswith(model._axes_out.replace('C','')):
-           warn(f"output images have different axes ({model._axes_out.replace('C','')}) than input image ({axes})")
+       if not axes.replace('T','').startswith(model_star._axes_out.replace('C','')):
+           warn(f"output images have different axes ({model_star._axes_out.replace('C','')}) than input image ({axes})")
            # TODO: adjust image.scale according to shuffled axes
 
        if norm_image:
@@ -320,144 +356,130 @@ def plugin_wrapper():
            x_reorder = np.moveaxis(x, t, 0)
            axes_reorder = axes.replace('T','')
            
-           if isinstance(model, VollSeg3D):
+           if isinstance(model_star, VollSeg3D):
           
-                       
-                  res = tuple(zip(*tuple( VollSeg3D( _x,  UnetModel, StarModel, axes='ZYX', NoiseModel = None, min_size_mask = 100, min_size = 100, max_size = 100000,
-                  n_tiles = (1,2,2), UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0, dounet = True, seedpool = True, otsu = False, startZ = 0)
+                  if model_care is not None:
+                      noise_model = model_care
+                  if model_n2v is not None:
+                      noise_model = model_n2v 
+                  if model_care == None and model_n2v == None:
+                      noise_model = None
+                  res = tuple(zip(*tuple( VollSeg3D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                  n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                                                    for _x in progress(x_reorder))))
             
+           elif isinstance(model_star, VollSeg2D):
           
-                  res = tuple(zip(*tuple(model.predict_instances(_x, axes=axes_reorder,
-                                                  prob_thresh=prob_thresh, nms_thresh=nms_thresh,
-                                                  n_tiles=n_tiles,
-                                                  sparse=(not cnn_output), return_predict=cnn_output)
+                  if model_care is not None:
+                      noise_model = model_care
+                  if model_n2v is not None:
+                      noise_model = model_n2v 
+                  if model_care == None and model_n2v == None:
+                      noise_model = None
+                  res = tuple(zip(*tuple( VollSeg2D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                  n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                                                    for _x in progress(x_reorder))))
-                  
                
-            else:
                
-               SizedSmartSeeds, SizedMask, StarImage, ProbabilityMap, Markers, denimage 
-           res = tuple(zip(*tuple(model.predict_instances(_x, axes=axes_reorder,
-                                           prob_thresh=prob_thresh, nms_thresh=nms_thresh,
-                                           n_tiles=n_tiles,
-                                           sparse=(not cnn_output), return_predict=cnn_output)
-                                            for _x in progress(x_reorder))))
-
-           if cnn_output:
-               labels, polys = tuple(zip(*res[0]))
-               cnn_output = tuple(np.stack(c, t) for c in tuple(zip(*res[1])))
+               
+          
+           if noise_model is not None:
+               
+               labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = res
            else:
-               labels, polys = res
+               labels, SizedMask, StarImage, ProbabilityMap, Markers = res
 
            labels = np.asarray(labels)
 
-           if len(polys) > 1:
-               if timelapse_opts == TimelapseLabels.Match.value:
-                   # match labels in consecutive frames (-> simple IoU tracking)
-                   labels = match_labels(labels, iou_threshold=0)
-               elif timelapse_opts == TimelapseLabels.Unique.value:
-                   # make label ids unique (shift by offset)
-                   offsets = np.cumsum([len(p['points']) for p in polys])
-                   for y,off in zip(labels[1:],offsets):
-                       y[y>0] += off
-               elif timelapse_opts == TimelapseLabels.Separate.value:
-                   # each frame processed separately (nothing to do)
-                   pass
-               else:
-                   raise NotImplementedError(f"unknown option '{timelapse_opts}' for time-lapse labels")
-
            labels = np.moveaxis(labels, 0, t)
 
-           if isinstance(model, StarDist3D):
-               # TODO poly output support for 3D timelapse
-               polys = None
-           else:
-               polys = dict(
-                   coord =  np.concatenate(tuple(np.insert(p['coord'],  t, _t, axis=-2) for _t,p in enumerate(polys)),axis=0),
-                   points = np.concatenate(tuple(np.insert(p['points'], t, _t, axis=-1) for _t,p in enumerate(polys)),axis=0)
-               )
-
-           if cnn_output:
-               pred = (labels, polys), cnn_output
-           else:
-               pred = labels, polys
+           
 
        else:
            # TODO: possible to run this in a way that it can be canceled?
-           pred = model.predict_instances(x, axes=axes, prob_thresh=prob_thresh, nms_thresh=nms_thresh,
-                                          n_tiles=n_tiles, show_tile_progress=progress,
-                                          sparse=(not cnn_output), return_predict=cnn_output)
+           if isinstance(model_star, VollSeg3D):
+          
+                  if model_care is not None:
+                      noise_model = model_care
+                  if model_n2v is not None:
+                      noise_model = model_n2v 
+                  if model_care == None and model_n2v == None:
+                      noise_model = None
+                  pred =  VollSeg3D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                  n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
+            
+           elif isinstance(model_star, VollSeg2D):
+          
+                  if model_care is not None:
+                      noise_model = model_care
+                  if model_n2v is not None:
+                      noise_model = model_n2v 
+                  if model_care == None and model_n2v == None:
+                      noise_model = None
+                  pred = VollSeg2D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                  n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
+                  
+                  
        progress_bar.hide()
 
 
        layers = []
-       if cnn_output:
-           (labels,polys), cnn_out = pred
-           prob, dist = cnn_out[:2]
-           # if timeseries, only scale spatial part...
-           im_scale = tuple(s for i,s in enumerate(image.scale) if not axes[i] in ('T','C'))
-           scale = list(s1*s2 for s1, s2 in zip(im_scale, model.config.grid))
-           # small correction as napari centers object
-           translate = list(0.5*(s-1) for s in model.config.grid)
-           if 'T' in axes:
-               scale.insert(t,1)
-               translate.insert(t,0)
-           dist = np.moveaxis(dist, -1,0)
-           layers.append((dist, dict(name='StarDist distances',
-                                     scale=[1]+scale, translate=[0]+translate,
-                                     **lkwargs), 'image'))
-           layers.append((prob, dict(name='StarDist probability',
-                                     scale=scale, translate=translate,
-                                     **lkwargs), 'image'))
+     
+       if noise_model is not None:
+            
+            labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
        else:
-           labels, polys = pred
+            labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
+            
+       
+       # if timeseries, only scale spatial part...
+       im_scale = tuple(s for i,s in enumerate(image.scale) if not axes[i] in ('T','C'))
+       scale = list(s1*s2 for s1, s2 in zip(im_scale, model_star.config.grid))
+       # small correction as napari centers object
+       translate = list(0.5*(s-1) for s in model_star.config.grid)
+       if 'T' in axes:
+            scale.insert(t,1)
+            translate.insert(t,0)
+        
+       layers.append((ProbabilityMap, dict(name='Base Watershed Image',
+                                  scale=scale, translate=translate,
+                                  **lkwargs), 'image'))
 
-       if output_type in (Output.Labels.value,Output.Both.value):
-           layers.append((labels, dict(name='StarDist labels', scale=image.scale, opacity=.5, **lkwargs), 'labels'))
-       if output_type in (Output.Polys.value,Output.Both.value):
-           n_objects = len(polys['points'])
-           if isinstance(model, StarDist3D):
-               surface = surface_from_polys(polys)
-               layers.append((surface, dict(name='StarDist polyhedra',
-                                            contrast_limits=(0,surface[-1].max()),
-                                            scale=image.scale,
-                                            colormap=label_colormap(n_objects), **lkwargs), 'surface'))
-           else:
-               # TODO: sometimes hangs for long time (indefinitely?) when returning many polygons (?)
-               #       seems to be a known issue: https://github.com/napari/napari/issues/2015
-               # TODO: coordinates correct or need offset (0.5 or so)?
-               shapes = np.moveaxis(polys['coord'], -1,-2)
-               layers.append((shapes, dict(name='StarDist polygons', shape_type='polygon',
-                                           scale=image.scale,
-                                           edge_width=0.75, edge_color='yellow', face_color=[0,0,0,0], **lkwargs), 'shapes'))
+       if output_type in (Output.Labels.value,Output.All.value):
+           layers.append((labels, dict(name='VollSeg labels', scale=image.scale, opacity=.5, **lkwargs), 'labels'))
+       if output_type in (Output.Binary_mask.value,Output.All.value):
+           layers.append((SizedMask, dict(name='VollSeg Binary', scale=image.scale, opacity=.5, **lkwargs), 'binary mask'))
+       if output_type in (Output.Denoised_image.value,Output.All.value) and noise_model is not None:
+           layers.append((denimage, dict(name='Denoised Image', scale=image.scale, opacity=.5, **lkwargs), 'denoised image'))    
+       if output_type in (Output.Markers.value,Output.All.value):
+           layers.append((Markers, dict(name='Markers', scale=image.scale, opacity=.5, **lkwargs), 'markers'))    
        return layers
+    # -------------------------------------------------------------------------
 
-   # -------------------------------------------------------------------------
+    # don't want to load persisted values for these widgets
+    plugin.axes.value = ''
+    plugin.n_tiles.value = DEFAULTS['n_tiles']
+    plugin.label_head.value = '<small>Star-convex object detection for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/stardist/stardist#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="https://stardist.net" style="color:gray;">https://stardist.net</a></tt>'
 
-   # don't want to load persisted values for these widgets
-   plugin.axes.value = ''
-   plugin.n_tiles.value = DEFAULTS['n_tiles']
-   plugin.label_head.value = '<small>Star-convex object detection for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/stardist/stardist#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="https://stardist.net" style="color:gray;">https://stardist.net</a></tt>'
-
-   # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
-   for w in (plugin.label_head, plugin.label_nn, plugin.label_nms, plugin.label_adv):
+    # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
+    for w in (plugin.label_head, plugin.label_nn, plugin.label_nms, plugin.label_adv):
        w.native.setSizePolicy(1|2, 0)
 
-   # -------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
 
-   widget_for_modeltype = {
-       StarDist2D:   plugin.model2d,
-       StarDist3D:   plugin.model3d,
-       CUSTOM_MODEL: plugin.model_folder,
-   }
+    widget_for_modeltype = {
+       StarDist2D:   plugin.model2d_star,
+       StarDist3D:   plugin.model3d_star,
+       CUSTOM_SEG_MODEL: plugin.model_folder,
+       CUSTOM_DEN_MODEL: plugin.model_folder,
+    }
 
-   def widgets_inactive(*widgets, active):
+    def widgets_inactive(*widgets, active):
        for widget in widgets:
            widget.visible = active
            # widget.native.setStyleSheet("" if active else "text-decoration: line-through")
 
-   def widgets_valid(*widgets, valid):
+    def widgets_valid(*widgets, valid):
        for widget in widgets:
            widget.native.setStyleSheet("" if valid else "background-color: lightcoral")
 
