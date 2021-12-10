@@ -1,37 +1,59 @@
 from setuptools import setup, find_packages
+from os import path
+from version import __version__
 
+_dir = path.dirname(__file__)
 
-install_deps = ['napari',
-                'napari-plugin-engine>=0.1.4',
-                'vollseg',
-                'imagecodecs']
+with open(path.join(_dir,'vollseg_napari','_version.py'), encoding="utf-8") as f:
+    exec(f.read())
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+with open(path.join(_dir,'README.md'), encoding="utf-8") as f:
+    long_description = f.read()
+
 
 setup(
     name='vollseg-napari',
-    author='Varun Kapoor',
-    author_email='varun.kapoor@kapoorlabs.org',
-    license='BSD-3',
-    url='https://github.com/kapoorlab/vollseg-napari',
-    description='Segmentation tool for irregular cell shapes in 2/3D',
+    version=__version__,
+    description='Irregular cell shape segmentation using VollSeg',
     long_description=long_description,
     long_description_content_type='text/markdown',
+    url='https://github.com/kapoorlab/vollseg',
+    project_urls={
+        'Source Code': 'https://github.com/kapoorlab/vollseg-napari',
+        'Documentation': 'https://github.com/kapoorlab/vollseg-napari',
+        'Bug Tracker': 'https://github.com/kapoorlab/vollseg-napari/issues',
+        'User Support': 'https://forum.image.sc/tag/vollseg',
+        'Twitter': 'https://twitter.com/entracod',
+    },
+    author='Varun Kapoor',
+    author_email='varun.kapoor@kapoorlabs.org',
+    license='BSD 3-Clause License',
     packages=find_packages(),
-    install_requires=install_deps
-    include_package_data=True,
+    python_requires='>=3.7',
+
+    package_data={'vollseg_napari': [ 'resources/*' ]},
+
+    entry_points={'napari.plugin': 'VollSeg = vollseg_napari'},
+
     classifiers=[
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3.9',
-        'Operating System :: OS Independent',
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering',
         'License :: OSI Approved :: BSD License',
+
+        'Operating System :: OS Independent',
+
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+
         'Framework :: napari',
     ],
-    entry_points={
-        'napari.plugin': [
-            'vollseg-napari = vollseg_napari',
-        ],
-    },
-)
 
+    install_requires=[
+        'vollseg',
+        'tensorflow',
+        'napari>=0.4.9',
+        'magicgui>=0.3.0'
+    ],
+)
