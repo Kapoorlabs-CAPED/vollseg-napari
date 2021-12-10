@@ -97,7 +97,7 @@ def plugin_wrapper():
     seg_model_type_choices = [('2D', VollSeg2D), ('3D', VollSeg3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL)]
     den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V), ('Custom N2V/CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
-    def get_model(seg_model_type, den_model_type, model_star, model_unet, model_care, model_n2v):
+    def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den_care, model_den_n2v):
         if seg_model_type == CUSTOM_SEG_MODEL:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
@@ -108,50 +108,50 @@ def plugin_wrapper():
             config = model_configs[(seg_model_type,model_star)]
             model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
             if den_model_type == CUSTOM_DEN_MODEL:    
-                if model_care is not None:
-                    path_care = Path(model_care)
+                if model_den_care is not None:
+                    path_care = Path(model_den_care)
                     path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
                     return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
-                if model_n2v is not None:
-                    path_n2v = Path(model_n2v)
+                if model_den_n2v is not None:
+                    path_n2v = Path(model_den_n2v)
                     path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
                     return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
     
-            elif den_model_type != CUSTOM_DEN_MODEL and model_care is not None:
+            elif den_model_type != CUSTOM_DEN_MODEL and model_den_care is not None:
                 
-                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_care)
+                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den_care)
              
-            elif den_model_type != CUSTOM_DEN_MODEL and model_n2v is not None:
+            elif den_model_type != CUSTOM_DEN_MODEL and model_den_n2v is not None:
                 
-                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_n2v)
+                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den_n2v)
                  
                 
-            elif den_model_type != CUSTOM_DEN_MODEL and model_care == None and model_n2v == None:
+            elif den_model_type != CUSTOM_DEN_MODEL and model_den_care == None and model_den_n2v == None:
                     
                      return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
         
         else:
             
               if den_model_type == CUSTOM_DEN_MODEL:    
-                  if model_care is not None:
-                      path_care = Path(model_care)
+                  if model_den_care is not None:
+                      path_care = Path(model_den_care)
                       path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
                       return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), CARE(None, name=path_care.name, basedir=str(path_care.parent))
-                  if model_n2v is not None:
-                      path_n2v = Path(model_n2v)
+                  if model_den_n2v is not None:
+                      path_n2v = Path(model_den_n2v)
                       path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
                       return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
       
-              elif den_model_type != CUSTOM_DEN_MODEL and model_n2v is not None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_den_n2v is not None:
                   
-                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_n2v)
+                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_den_n2v)
                    
-              elif den_model_type != CUSTOM_DEN_MODEL and model_care is not None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_den_care is not None:
                   
-                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_care)    
+                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_den_care)    
                
                 
-              elif den_model_type != CUSTOM_DEN_MODEL and model_care == None and model_n2v == None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_den_care == None and model_den_n2v == None:
                       
                        return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet)
         
@@ -276,8 +276,8 @@ def plugin_wrapper():
 
        model_star = get_model(*model_selected_star)
        model_unet = get_model(*model_selected_unet)
-       model_care = get_model(*model_selected_care)
-       model_n2v = get_model(*model_selected_n2v)
+       model_den_care = get_model(*model_selected_care)
+       model_den_n2v = get_model(*model_selected_n2v)
        lkwargs = {}
        x = get_data(image)
        axes = axes_check_and_normalize(axes, length=x.ndim)
@@ -363,11 +363,11 @@ def plugin_wrapper():
            
            if isinstance(model_star, VollSeg3D):
           
-                  if model_care is not None:
-                      noise_model = model_care
-                  if model_n2v is not None:
-                      noise_model = model_n2v 
-                  if model_care == None and model_n2v == None:
+                  if model_den_care is not None:
+                      noise_model = model_den_care
+                  if model_den_n2v is not None:
+                      noise_model = model_den_n2v 
+                  if model_den_care == None and model_den_n2v == None:
                       noise_model = None
                   res = tuple(zip(*tuple( VollSeg3D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
@@ -375,11 +375,11 @@ def plugin_wrapper():
             
            elif isinstance(model_star, VollSeg2D):
           
-                  if model_care is not None:
-                      noise_model = model_care
-                  if model_n2v is not None:
-                      noise_model = model_n2v 
-                  if model_care == None and model_n2v == None:
+                  if model_den_care is not None:
+                      noise_model = model_den_care
+                  if model_den_n2v is not None:
+                      noise_model = model_den_n2v 
+                  if model_den_care == None and model_den_n2v == None:
                       noise_model = None
                   res = tuple(zip(*tuple( VollSeg2D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
@@ -404,22 +404,22 @@ def plugin_wrapper():
            # TODO: possible to run this in a way that it can be canceled?
            if isinstance(model_star, VollSeg3D):
           
-                  if model_care is not None:
-                      noise_model = model_care
-                  if model_n2v is not None:
-                      noise_model = model_n2v 
-                  if model_care == None and model_n2v == None:
+                  if model_den_care is not None:
+                      noise_model = model_den_care
+                  if model_den_n2v is not None:
+                      noise_model = model_den_n2v 
+                  if model_den_care == None and model_den_n2v == None:
                       noise_model = None
                   pred =  VollSeg3D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
             
            elif isinstance(model_star, VollSeg2D):
           
-                  if model_care is not None:
-                      noise_model = model_care
-                  if model_n2v is not None:
-                      noise_model = model_n2v 
-                  if model_care == None and model_n2v == None:
+                  if model_den_care is not None:
+                      noise_model = model_den_care
+                  if model_den_n2v is not None:
+                      noise_model = model_den_n2v 
+                  if model_den_care == None and model_den_n2v == None:
                       noise_model = None
                   pred = VollSeg2D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
@@ -506,6 +506,401 @@ def plugin_wrapper():
     # push 'call_button' and 'progress_bar' to bottom
     layout = plugin.native.layout()
     layout.insertStretch(layout.count()-2)
+   
+    class Updater:
+        def __init__(self, debug=DEBUG):
+            from types import SimpleNamespace
+            self.debug = debug
+            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den_care', 'model_den_n2v', 'n_tiles', 'norm_axes')})
+            self.args  = SimpleNamespace()
+            self.viewer = None
+
+        def __call__(self, k, valid, args=None):
+            assert k in vars(self.valid)
+            setattr(self.valid, k, bool(valid))
+            setattr(self.args,  k, args)
+            self._update()
+
+        def help(self, msg):
+            if self.viewer is not None:
+                self.viewer.help = msg
+            elif len(str(msg)) > 0:
+                print(f"HELP: {msg}")
+
+        def _update(self):
+
+            # try to get a hold of the viewer (can be None when plugin starts)
+            if self.viewer is None:
+                # TODO: when is this not safe to do and will hang forever?
+                # while plugin.viewer.value is None:
+                #     time.sleep(0.01)
+                if plugin.viewer.value is not None:
+                    self.viewer = plugin.viewer.value
+                    if DEBUG:
+                        print("GOT viewer")
+
+                    @self.viewer.layers.events.removed.connect
+                    def _layer_removed(event):
+                        layers_remaining = event.source
+                        if len(layers_remaining) == 0:
+                            plugin.image.tooltip = ''
+                            plugin.axes.value = ''
+                            plugin.n_tiles.value = 'None'
+
+
+            def _model(valid):
+                widgets_valid(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_n2v, plugin.model_den_care, plugin.model_folder.line_edit, valid=valid)
+                if valid:
+                    config = self.args.model
+                    axes = config.get('axes', 'ZYXC'[-len(config['net_input_shape']):])
+                    if 'T' in axes:
+                        raise RuntimeError("model with axis 'T' not supported")
+                    plugin.model_axes.value = axes.replace("C", f"C[{config['n_channel_in']}]")
+                    plugin.model_folder.line_edit.tooltip = ''
+                    return axes, config
+                else:
+                    plugin.model_axes.value = ''
+                    plugin.model_folder.line_edit.tooltip = 'Invalid model directory'
+
+            def _image_axes(valid):
+                axes, image, err = getattr(self.args, 'image_axes', (None,None,None))
+                widgets_valid(plugin.axes, valid=(valid or (image is None and (axes is None or len(axes) == 0))))
+                if valid and 'T' in axes and plugin.output_type.value in (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
+                    plugin.output_type.native.setStyleSheet("background-color: orange")
+                    plugin.output_type.tooltip = 'Displaying many polygons/polyhedra can be very slow.'
+                else:
+                    plugin.output_type.native.setStyleSheet("")
+                    plugin.output_type.tooltip = ''
+                if valid:
+                    plugin.axes.tooltip = '\n'.join([f'{a} = {s}' for a,s in zip(axes,get_data(image).shape)])
+                    return axes, image
+                else:
+                    if err is not None:
+                        err = str(err)
+                        err = err[:-1] if err.endswith('.') else err
+                        plugin.axes.tooltip = err
+                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
+                    else:
+                        plugin.axes.tooltip = ''
+
+            def _norm_axes(valid):
+                norm_axes, err = getattr(self.args, 'norm_axes', (None,None))
+                widgets_valid(plugin.norm_axes, valid=valid)
+                if valid:
+                    plugin.norm_axes.tooltip = f"Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together."
+                    return norm_axes
+                else:
+                    if err is not None:
+                        err = str(err)
+                        err = err[:-1] if err.endswith('.') else err
+                        plugin.norm_axes.tooltip = err
+                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
+                    else:
+                        plugin.norm_axes.tooltip = ''
+
+            def _n_tiles(valid):
+                n_tiles, image, err = getattr(self.args, 'n_tiles', (None,None,None))
+                widgets_valid(plugin.n_tiles, valid=(valid or image is None))
+                if valid:
+                    plugin.n_tiles.tooltip = 'no tiling' if n_tiles is None else '\n'.join([f'{t}: {s}' for t,s in zip(n_tiles,get_data(image).shape)])
+                    return n_tiles
+                else:
+                    msg = str(err) if err is not None else ''
+                    plugin.n_tiles.tooltip = msg
+
+            def _no_tiling_for_axis(axes_image, n_tiles, axis):
+                if n_tiles is not None and axis in axes_image:
+                    return n_tiles[axes_dict(axes_image)[axis]] == 1
+                return True
+
+            def _restore():
+                widgets_valid(plugin.image, valid=plugin.image.value is not None)
+
+
+            all_valid = False
+            help_msg = ''
+
+            if self.valid.image_axes and self.valid.n_tiles and self.valid.model and self.valid.norm_axes:
+                axes_image, image  = _image_axes(True)
+                axes_model, config = _model(True)
+                axes_norm          = _norm_axes(True)
+                n_tiles = _n_tiles(True)
+                if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
+                    # check if image axes and n_tiles are compatible
+                    widgets_valid(plugin.n_tiles, valid=False)
+                    err = 'number of tiles must be 1 for C axis'
+                    plugin.n_tiles.tooltip = err
+                    _restore()
+                elif not _no_tiling_for_axis(axes_image, n_tiles, 'T'):
+                    # check if image axes and n_tiles are compatible
+                    widgets_valid(plugin.n_tiles, valid=False)
+                    err = 'number of tiles must be 1 for T axis'
+                    plugin.n_tiles.tooltip = err
+                    _restore()
+                elif set(axes_norm).isdisjoint(set(axes_image)):
+                    # check if image axes and normalization axes are compatible
+                    widgets_valid(plugin.norm_axes, valid=False)
+                    err = f"Image axes ({axes_image}) must contain at least one of the normalization axes ({', '.join(axes_norm)})"
+                    plugin.norm_axes.tooltip = err
+                    _restore()
+                elif 'T' in axes_image and config.get('n_dim') == 3 and plugin.output_type.value in (Output.Polys.value,Output.Both.value):
+                    # not supported
+                    widgets_valid(plugin.output_type, valid=False)
+                    plugin.output_type.tooltip = 'Polyhedra output currently not supported for 3D timelapse data'
+                    _restore()
+                else:
+                    # check if image and model are compatible
+                    ch_model = config['n_channel_in']
+                    ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
+                    all_valid = set(axes_model.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model == ch_image
+
+                    widgets_valid(plugin.image, plugin.model2d, plugin.model3d, plugin.model_folder.line_edit, valid=all_valid)
+                    if all_valid:
+                        help_msg = ''
+                    else:
+                        help_msg = f'Model with axes {axes_model.replace("C", f"C[{ch_model}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
+            else:
+                _image_axes(self.valid.image_axes)
+                _norm_axes(self.valid.norm_axes)
+                _n_tiles(self.valid.n_tiles)
+                _model(self.valid.model)
+                _restore()
+
+            self.help(help_msg)
+            plugin.call_button.enabled = all_valid
+            # widgets_valid(plugin.call_button, valid=all_valid)
+            if self.debug:
+                print(f"valid ({all_valid}):", ', '.join([f'{k}={v}' for k,v in vars(self.valid).items()]))
+
+    update = Updater()
+
+
+    def select_model(key):
+        nonlocal model_selected
+        model_selected = key
+        config = model_configs.get(key)
+        update('model', config is not None, config)
+
+    # -------------------------------------------------------------------------
+
+    # hide percentile selection if normalization turned off
+    @change_handler(plugin.norm_image)
+    def _norm_image_change(active: bool):
+        widgets_inactive(plugin.perc_low, plugin.perc_high, plugin.norm_axes, active=active)
+
+    # ensure that percentile low < percentile high
+    @change_handler(plugin.perc_low)
+    def _perc_low_change():
+        plugin.perc_high.value = max(plugin.perc_low.value+0.01, plugin.perc_high.value)
+
+    @change_handler(plugin.perc_high)
+    def _perc_high_change():
+        plugin.perc_low.value  = min(plugin.perc_low.value, plugin.perc_high.value-0.01)
+
+    @change_handler(plugin.norm_axes)
+    def _norm_axes_change(value: str):
+        if value != value.upper():
+            with plugin.axes.changed.blocked():
+                plugin.norm_axes.value = value.upper()
+        try:
+            axes = axes_check_and_normalize(value, disallowed='S')
+            if len(axes) >= 1:
+                update('norm_axes', True, (axes, None))
+            else:
+                update('norm_axes', False, (axes, 'Cannot be empty'))
+        except ValueError as err:
+            update('norm_axes', False, (value, err))
+
+    # -------------------------------------------------------------------------
+
+    # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
+    # TODO: seems to be triggered too when a layer is added or removed (why?)
+    @change_handler(plugin.model_type, init=False)
+    def _model_type_change(model_type: Union[str, type]):
+        selected = widget_for_modeltype[model_type]
+        for w in set((plugin.model2d, plugin.model3d, plugin.model_folder)) - {selected}:
+            w.hide()
+        selected.show()
+        # trigger _model_change
+        selected.changed(selected.value)
+
+
+    # show/hide model folder picker
+    # load config/thresholds for selected pretrained model
+    # -> triggered by _model_type_change
+    @change_handler(plugin.model2d, plugin.model3d, init=False)
+    def _model_change(model_name: str):
+        model_class = StarDist2D if Signal.sender() is plugin.model2d else StarDist3D
+        key = model_class, model_name
+
+        if key not in model_configs:
+            @thread_worker
+            def _get_model_folder():
+                return get_model_folder(*key)
+
+            def _process_model_folder(path):
+                try:
+                    model_configs[key] = load_json(str(path/'config.json'))
+                    try:
+                        # not all models have associated thresholds
+                        model_threshs[key] = load_json(str(path/'thresholds.json'))
+                    except FileNotFoundError:
+                        pass
+                finally:
+                    select_model(key)
+                    plugin.progress_bar.hide()
+
+            worker = _get_model_folder()
+            worker.returned.connect(_process_model_folder)
+            worker.start()
+
+            # delay showing progress bar -> won't show up if model already downloaded
+            # TODO: hacky -> better way to do this?
+            time.sleep(0.1)
+            plugin.call_button.enabled = False
+            plugin.progress_bar.label = 'Downloading model'
+            plugin.progress_bar.show()
+
+        else:
+            select_model(key)
+
+
+    # load config/thresholds from custom model path
+    # -> triggered by _model_type_change
+    # note: will be triggered at every keystroke (when typing the path)
+    @change_handler(plugin.model_folder, init=False)
+    def _model_folder_change(_path: str):
+        path = Path(_path)
+        key = CUSTOM_SEG_MODEL, path
+        try:
+            if not path.is_dir(): return
+            model_configs[key] = load_json(str(path/'config.json'))
+            model_threshs[key] = load_json(str(path/'thresholds.json'))
+        except FileNotFoundError:
+            pass
+        finally:
+            select_model(key)
+
+    # -------------------------------------------------------------------------
+
+    # -> triggered by napari (if there are any open images on plugin launch)
+    @change_handler(plugin.image, init=False)
+    def _image_change(image: napari.layers.Image):
+        ndim = get_data(image).ndim
+        plugin.image.tooltip = f"Shape: {get_data(image).shape}"
+
+        # dimensionality of selected model: 2, 3, or None (unknown)
+        ndim_model = None
+        if plugin.model_type.value == VollSeg2D:
+            ndim_model = 2
+        elif plugin.model_type.value == VollSeg3D:
+            ndim_model = 3
+        else:
+            if model_selected in model_configs:
+                config = model_configs[model_selected_star]
+                ndim_model = config.get('n_dim')
+
+        # TODO: guess images axes better...
+        axes = None
+        if ndim == 2:
+            axes = 'YX'
+        elif ndim == 3:
+            axes = 'YXC' if image.rgb else ('ZYX' if ndim_model == 3 else 'TYX')
+        elif ndim == 4:
+            axes = ('ZYXC' if ndim_model == 3 else 'TYXC') if image.rgb else 'TZYX'
+        else:
+            raise NotImplementedError()
+
+        if (axes == plugin.axes.value):
+            # make sure to trigger a changed event, even if value didn't actually change
+            plugin.axes.changed(axes)
+        else:
+            plugin.axes.value = axes
+        plugin.n_tiles.changed(plugin.n_tiles.value)
+        plugin.norm_axes.changed(plugin.norm_axes.value)
+
+
+    # -> triggered by _image_change
+    @change_handler(plugin.axes, init=False)
+    def _axes_change(value: str):
+        if value != value.upper():
+            with plugin.axes.changed.blocked():
+                plugin.axes.value = value.upper()
+        image = plugin.image.value
+        axes = ''
+        try:
+            image is not None or _raise(ValueError("no image selected"))
+            axes = axes_check_and_normalize(value, length=get_data(image).ndim, disallowed='S')
+            update('image_axes', True, (axes, image, None))
+        except ValueError as err:
+            update('image_axes', False, (value, image, err))
+        finally:
+            widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
+
+
+    # -> triggered by _image_change
+    @change_handler(plugin.n_tiles, init=False)
+    def _n_tiles_change():
+        image = plugin.image.value
+        try:
+            image is not None or _raise(ValueError("no image selected"))
+            value = plugin.n_tiles.get_value()
+            if value is None:
+                update('n_tiles', True, (None, image, None))
+                return
+            shape = get_data(image).shape
+            try:
+                value = tuple(value)
+                len(value) == len(shape) or _raise(TypeError())
+            except TypeError:
+                raise ValueError(f'must be a tuple/list of length {len(shape)}')
+            if not all(isinstance(t,int) and t >= 1 for t in value):
+                raise ValueError(f'each value must be an integer >= 1')
+            update('n_tiles', True, (value, image, None))
+        except (ValueError, SyntaxError) as err:
+            update('n_tiles', False, (None, image, err))
+
+
+    # -------------------------------------------------------------------------
+
+    # set thresholds to optimized values for chosen model
+    @change_handler(plugin.set_thresholds, init=False)
+    def _set_thresholds():
+        if model_selected in model_threshs:
+            thresholds = model_threshs[model_selected]
+            plugin.nms_thresh.value = thresholds['nms']
+            plugin.prob_thresh.value = thresholds['prob']
+
+    # output type changed
+    @change_handler(plugin.output_type, init=False)
+    def _output_type_change():
+        update._update()
+
+    # restore defaults
+    @change_handler(plugin.defaults_button, init=False)
+    def restore_defaults():
+        for k,v in DEFAULTS.items():
+            getattr(plugin,k).value = v
+
+    # -------------------------------------------------------------------------
+
+    # allow some widgets to shrink because their size depends on user input
+    plugin.image.native.setMinimumWidth(240)
+    plugin.model2d.native.setMinimumWidth(240)
+    plugin.model3d.native.setMinimumWidth(240)
+    plugin.timelapse_opts.native.setMinimumWidth(240)
+
+    plugin.label_head.native.setOpenExternalLinks(True)
+    # make reset button smaller
+    # plugin.defaults_button.native.setMaximumWidth(150)
+
+    # plugin.model_axes.native.setReadOnly(True)
+    plugin.model_axes.enabled = False
+
+    # push 'call_button' and 'progress_bar' to bottom
+    layout = plugin.native.layout()
+    layout.insertStretch(layout.count()-2)
+  
    
     return plugin
    
