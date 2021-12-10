@@ -1,0 +1,3 @@
+[napari.plugin]
+VollSeg = vollseg_napari
+

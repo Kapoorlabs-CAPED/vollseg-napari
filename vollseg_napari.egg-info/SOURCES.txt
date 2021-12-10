@@ -1,0 +1,12 @@
+README.md
+setup.py
+vollseg_napari/__init__.py
+vollseg_napari/_dock_widget.py
+vollseg_napari/_version.py
+vollseg_napari.egg-info/PKG-INFO
+vollseg_napari.egg-info/SOURCES.txt
+vollseg_napari.egg-info/dependency_links.txt
+vollseg_napari.egg-info/entry_points.txt
+vollseg_napari.egg-info/requires.txt
+vollseg_napari.egg-info/top_level.txt
+vollseg_napari/resources/vollseg_logo_napari.png

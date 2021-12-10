@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 from os import path
-from version import __version__
+
+
 
 _dir = path.dirname(__file__)
 
@@ -13,7 +14,7 @@ with open(path.join(_dir,'README.md'), encoding="utf-8") as f:
 
 setup(
     name='vollseg-napari',
-    version=__version__,
+    version= '1.0.0',
     description='Irregular cell shape segmentation using VollSeg',
     long_description=long_description,
     long_description_content_type='text/markdown',
