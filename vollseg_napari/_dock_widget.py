@@ -520,7 +520,7 @@ def plugin_wrapper():
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
             self.debug = debug
-            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes', 'dounet', 'prob_map_watershed')})
+            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes', 'dounet', 'prob_map_watershed' , 'min_size', 'min_size_mask', 'max_size')})
             self.args  = SimpleNamespace()
             self.viewer = None
 
@@ -881,6 +881,21 @@ def plugin_wrapper():
             widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
 
+    @change_handler(plugin.min_size, init=False)
+    def _min_size_change():
+        value = plugin.min_size.get_value()
+        update(plugin.min_size, value)
+    
+    @change_handler(plugin.min_size_mask, init=False)
+    def _min_size_mask_change():
+        value = plugin.min_size_mask.get_value()
+        update(plugin.min_size_mask, value)
+        
+    @change_handler(plugin.max_size, init=False)
+    def _max_size_change():
+        value = plugin.max_size.get_value()
+        update(plugin.max_size, value)    
+    
     # -> triggered by _image_change
     @change_handler(plugin.n_tiles, init=False)
     def _n_tiles_change():
