@@ -769,17 +769,19 @@ def plugin_wrapper():
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
     @change_handler(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, init=False)
-    def _model_change(model_name_star: str, model_name_unet: str, model_name_den: str):
+    def _model_change(model_name_star: str, model_name_unet: str, model_name_den_care: str, model_name_den_n2v: str):
         model_class_star, model_class_unet = VollSeg2D if Signal.sender() is plugin.model2d_star else VollSeg3D
-        model_class_den = CARE if Signal.sender() is plugin.model_den_care else N2V
+        model_class_den_care = CARE
+        model_class_den_n2v = N2V
         
         key_star = model_class_star, model_name_star
         key_unet =  model_class_unet, model_name_unet
-        key_den = model_class_den, model_name_den
+        key_den_care = model_class_den_care, model_name_den_care
+        key_den_n2v = model_class_den_n2v, model_name_den_n2v
         if key_star not in model_star_configs:
             @thread_worker
             def _get_model_folder():
-                return get_model_folder(*key_star), get_model_folder(*key_unet), get_model_folder(*key_den)
+                return get_model_folder(*key_star), get_model_folder(*key_unet), get_model_folder(*key_den_care), get_model_folder(*key_den_n2v) 
 
             def _process_model_folder(path):
                 try:
