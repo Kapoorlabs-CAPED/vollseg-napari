@@ -718,7 +718,7 @@ def plugin_wrapper():
     @change_handler(plugin.model_type, init=False)
     def _model_type_change(model_type: Union[str, type]):
         selected = widget_for_modeltype[model_type]
-        for w in set((plugin.model2d, plugin.model3d, plugin.model_folder)) - {selected}:
+        for w in set((plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder)) - {selected}:
             w.hide()
         selected.show()
         # trigger _model_change
