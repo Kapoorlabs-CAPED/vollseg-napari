@@ -1015,14 +1015,14 @@ def napari_experimental_provide_dock_widget():
 
 @napari_hook_implementation
 def napari_provide_sample_data():
-    from vollseg import data
+    from stardist import data
     return {
         'test_image_cell_2d': {
-            'data': lambda: [(data.test_image_cell_2d(), {'name': 'cell2d'})],
+            'data': lambda: [(data.test_image_nuclei_2d(), {'name': 'cell2d'})],
             'display_name': 'Cell (2D)',
         },
         'test_image_cell_3d': {
-            'data': lambda: [(data.test_image_cell_3d(), {'name': 'cell3d'})],
+            'data': lambda: [(data.test_image_nuclei_3d(), {'name': 'cell3d'})],
             'display_name': 'Cell (3D)',
         },
     }
