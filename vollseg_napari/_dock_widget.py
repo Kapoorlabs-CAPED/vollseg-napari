@@ -520,7 +520,7 @@ def plugin_wrapper():
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
             self.debug = debug
-            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes')})
+            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes', 'dounet', 'prob_map_watershed')})
             self.args  = SimpleNamespace()
             self.viewer = None
 
@@ -718,7 +718,16 @@ def plugin_wrapper():
     @change_handler(plugin.norm_image)
     def _norm_image_change(active: bool):
         widgets_inactive(plugin.perc_low, plugin.perc_high, plugin.norm_axes, active=active)
-
+    
+    @change_handler(plugin.dounet)
+    def _dounet_change(active: bool):
+        widgets_inactive(plugin.dounet, active=active)
+        
+    @change_handler(plugin.dounet)
+    def _prob_map_watershed_change(active: bool):
+        widgets_inactive(plugin.prob_map_watershed, active=active)
+                         
+                         
     # ensure that percentile low < percentile high
     @change_handler(plugin.perc_low)
     def _perc_low_change():
