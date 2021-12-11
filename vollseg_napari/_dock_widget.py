@@ -85,8 +85,10 @@ def plugin_wrapper():
     models_den_n2v = [((_aliases_den_n2v[m][0] if len(_aliases_den_n2v[m]) > 0 else m),m) for m in _models_den_n2v]
     
     
-    model_configs = dict()
-    model_threshs = dict()
+    model_star_configs = dict()
+    model_unet_configs = dict()
+    
+    model_star_threshs = dict()
     model_selected_star = None
     model_selected_unet = None
     model_selected_care = None
@@ -105,8 +107,8 @@ def plugin_wrapper():
             path_unet = Path(model_unet)
             path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
             
-            config = model_configs[(seg_model_type,model_star)]
-            model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
+            config = model_star_configs[(seg_model_type,model_star)]
+            model_class = VollSeg2D if config['n_dim'] == 2 else VollSeg3D
             if den_model_type == CUSTOM_DEN_MODEL:    
                 if model_den_care is not None:
                     path_care = Path(model_den_care)
@@ -567,7 +569,7 @@ def plugin_wrapper():
                 widgets_valid(plugin.axes, valid=(valid or (image is None and (axes is None or len(axes) == 0))))
                 if valid and 'T' in axes and plugin.output_type.value in (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
                     plugin.output_type.native.setStyleSheet("background-color: orange")
-                    plugin.output_type.tooltip = 'Displaying many polygons/polyhedra can be very slow.'
+                    plugin.output_type.tooltip = 'Displaying many labels can be very slow.'
                 else:
                     plugin.output_type.native.setStyleSheet("")
                     plugin.output_type.tooltip = ''
@@ -643,10 +645,10 @@ def plugin_wrapper():
                     err = f"Image axes ({axes_image}) must contain at least one of the normalization axes ({', '.join(axes_norm)})"
                     plugin.norm_axes.tooltip = err
                     _restore()
-                elif 'T' in axes_image and config.get('n_dim') == 3 and plugin.output_type.value in (Output.Polys.value,Output.Both.value):
+                elif 'T' in axes_image and config.get('n_dim') == 3 and plugin.output_type.value in  (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
                     # not supported
                     widgets_valid(plugin.output_type, valid=False)
-                    plugin.output_type.tooltip = 'Polyhedra output currently not supported for 3D timelapse data'
+                    plugin.output_type.tooltip = '3D timelapse data'
                     _restore()
                 else:
                     # check if image and model are compatible
@@ -654,7 +656,7 @@ def plugin_wrapper():
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
                     all_valid = set(axes_model.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model == ch_image
 
-                    widgets_valid(plugin.image, plugin.model2d, plugin.model3d, plugin.model_folder.line_edit, valid=all_valid)
+                    widgets_valid(plugin.image, plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder.line_edit, valid=all_valid)
                     if all_valid:
                         help_msg = ''
                     else:
@@ -675,10 +677,10 @@ def plugin_wrapper():
     update = Updater()
 
 
-    def select_model(key):
-        nonlocal model_selected
-        model_selected = key
-        config = model_configs.get(key)
+    def select_model(key_star):
+        nonlocal model_selected_star
+        model_selected_star = key_star
+        config = model_star_configs.get(key_star)
         update('model', config is not None, config)
 
     # -------------------------------------------------------------------------
@@ -728,26 +730,27 @@ def plugin_wrapper():
     # show/hide model folder picker
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
-    @change_handler(plugin.model2d, plugin.model3d, init=False)
-    def _model_change(model_name: str):
-        model_class = StarDist2D if Signal.sender() is plugin.model2d else StarDist3D
-        key = model_class, model_name
+    @change_handler(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, init=False)
+    def _model_change(model_name_star: str, model_name_unet: str):
+        model_class_star, model_class_unet = VollSeg2D if Signal.sender() is plugin.model2d_star else VollSeg3D
+        key_star = model_class_star, model_name_star
+        key_unet =  model_class_unet, model_name_unet
 
-        if key not in model_configs:
+        if key_star not in model_star_configs:
             @thread_worker
             def _get_model_folder():
-                return get_model_folder(*key)
+                return get_model_folder(*key_star), get_model_folder(*key_unet)
 
             def _process_model_folder(path):
                 try:
-                    model_configs[key] = load_json(str(path/'config.json'))
+                    model_star_configs[key_star] = load_json(str(path/'config.json'))
                     try:
                         # not all models have associated thresholds
-                        model_threshs[key] = load_json(str(path/'thresholds.json'))
+                        model_star_threshs[key_star] = load_json(str(path/'thresholds.json'))
                     except FileNotFoundError:
                         pass
                 finally:
-                    select_model(key)
+                    select_model(key_star)
                     plugin.progress_bar.hide()
 
             worker = _get_model_folder()
@@ -762,7 +765,7 @@ def plugin_wrapper():
             plugin.progress_bar.show()
 
         else:
-            select_model(key)
+            select_model(key_star)
 
 
     # load config/thresholds from custom model path
@@ -774,8 +777,8 @@ def plugin_wrapper():
         key = CUSTOM_SEG_MODEL, path
         try:
             if not path.is_dir(): return
-            model_configs[key] = load_json(str(path/'config.json'))
-            model_threshs[key] = load_json(str(path/'thresholds.json'))
+            model_star_configs[key] = load_json(str(path/'config.json'))
+            model_star_threshs[key] = load_json(str(path/'thresholds.json'))
         except FileNotFoundError:
             pass
         finally:
@@ -796,8 +799,8 @@ def plugin_wrapper():
         elif plugin.model_type.value == VollSeg3D:
             ndim_model = 3
         else:
-            if model_selected in model_configs:
-                config = model_configs[model_selected_star]
+            if model_selected_star in model_star_configs:
+                config = model_star_configs[model_selected_star]
                 ndim_model = config.get('n_dim')
 
         # TODO: guess images axes better...
@@ -866,8 +869,8 @@ def plugin_wrapper():
     # set thresholds to optimized values for chosen model
     @change_handler(plugin.set_thresholds, init=False)
     def _set_thresholds():
-        if model_selected in model_threshs:
-            thresholds = model_threshs[model_selected]
+        if model_selected_star in model_star_threshs:
+            thresholds = model_star_threshs[model_selected_star]
             plugin.nms_thresh.value = thresholds['nms']
             plugin.prob_thresh.value = thresholds['prob']
 
