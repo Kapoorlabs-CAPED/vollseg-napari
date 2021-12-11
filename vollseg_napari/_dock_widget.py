@@ -87,7 +87,8 @@ def plugin_wrapper():
     
     model_star_configs = dict()
     model_unet_configs = dict()
-    
+    model_den_care_configs = dict()
+    model_den_n2v_configs = dict()
     model_star_threshs = dict()
     model_selected_star = None
     model_selected_unet = None
@@ -97,7 +98,7 @@ def plugin_wrapper():
     CUSTOM_SEG_MODEL = 'CUSTOM_SEG_MODEL'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_model_type_choices = [('2D', VollSeg2D), ('3D', VollSeg3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL)]
-    den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V), ('Custom N2V/CARE', CUSTOM_DEN_MODEL)]
+    den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V), ('NoDenoising', None), ('Custom N2V/CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den_care, model_den_n2v):
         if seg_model_type == CUSTOM_SEG_MODEL:
@@ -208,11 +209,14 @@ def plugin_wrapper():
         model2d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models2d_unet, value=DEFAULTS['model2d_unet']),
         model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS['model3d_unet']),
         
-        model_den_care   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Model', choices=models_den_care, value=DEFAULTS['model_den_care']),
-        model_den_n2v   = dict(widget_type='ComboBox', visible=False, label='Pre-trained N2V Model', choices=models_den_n2v, value=DEFAULTS['model_den_n2v']), 
-       
+        model_den_care   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den_care, value=DEFAULTS['model_den_care']),
+        model_den_n2v   = dict(widget_type='ComboBox', visible=False, label='Pre-trained N2V Denoising Model', choices=models_den_n2v, value=DEFAULTS['model_den_n2v']),
         
-        model_folder    = dict(widget_type='FileEdit', visible=False, label='Custom Model', mode='d'),
+        model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
+        model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
+        model_folder_den    = dict(widget_type='FileEdit', visible=False, label='Custom Denoising Model', mode='d'),
+        
+        
         result_folder    = dict(widget_type='FileEdit', visible=False, label='Result Folder', mode='d'),
         model_axes      = dict(widget_type='LineEdit', label='Model Axes', value=''),
         norm_image      = dict(widget_type='CheckBox', text='Normalize Image', value=DEFAULTS['norm_image']),
@@ -251,9 +255,12 @@ def plugin_wrapper():
        model3d_star,
        model2d_unet,
        model3d_unet,
-       model_den_n2v,
        model_den_care,
-       model_folder,
+       model_den_n2v,
+       model_folder_star,
+       model_folder_unet,
+       model_folder_den_care,
+       model_folder_den_n2v,
        result_folder,
        model_axes,
        norm_image,
@@ -479,8 +486,8 @@ def plugin_wrapper():
        VollSeg3D:   (plugin.model3d_star, plugin.model3d_unet),
        CARE:         plugin.model_den_care,
        N2V:          plugin.model_den_n2v,
-       CUSTOM_SEG_MODEL: plugin.model_folder,
-       CUSTOM_DEN_MODEL: plugin.model_folder,
+       CUSTOM_SEG_MODEL: (plugin.model_folder_star, plugin.model_folder_unet),
+       CUSTOM_DEN_MODEL: (plugin.model_folder_den_care, plugin.model_folder_den_n2v),
     }
 
     def widgets_inactive(*widgets, active):
@@ -513,7 +520,7 @@ def plugin_wrapper():
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
             self.debug = debug
-            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den_care', 'model_den_n2v', 'n_tiles', 'norm_axes')})
+            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes')})
             self.args  = SimpleNamespace()
             self.viewer = None
 
@@ -551,18 +558,26 @@ def plugin_wrapper():
 
 
             def _model(valid):
-                widgets_valid(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_n2v, plugin.model_den_care, plugin.model_folder.line_edit, valid=valid)
+                widgets_valid(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_n2v, plugin.model_den_care, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den_care.line_edit, plugin.model_folder_den_n2v.line_edit,  valid=valid)
                 if valid:
                     config = self.args.model
                     axes = config.get('axes', 'ZYXC'[-len(config['net_input_shape']):])
                     if 'T' in axes:
                         raise RuntimeError("model with axis 'T' not supported")
                     plugin.model_axes.value = axes.replace("C", f"C[{config['n_channel_in']}]")
-                    plugin.model_folder.line_edit.tooltip = ''
+                    plugin.model_folder_star.line_edit.tooltip = ''
+                    plugin.model_folder_unet.line_edit.tooltip = ''
+                    plugin.model_folder_den_care.line_edit.tooltip = ''
+                    plugin.model_folder_den_n2v.line_edit.tooltip = ''
+                    
+                    
                     return axes, config
                 else:
                     plugin.model_axes.value = ''
-                    plugin.model_folder.line_edit.tooltip = 'Invalid model directory'
+                    plugin.model_folder_star.line_edit.tooltip = 'Invalid model directory'
+                    plugin.model_folder_unet.line_edit.tooltip = 'Invalid model directory'
+                    plugin.model_folder_den_care.line_edit.tooltip = 'Invalid model directory'
+                    plugin.model_folder_den_n2v.line_edit.tooltip = 'Invalid model directory'
 
             def _image_axes(valid):
                 axes, image, err = getattr(self.args, 'image_axes', (None,None,None))
@@ -656,7 +671,7 @@ def plugin_wrapper():
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
                     all_valid = set(axes_model.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model == ch_image
 
-                    widgets_valid(plugin.image, plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder.line_edit, valid=all_valid)
+                    widgets_valid(plugin.image, plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den_care.line_edit, plugin.model_folder_den_n2v.line_edit, valid=all_valid)
                     if all_valid:
                         help_msg = ''
                     else:
@@ -677,11 +692,25 @@ def plugin_wrapper():
     update = Updater()
 
 
-    def select_model(key_star):
-        nonlocal model_selected_star
+    def select_model(key_star, key_unet, key_den_care, key_den_n2v):
+        nonlocal model_selected_star, model_selected_unet, model_selected_den_care, model_selected_den_n2v 
         model_selected_star = key_star
-        config = model_star_configs.get(key_star)
-        update('model', config is not None, config)
+        config_star = model_star_configs.get(key_star)
+        update('model_star', config_star is not None, config_star)
+        
+        model_selected_unet = key_unet
+        config_unet = model_unet_configs.get(key_unet)
+        update('model_unet', config_unet is not None, config_unet)
+        
+        
+        model_selected_den_care = key_den_care
+        config_den_care = model_den_care_configs.get(key_den_care)
+        update('model_den_care', config_den_care is not None, config_den_care)
+        
+        model_selected_den_n2v = key_den_n2v
+        config_den_n2v = model_den_n2v_configs.get(key_den_n2v)
+        update('model_den_n2v', config_den_n2v is not None, config_den_n2v)
+        
 
     # -------------------------------------------------------------------------
 
@@ -720,7 +749,7 @@ def plugin_wrapper():
     @change_handler(plugin.model_type, init=False)
     def _model_type_change(model_type: Union[str, type]):
         selected = widget_for_modeltype[model_type]
-        for w in set((plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder)) - {selected}:
+        for w in set((plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder_star, plugin.model_folder_unet, plugin.model_folder_den_care, plugin.model_folder_den_n2v )) - {selected}:
             w.hide()
         selected.show()
         # trigger _model_change
@@ -731,15 +760,17 @@ def plugin_wrapper():
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
     @change_handler(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, init=False)
-    def _model_change(model_name_star: str, model_name_unet: str):
+    def _model_change(model_name_star: str, model_name_unet: str, model_name_den: str):
         model_class_star, model_class_unet = VollSeg2D if Signal.sender() is plugin.model2d_star else VollSeg3D
+        model_class_den = CARE if Signal.sender() is plugin.model_den_care else N2V
+        
         key_star = model_class_star, model_name_star
         key_unet =  model_class_unet, model_name_unet
-
+        key_den = model_class_den, model_name_den
         if key_star not in model_star_configs:
             @thread_worker
             def _get_model_folder():
-                return get_model_folder(*key_star), get_model_folder(*key_unet)
+                return get_model_folder(*key_star), get_model_folder(*key_unet), get_model_folder(*key_den)
 
             def _process_model_folder(path):
                 try:
