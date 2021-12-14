@@ -946,9 +946,17 @@ def plugin_wrapper():
 
     # allow some widgets to shrink because their size depends on user input
     plugin.image.native.setMinimumWidth(240)
-    plugin.model2d.native.setMinimumWidth(240)
-    plugin.model3d.native.setMinimumWidth(240)
-    plugin.timelapse_opts.native.setMinimumWidth(240)
+    plugin.model2d_star.native.setMinimumWidth(240)
+    plugin.model3d_star.native.setMinimumWidth(240)
+    
+    plugin.model2d_unet.native.setMinimumWidth(240)
+    plugin.model3d_unet.native.setMinimumWidth(240)
+    
+    plugin.model_den_care.native.setMinimumWidth(240)
+    
+    plugin.model_den_n2v.native.setMinimumWidth(240)
+    
+    
 
     plugin.label_head.native.setOpenExternalLinks(True)
     # make reset button smaller
