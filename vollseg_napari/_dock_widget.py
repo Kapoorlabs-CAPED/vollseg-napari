@@ -192,7 +192,7 @@ def plugin_wrapper_vollseg():
         model2d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models2d_unet, value=DEFAULTS['model2d_unet']),
         model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS['model3d_unet']),
         
-        model_den   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den, value=DEFAULTS['model_den_care']),
+        model_den   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den, value=DEFAULTS['model_den']),
         
         model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
         model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
@@ -265,7 +265,7 @@ def plugin_wrapper_vollseg():
 
        model_star = get_model(*model_selected_star)
        model_unet = get_model(*model_selected_unet)
-       model_den_care = get_model(*model_selected_den)
+       model_den = get_model(*model_selected_den)
        lkwargs = {}
        x = get_data(image)
        axes = axes_check_and_normalize(axes, length=x.ndim)
@@ -457,8 +457,10 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     widget_for_modeltype = {
-       VollSeg2D:   (plugin.model2d_star, plugin.model2d_unet),
-       VollSeg3D:   (plugin.model3d_star, plugin.model3d_unet),
+       StarDist2D:   plugin.model2d_star,
+       Unet2D :  plugin.model2d_unet,
+       StarDist3D:   plugin.model3d_star,
+       Unet3D: plugin.model3d_unet,
        CARE:         plugin.model_den,
        CUSTOM_SEG_MODEL: (plugin.model_folder_star, plugin.model_folder_unet),
        CUSTOM_DEN_MODEL: plugin.model_folder_den,
@@ -710,31 +712,46 @@ def plugin_wrapper_vollseg():
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
     # TODO: seems to be triggered too when a layer is added or removed (why?)
-    @change_handler(plugin.model_type, init=False)
-    def _model_type_change(model_type: Union[str, type]):
-        selected = widget_for_modeltype[model_type]
-        for w in set((plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, plugin.model_folder_star, plugin.model_folder_unet, plugin.model_folder_den)) - {selected}:
+    @change_handler(plugin.seg_model_type, init=False)
+    def _seg_model_type_change_star(seg_model_type: Union[str, type]):
+        selected = widget_for_modeltype[seg_model_type]
+        for w in set((plugin.model2d_star,  plugin.model3d_star, plugin.model_folder_star)) - {selected}:
             w.hide()
         selected.show()
         # trigger _model_change
         selected.changed(selected.value)
-
-
+        
+    @change_handler(plugin.seg_model_type, init=False)
+    def _seg_model_type_change_unet(seg_model_type: Union[str, type]):
+        selected = widget_for_modeltype[seg_model_type]
+        for w in set((plugin.model2d_unet, plugin.model3d_unet, plugin.model_folder_unet)) - {selected}:
+            w.hide()
+        selected.show()
+        # trigger _model_change
+        selected.changed(selected.value)     
+   
+    # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
+    # TODO: seems to be triggered too when a layer is added or removed (why?)
+    @change_handler(plugin.den_model_type, init=False)
+    def _den_model_type_change(den_model_type: Union[str, type]):
+        selected = widget_for_modeltype[den_model_type]
+        for w in set((plugin.model_den, plugin.model_folder_den)) - {selected}:
+            w.hide()
+        selected.show()
+        # trigger _model_change
+        selected.changed(selected.value)
     # show/hide model folder picker
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
-    @change_handler(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, init=False)
-    def _model_change(model_name_star: str, model_name_unet: str, model_name_den: str):
-        model_class_star, model_class_unet = VollSeg2D if Signal.sender() is plugin.model2d_star else VollSeg3D
-        model_class_den= CARE
+    @change_handler(plugin.model2d_star, plugin.model3d_star, init=False)
+    def _model_change_star(model_name_star: str):
+        model_class_star, model_class_unet = StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D
         
         key_star = model_class_star, model_name_star
-        key_unet =  model_class_unet, model_name_unet
-        key_den = model_class_den, model_name_den
         if key_star not in model_star_configs:
             @thread_worker
             def _get_model_folder():
-                return get_model_folder(*key_star), get_model_folder(*key_unet), get_model_folder(*key_den) 
+                return get_model_folder(*key_star)
 
             def _process_model_folder(path):
                 try:
@@ -762,7 +779,67 @@ def plugin_wrapper_vollseg():
         else:
             select_model(key_star)
 
+    @change_handler(plugin.model2d_unet, plugin.model3d_unet,  init=False)
+    def _model_change_unet(model_name_unet: str):
+        model_class_unet = CARE
+        
+        key_unet =  model_class_unet, model_name_unet
+        if key_unet not in model_star_configs:
+            @thread_worker
+            def _get_model_folder():
+                return get_model_folder(*key_unet)
 
+            def _process_model_folder(path):
+                
+                    select_model(key_unet)
+                    plugin.progress_bar.hide()
+
+            worker = _get_model_folder()
+            worker.returned.connect(_process_model_folder)
+            worker.start()
+
+            # delay showing progress bar -> won't show up if model already downloaded
+            # TODO: hacky -> better way to do this?
+            time.sleep(0.1)
+            plugin.call_button.enabled = False
+            plugin.progress_bar.label = 'Downloading model'
+            plugin.progress_bar.show()
+
+        else:
+            select_model(key_unet)
+            
+            
+    @change_handler( plugin.model_den, init=False)
+    def _model_change_den(model_name_unet: str):
+        model_class_unet= CARE
+        
+        key_unet =  model_class_unet, model_name_unet
+        if key_unet not in model_unet_configs:
+            @thread_worker
+            def _get_model_folder():
+                return get_model_folder(*key_unet)
+
+            def _process_model_folder(path):
+                
+                    select_model(key_unet)
+                    plugin.progress_bar.hide()
+
+            worker = _get_model_folder()
+            worker.returned.connect(_process_model_folder)
+            worker.start()
+
+            # delay showing progress bar -> won't show up if model already downloaded
+            # TODO: hacky -> better way to do this?
+            time.sleep(0.1)
+            plugin.call_button.enabled = False
+            plugin.progress_bar.label = 'Downloading model'
+            plugin.progress_bar.show()
+
+        else:
+            select_model(key_unet)
+            
+            
+            
     # load config/thresholds from custom model path
     # -> triggered by _model_type_change
     # note: will be triggered at every keystroke (when typing the path)
@@ -789,9 +866,9 @@ def plugin_wrapper_vollseg():
 
         # dimensionality of selected model: 2, 3, or None (unknown)
         ndim_model = None
-        if plugin.model_type.value == VollSeg2D:
+        if plugin.seg_model_type.value == VollSeg2D:
             ndim_model = 2
-        elif plugin.model_type.value == VollSeg3D:
+        elif plugin.seg_model_type.value == VollSeg3D:
             ndim_model = 3
         else:
             if model_selected_star in model_star_configs:
