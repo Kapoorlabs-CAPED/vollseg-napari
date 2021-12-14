@@ -75,26 +75,26 @@ def plugin_wrapper_vollseg():
     models2d_unet = [((_aliases2d_unet[m][0] if len(_aliases2d_unet[m]) > 0 else m),m) for m in _models2d_unet]
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
     
-    _models_den_care, _aliases_den_care = get_registered_models(StarDist3D)
+    _models_den, _aliases_den = get_registered_models(StarDist3D)
     # use first alias for model selection (if alias exists)
-    models_den_care = [((_aliases_den_care[m][0] if len(_aliases_den_care[m]) > 0 else m),m) for m in _models_den_care]
+    models_den = [((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m),m) for m in _models_den]
     
     
     
     model_star_configs = dict()
     model_unet_configs = dict()
-    model_den_care_configs = dict()
+    model_den_configs = dict()
     model_star_threshs = dict()
     model_selected_star = None
     model_selected_unet = None
-    model_selected_den_care = None
+    model_selected_den = None
     
     CUSTOM_SEG_MODEL = 'CUSTOM_SEG_MODEL'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_model_type_choices = [('2D', VollSeg2D), ('3D', VollSeg3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL)]
     den_model_type_choices = [ ('DenoiseCARE', CARE) ,  ('NoDenoising', None), ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
-    def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den_care, model_den_n2v):
+    def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
         if seg_model_type == CUSTOM_SEG_MODEL:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
@@ -105,41 +105,40 @@ def plugin_wrapper_vollseg():
             config = model_star_configs[(seg_model_type,model_star)]
             model_class = VollSeg2D if config['n_dim'] == 2 else VollSeg3D
             if den_model_type == CUSTOM_DEN_MODEL:    
-                if model_den_care is not None:
-                    path_care = Path(model_den_care)
+                if model_den is not None:
+                    path_care = Path(model_den)
                     path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
                     return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
                
     
-            elif den_model_type != CUSTOM_DEN_MODEL and model_den_care is not None:
+            elif den_model_type != CUSTOM_DEN_MODEL and model_den is not None:
                 
-                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den_care)
+                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den)
              
-            elif den_model_type != CUSTOM_DEN_MODEL:
-                
-                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den_n2v)
+       
+       
                  
                 
-            elif den_model_type != CUSTOM_DEN_MODEL and model_den_care == None and model_den_n2v == None:
+            elif den_model_type != CUSTOM_DEN_MODEL and model_den == None:
                     
                      return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
         
         else:
             
               if den_model_type == CUSTOM_DEN_MODEL:    
-                  if model_den_care is not None:
-                      path_care = Path(model_den_care)
+                  if model_den is not None:
+                      path_care = Path(model_den)
                       path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
                       return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), CARE(None, name=path_care.name, basedir=str(path_care.parent))
                   
               
                    
-              elif den_model_type != CUSTOM_DEN_MODEL and model_den_care is not None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_den is not None:
                   
-                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_den_care)    
+                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_den)    
                
                 
-              elif den_model_type != CUSTOM_DEN_MODEL and model_den_care == None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_den == None:
                       
                        return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet)
         
@@ -161,7 +160,7 @@ def plugin_wrapper_vollseg():
             model2d_unet   = models2d_unet[0][1],
             model3d_star        = models3d_star[0][1],
             model3d_unet   = models3d_unet[0][1],
-            model_den_care  = models_den_care[0][1],
+            model_den  = models_den[0][1],
             norm_image     = True,
             perc_low       =  1.0,
             perc_high      = 99.8,
@@ -193,7 +192,7 @@ def plugin_wrapper_vollseg():
         model2d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models2d_unet, value=DEFAULTS['model2d_unet']),
         model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS['model3d_unet']),
         
-        model_den_care   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den_care, value=DEFAULTS['model_den_care']),
+        model_den   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den, value=DEFAULTS['model_den_care']),
         
         model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
         model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
@@ -238,8 +237,7 @@ def plugin_wrapper_vollseg():
        model3d_star,
        model2d_unet,
        model3d_unet,
-       model_den_care,
-       model_den_n2v,
+       model_den,
        model_folder_star,
        model_folder_unet,
        model_folder_den,
@@ -267,7 +265,7 @@ def plugin_wrapper_vollseg():
 
        model_star = get_model(*model_selected_star)
        model_unet = get_model(*model_selected_unet)
-       model_den_care = get_model(*model_selected_den_care)
+       model_den_care = get_model(*model_selected_den)
        lkwargs = {}
        x = get_data(image)
        axes = axes_check_and_normalize(axes, length=x.ndim)
@@ -353,11 +351,10 @@ def plugin_wrapper_vollseg():
            
            if isinstance(model_star, VollSeg3D):
           
-                  if model_den_care is not None:
-                      noise_model = model_den_care
-                  if model_den_n2v is not None:
-                      noise_model = model_den_n2v 
-                  if model_den_care == None and model_den_n2v == None:
+                  if model_den is not None:
+                      noise_model = model_den
+                   
+                  if model_den == None:
                       noise_model = None
                   res = tuple(zip(*tuple( VollSeg3D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
@@ -365,11 +362,10 @@ def plugin_wrapper_vollseg():
             
            elif isinstance(model_star, VollSeg2D):
           
-                  if model_den_care is not None:
-                      noise_model = model_den_care
-                  if model_den_n2v is not None:
-                      noise_model = model_den_n2v 
-                  if model_den_care == None and model_den_n2v == None:
+                  if model_den is not None:
+                      noise_model = model_den
+                  
+                  if model_den == None:
                       noise_model = None
                   res = tuple(zip(*tuple( VollSeg2D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
@@ -394,22 +390,20 @@ def plugin_wrapper_vollseg():
            # TODO: possible to run this in a way that it can be canceled?
            if isinstance(model_star, VollSeg3D):
           
-                  if model_den_care is not None:
-                      noise_model = model_den_care
-                  if model_den_n2v is not None:
-                      noise_model = model_den_n2v 
-                  if model_den_care == None and model_den_n2v == None:
+                  if model_den is not None:
+                      noise_model = model_den
+                  
+                  if model_den == None:
                       noise_model = None
                   pred =  VollSeg3D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
             
            elif isinstance(model_star, VollSeg2D):
           
-                  if model_den_care is not None:
-                      noise_model = model_den_care
-                  if model_den_n2v is not None:
-                      noise_model = model_den_n2v 
-                  if model_den_care == None and model_den_n2v == None:
+                  if model_den is not None:
+                      noise_model = model_den
+                  
+                  if model_den == None:
                       noise_model = None
                   pred = VollSeg2D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
@@ -465,7 +459,7 @@ def plugin_wrapper_vollseg():
     widget_for_modeltype = {
        VollSeg2D:   (plugin.model2d_star, plugin.model2d_unet),
        VollSeg3D:   (plugin.model3d_star, plugin.model3d_unet),
-       CARE:         plugin.model_den_care,
+       CARE:         plugin.model_den,
        CUSTOM_SEG_MODEL: (plugin.model_folder_star, plugin.model_folder_unet),
        CUSTOM_DEN_MODEL: plugin.model_folder_den,
     }
@@ -668,7 +662,7 @@ def plugin_wrapper_vollseg():
         
         
         model_selected_den = key_den
-        config_den = model_den_care_configs.get(key_den)
+        config_den = model_den_configs.get(key_den)
         update('model_den', config_den is not None, config_den)
         
         
@@ -684,7 +678,7 @@ def plugin_wrapper_vollseg():
     def _dounet_change(active: bool):
         widgets_inactive(plugin.dounet, active=active)
         
-    @change_handler(plugin.dounet)
+    @change_handler(plugin.prob_map_watershed)
     def _prob_map_watershed_change(active: bool):
         widgets_inactive(plugin.prob_map_watershed, active=active)
                          
@@ -719,7 +713,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model_type, init=False)
     def _model_type_change(model_type: Union[str, type]):
         selected = widget_for_modeltype[model_type]
-        for w in set((plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder_star, plugin.model_folder_unet, plugin.model_folder_den)) - {selected}:
+        for w in set((plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, plugin.model_folder_star, plugin.model_folder_unet, plugin.model_folder_den)) - {selected}:
             w.hide()
         selected.show()
         # trigger _model_change
@@ -729,7 +723,7 @@ def plugin_wrapper_vollseg():
     # show/hide model folder picker
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
-    @change_handler(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, init=False)
+    @change_handler(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, init=False)
     def _model_change(model_name_star: str, model_name_unet: str, model_name_den: str):
         model_class_star, model_class_unet = VollSeg2D if Signal.sender() is plugin.model2d_star else VollSeg3D
         model_class_den= CARE
@@ -911,9 +905,8 @@ def plugin_wrapper_vollseg():
     plugin.model2d_unet.native.setMinimumWidth(240)
     plugin.model3d_unet.native.setMinimumWidth(240)
     
-    plugin.model_den_care.native.setMinimumWidth(240)
+    plugin.model_den.native.setMinimumWidth(240)
     
-    plugin.model_den_n2v.native.setMinimumWidth(240)
     
     
 
