@@ -90,29 +90,33 @@ def plugin_wrapper_vollseg():
     model_selected_unet = None
     model_selected_den = None
     
-    CUSTOM_SEG_MODEL = 'CUSTOM_SEG_MODEL'
+    CUSTOM_SEG_MODEL_STAR = 'CUSTOM_SEG_MODEL_STAR'
+    CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
-    seg_model_type_choices = [('2D', VollSeg2D), ('3D', VollSeg3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL)]
+    seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_STAR)]
+    seg_unet_model_type_choices = [('2D', Unet2D), ('3D', Unet3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_UNET)]
     den_model_type_choices = [ ('DenoiseCARE', CARE) ,  ('NoDenoising', None), ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
-        if seg_model_type == CUSTOM_SEG_MODEL:
+        if seg_model_type == CUSTOM_SEG_MODEL_STAR:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
+            config = model_star_configs[(seg_model_type,model_star)]
+            model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
             
+        if seg_model_type == CUSTOM_SEG_MODEL_UNET:    
             path_unet = Path(model_unet)
             path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
             
-            config = model_star_configs[(seg_model_type,model_star)]
-            model_class = VollSeg2D if config['n_dim'] == 2 else VollSeg3D
-            if den_model_type == CUSTOM_DEN_MODEL:    
+            
+        if den_model_type == CUSTOM_DEN_MODEL:    
                 if model_den is not None:
                     path_care = Path(model_den)
                     path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
                     return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
                
     
-            elif den_model_type != CUSTOM_DEN_MODEL and model_den is not None:
+        elif den_model_type != CUSTOM_DEN_MODEL and model_den is not None:
                 
                  return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den)
              
@@ -120,7 +124,7 @@ def plugin_wrapper_vollseg():
        
                  
                 
-            elif den_model_type != CUSTOM_DEN_MODEL and model_den == None:
+        elif den_model_type != CUSTOM_DEN_MODEL and model_den == None:
                     
                      return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
         
@@ -185,7 +189,8 @@ def plugin_wrapper_vollseg():
         image           = dict(label='Input Image'),
         axes            = dict(widget_type='LineEdit', label='Image Axes'),
         label_nn        = dict(widget_type='Label', label='<br><b>Neural Network Prediction:</b>'),
-        seg_model_type  = dict(widget_type='RadioButtons', label='Seg Model Type', orientation='horizontal', choices=seg_model_type_choices, value=DEFAULTS['seg_model_type']),
+        star_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Star Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS['seg_star_model_type']),
+        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS['seg_unet_model_type']),
         den_model_type  = dict(widget_type='RadioButtons', label='Den Model Type', orientation='horizontal', choices=den_model_type_choices, value=DEFAULTS['den_model_type']),
         model2d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models2d_star, value=DEFAULTS['model2d_star']),
         model3d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models3d_star, value=DEFAULTS['model3d_star']),
@@ -232,7 +237,8 @@ def plugin_wrapper_vollseg():
        image: Image,
        axes,
        label_nn,
-       seg_model_type,
+       star_seg_model_type,
+       unet_seg_model_type,
        den_model_type,
        model2d_star,
        model3d_star,
@@ -463,7 +469,8 @@ def plugin_wrapper_vollseg():
        StarDist3D:   plugin.model3d_star,
        Unet3D: plugin.model3d_unet,
        CARE:         plugin.model_den,
-       CUSTOM_SEG_MODEL: (plugin.model_folder_star, plugin.model_folder_unet),
+       CUSTOM_SEG_MODEL_STAR: plugin.model_folder_star,
+       CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
        CUSTOM_DEN_MODEL: plugin.model_folder_den,
     }
 
@@ -713,22 +720,22 @@ def plugin_wrapper_vollseg():
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
     # TODO: seems to be triggered too when a layer is added or removed (why?)
-    @change_handler(plugin.seg_model_type, init=False)
+    @change_handler(plugin.star_seg_model_type, init=False)
     def _seg_model_type_change_star(seg_model_type: Union[str, type]):
         selected = widget_for_modeltype[seg_model_type]
         for w in set((plugin.model2d_star,  plugin.model3d_star, plugin.model_folder_star)) - {selected}:
             w.hide()
         selected.show()
-        # trigger _model_change
+        # trigger _model_change_star()
         selected.changed(selected.value)
         
-    @change_handler(plugin.seg_model_type, init=False)
+    @change_handler(plugin.unet_seg_model_type, init=False)
     def _seg_model_type_change_unet(seg_model_type: Union[str, type]):
         selected = widget_for_modeltype[seg_model_type]
         for w in set((plugin.model2d_unet, plugin.model3d_unet, plugin.model_folder_unet)) - {selected}:
             w.hide()
         selected.show()
-        # trigger _model_change
+        # trigger _model_change_unet
         selected.changed(selected.value)     
    
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
@@ -739,7 +746,7 @@ def plugin_wrapper_vollseg():
         for w in set((plugin.model_den, plugin.model_folder_den)) - {selected}:
             w.hide()
         selected.show()
-        # trigger _model_change
+        # trigger _model_change_den
         selected.changed(selected.value)
     # show/hide model folder picker
     # load config/thresholds for selected pretrained model
@@ -844,10 +851,10 @@ def plugin_wrapper_vollseg():
     # load config/thresholds from custom model path
     # -> triggered by _model_type_change
     # note: will be triggered at every keystroke (when typing the path)
-    @change_handler(plugin.model_folder, init=False)
-    def _model_folder_change(_path: str):
+    @change_handler(plugin.model_folder_star, init=False)
+    def _model_star_folder_change(_path: str):
         path = Path(_path)
-        key = CUSTOM_SEG_MODEL, path
+        key = CUSTOM_SEG_MODEL_STAR, path
         try:
             if not path.is_dir(): return
             model_star_configs[key] = load_json(str(path/'config.json'))
@@ -856,7 +863,33 @@ def plugin_wrapper_vollseg():
             pass
         finally:
             select_model(key)
-
+            
+    @change_handler(plugin.model_folder_unet, init=False)
+    def _model_unet_folder_change(_path: str):
+            path = Path(_path)
+            key = CUSTOM_SEG_MODEL_UNET, path
+            try:
+                if not path.is_dir(): return
+                model_unet_configs[key] = load_json(str(path/'config.json'))
+            except FileNotFoundError:
+                pass
+            finally:
+                select_model(key) 
+                
+                
+    @change_handler(plugin.model_folder_den, init=False)
+    def _model_den_folder_change(_path: str):
+        path = Path(_path)
+        key = CUSTOM_DEN_MODEL, path
+        try:
+            if not path.is_dir(): return
+            model_unet_configs[key] = load_json(str(path/'config.json'))
+        except FileNotFoundError:
+            pass
+        finally:
+            select_model(key)             
+                
+        
     # -------------------------------------------------------------------------
 
     # -> triggered by napari (if there are any open images on plugin launch)
