@@ -76,7 +76,7 @@ def plugin_wrapper_vollseg():
     models2d_unet = [((_aliases2d_unet[m][0] if len(_aliases2d_unet[m]) > 0 else m),m) for m in _models2d_unet]
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
     
-    _models_den, _aliases_den = get_registered_models(CARE)
+    _models_den, _aliases_den = get_registered_models(StarDist3D)
     # use first alias for model selection (if alias exists)
     models_den = [((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m),m) for m in _models_den]
     
@@ -106,6 +106,7 @@ def plugin_wrapper_vollseg():
             
         if seg_model_type == CUSTOM_SEG_MODEL_UNET:    
             path_unet = Path(model_unet)
+            
             path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
             
             
@@ -396,7 +397,7 @@ def plugin_wrapper_vollseg():
 
        else:
            # TODO: possible to run this in a way that it can be canceled?
-           if isinstance(model_star, VollSeg3D):
+           if isinstance(model_star, StarDist3D):
           
                   if model_den is not None:
                       noise_model = model_den
@@ -406,7 +407,7 @@ def plugin_wrapper_vollseg():
                   pred =  VollSeg3D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
             
-           elif isinstance(model_star, VollSeg2D):
+           elif isinstance(model_star, StarDist2D):
           
                   if model_den is not None:
                       noise_model = model_den
@@ -456,7 +457,7 @@ def plugin_wrapper_vollseg():
     # don't want to load persisted values for these widgets
     plugin.axes.value = ''
     plugin.n_tiles.value = DEFAULTS['n_tiles']
-    plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html</a></tt>'
+    plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
 
     # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
     for w in (plugin.label_head, plugin.label_nn, plugin.label_nms, plugin.label_adv):
@@ -661,17 +662,19 @@ def plugin_wrapper_vollseg():
     update = Updater()
 
 
-    def select_model(key_star, key_unet, key_den):
-        nonlocal model_selected_star, model_selected_unet, model_selected_den
+    def select_model_star(key_star):
+        nonlocal model_selected_star
         model_selected_star = key_star
         config_star = model_star_configs.get(key_star)
         update('model_star', config_star is not None, config_star)
-        
+    def select_model_unet(key_unet): 
+        nonlocal model_selected_unet
         model_selected_unet = key_unet
         config_unet = model_unet_configs.get(key_unet)
         update('model_unet', config_unet is not None, config_unet)
         
-        
+    def select_model_den(key_den):  
+        nonlocal model_selected_den
         model_selected_den = key_den
         config_den = model_den_configs.get(key_den)
         update('model_den', config_den is not None, config_den)
@@ -771,7 +774,7 @@ def plugin_wrapper_vollseg():
                     except FileNotFoundError:
                         pass
                 finally:
-                    select_model(key_star)
+                    select_model_star(key_star)
                     plugin.progress_bar.hide()
 
             worker = _get_model_folder()
@@ -786,7 +789,7 @@ def plugin_wrapper_vollseg():
             plugin.progress_bar.show()
 
         else:
-            select_model(key_star)
+            select_model_star(key_star)
 
     @change_handler(plugin.model2d_unet, plugin.model3d_unet,  init=False)
     def _model_change_unet(model_name_unet: str):
@@ -800,7 +803,7 @@ def plugin_wrapper_vollseg():
 
             def _process_model_folder(path):
                 
-                    select_model(key_unet)
+                    select_model_unet(key_unet)
                     plugin.progress_bar.hide()
 
             worker = _get_model_folder()
@@ -815,7 +818,7 @@ def plugin_wrapper_vollseg():
             plugin.progress_bar.show()
 
         else:
-            select_model(key_unet)
+            select_model_unet(key_unet)
             
             
     @change_handler( plugin.model_den, init=False)
@@ -830,7 +833,7 @@ def plugin_wrapper_vollseg():
 
             def _process_model_folder(path):
                 
-                    select_model(key_unet)
+                    select_model_unet(key_unet)
                     plugin.progress_bar.hide()
 
             worker = _get_model_folder()
@@ -845,7 +848,7 @@ def plugin_wrapper_vollseg():
             plugin.progress_bar.show()
 
         else:
-            select_model(key_unet)
+            select_model_unet(key_unet)
             
             
             
@@ -863,7 +866,7 @@ def plugin_wrapper_vollseg():
         except FileNotFoundError:
             pass
         finally:
-            select_model(key)
+            select_model_star(key)
             
     @change_handler(plugin.model_folder_unet, init=False)
     def _model_unet_folder_change(_path: str):
@@ -875,7 +878,7 @@ def plugin_wrapper_vollseg():
             except FileNotFoundError:
                 pass
             finally:
-                select_model(key) 
+                select_model_unet(key) 
                 
                 
     @change_handler(plugin.model_folder_den, init=False)
@@ -888,7 +891,7 @@ def plugin_wrapper_vollseg():
         except FileNotFoundError:
             pass
         finally:
-            select_model(key)             
+            select_model_den(key)             
                 
         
     # -------------------------------------------------------------------------
@@ -1010,14 +1013,14 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # allow some widgets to shrink because their size depends on user input
-    plugin.image.native.setMinimumWidth(240)
-    plugin.model2d_star.native.setMinimumWidth(240)
-    plugin.model3d_star.native.setMinimumWidth(240)
+    plugin.image.native.setMinimumWidth(120)
+    plugin.model2d_star.native.setMinimumWidth(120)
+    plugin.model3d_star.native.setMinimumWidth(120)
     
-    plugin.model2d_unet.native.setMinimumWidth(240)
-    plugin.model3d_unet.native.setMinimumWidth(240)
+    plugin.model2d_unet.native.setMinimumWidth(120)
+    plugin.model3d_unet.native.setMinimumWidth(120)
     
-    plugin.model_den.native.setMinimumWidth(240)
+    plugin.model_den.native.setMinimumWidth(120)
     
     
     
@@ -1062,10 +1065,10 @@ def h5image_file_reader(path):
    return [(array,)]
 
 
-@napari_hook_implementation
-def napari_get_reader(path):
+@napari_hook_implementation(specname="napari_get_reader")
+def napari_get_reader(path:str):
    # If we recognize the format, we return the actual reader function
-   if isinstance(path, str) and path.endswith(".inr"):
+   if isinstance(path, str) and path.endswith(".inr") or path.endswith(".inr.gz"):
       return inrimage_file_reader
    if isinstance(path, str) and path.endswith(".klb"):
       return klbimage_file_reader
