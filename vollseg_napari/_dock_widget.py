@@ -242,8 +242,7 @@ def plugin_wrapper_vollseg():
        model_den_n2v,
        model_folder_star,
        model_folder_unet,
-       model_folder_den_care,
-       model_folder_den_n2v,
+       model_folder_den,
        result_folder,
        model_axes,
        norm_image,
@@ -468,7 +467,7 @@ def plugin_wrapper_vollseg():
        VollSeg3D:   (plugin.model3d_star, plugin.model3d_unet),
        CARE:         plugin.model_den_care,
        CUSTOM_SEG_MODEL: (plugin.model_folder_star, plugin.model_folder_unet),
-       CUSTOM_DEN_MODEL: plugin.model_folder_den_care,
+       CUSTOM_DEN_MODEL: plugin.model_folder_den,
     }
 
     def widgets_inactive(*widgets, active):
@@ -486,7 +485,7 @@ def plugin_wrapper_vollseg():
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
             self.debug = debug
-            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes', 'dounet', 'prob_map_watershed' , 'min_size', 'min_size_mask', 'max_size')})
+            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model', 'n_tiles', 'norm_axes', 'dounet', 'prob_map_watershed' , 'min_size', 'min_size_mask', 'max_size')})
             self.args  = SimpleNamespace()
             self.viewer = None
 
@@ -524,7 +523,7 @@ def plugin_wrapper_vollseg():
 
 
             def _model(valid):
-                widgets_valid(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_n2v, plugin.model_den_care, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den_care.line_edit, plugin.model_folder_den_n2v.line_edit,  valid=valid)
+                widgets_valid(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den.line_edit,  valid=valid)
                 if valid:
                     config = self.args.model
                     axes = config.get('axes', 'ZYXC'[-len(config['net_input_shape']):])
@@ -533,8 +532,7 @@ def plugin_wrapper_vollseg():
                     plugin.model_axes.value = axes.replace("C", f"C[{config['n_channel_in']}]")
                     plugin.model_folder_star.line_edit.tooltip = ''
                     plugin.model_folder_unet.line_edit.tooltip = ''
-                    plugin.model_folder_den_care.line_edit.tooltip = ''
-                    plugin.model_folder_den_n2v.line_edit.tooltip = ''
+                    plugin.model_folder_den.line_edit.tooltip = ''
                     
                     
                     return axes, config
@@ -542,8 +540,7 @@ def plugin_wrapper_vollseg():
                     plugin.model_axes.value = ''
                     plugin.model_folder_star.line_edit.tooltip = 'Invalid model directory'
                     plugin.model_folder_unet.line_edit.tooltip = 'Invalid model directory'
-                    plugin.model_folder_den_care.line_edit.tooltip = 'Invalid model directory'
-                    plugin.model_folder_den_n2v.line_edit.tooltip = 'Invalid model directory'
+                    plugin.model_folder_den.line_edit.tooltip = 'Invalid model directory'
 
             def _image_axes(valid):
                 axes, image, err = getattr(self.args, 'image_axes', (None,None,None))
@@ -637,7 +634,7 @@ def plugin_wrapper_vollseg():
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
                     all_valid = set(axes_model.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model == ch_image
 
-                    widgets_valid(plugin.image, plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den_care.line_edit, plugin.model_folder_den_n2v.line_edit, valid=all_valid)
+                    widgets_valid(plugin.image, plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den.line_edit, valid=all_valid)
                     if all_valid:
                         help_msg = ''
                     else:
@@ -647,6 +644,7 @@ def plugin_wrapper_vollseg():
                 _norm_axes(self.valid.norm_axes)
                 _n_tiles(self.valid.n_tiles)
                 _model(self.valid.model)
+                
                 _restore()
 
             self.help(help_msg)
@@ -658,8 +656,8 @@ def plugin_wrapper_vollseg():
     update = Updater()
 
 
-    def select_model(key_star, key_unet, key_den_care, key_den_n2v):
-        nonlocal model_selected_star, model_selected_unet, model_selected_den_care 
+    def select_model(key_star, key_unet, key_den):
+        nonlocal model_selected_star, model_selected_unet, model_selected_den
         model_selected_star = key_star
         config_star = model_star_configs.get(key_star)
         update('model_star', config_star is not None, config_star)
@@ -669,9 +667,9 @@ def plugin_wrapper_vollseg():
         update('model_unet', config_unet is not None, config_unet)
         
         
-        model_selected_den_care = key_den_care
-        config_den_care = model_den_care_configs.get(key_den_care)
-        update('model_den_care', config_den_care is not None, config_den_care)
+        model_selected_den = key_den
+        config_den = model_den_care_configs.get(key_den)
+        update('model_den', config_den is not None, config_den)
         
         
 
@@ -721,7 +719,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model_type, init=False)
     def _model_type_change(model_type: Union[str, type]):
         selected = widget_for_modeltype[model_type]
-        for w in set((plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder_star, plugin.model_folder_unet, plugin.model_folder_den_care, plugin.model_folder_den_n2v )) - {selected}:
+        for w in set((plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, plugin.model_folder_star, plugin.model_folder_unet, plugin.model_folder_den)) - {selected}:
             w.hide()
         selected.show()
         # trigger _model_change
@@ -732,17 +730,17 @@ def plugin_wrapper_vollseg():
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
     @change_handler(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den_care, plugin.model_den_n2v, init=False)
-    def _model_change(model_name_star: str, model_name_unet: str, model_name_den_care: str, model_name_den_n2v: str):
+    def _model_change(model_name_star: str, model_name_unet: str, model_name_den: str):
         model_class_star, model_class_unet = VollSeg2D if Signal.sender() is plugin.model2d_star else VollSeg3D
-        model_class_den_care = CARE
+        model_class_den= CARE
         
         key_star = model_class_star, model_name_star
         key_unet =  model_class_unet, model_name_unet
-        key_den_care = model_class_den_care, model_name_den_care
+        key_den = model_class_den, model_name_den
         if key_star not in model_star_configs:
             @thread_worker
             def _get_model_folder():
-                return get_model_folder(*key_star), get_model_folder(*key_unet), get_model_folder(*key_den_care) 
+                return get_model_folder(*key_star), get_model_folder(*key_unet), get_model_folder(*key_den) 
 
             def _process_model_folder(path):
                 try:
