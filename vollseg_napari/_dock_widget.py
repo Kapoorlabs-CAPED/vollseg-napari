@@ -22,7 +22,7 @@ from pathlib import Path
 from warnings import warn
 from tifffile import imread, imwrite
 from vollseg import inrimage, klb, h5, spatial_image
-def plugin_wrapper():
+def plugin_wrapper_vollseg():
     
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
     from csbdeep.models.pretrained import get_registered_models, get_model_folder
@@ -33,11 +33,10 @@ def plugin_wrapper():
     from csbdeep.models import Config, CARE
     
     
-    from n2v.models import N2V
     from stardist.utils import abspath
     
     
-    DEBUG = False
+    DEBUG = True
     def get_data(image):
        image = image.data[0] if image.multiscale else image.data
        # enforce dense numpy array in case we are given a dask array etc
@@ -80,25 +79,20 @@ def plugin_wrapper():
     # use first alias for model selection (if alias exists)
     models_den_care = [((_aliases_den_care[m][0] if len(_aliases_den_care[m]) > 0 else m),m) for m in _models_den_care]
     
-    _models_den_n2v, _aliases_den_n2v = get_registered_models(StarDist3D)
-    # use first alias for model selection (if alias exists)
-    models_den_n2v = [((_aliases_den_n2v[m][0] if len(_aliases_den_n2v[m]) > 0 else m),m) for m in _models_den_n2v]
     
     
     model_star_configs = dict()
     model_unet_configs = dict()
     model_den_care_configs = dict()
-    model_den_n2v_configs = dict()
     model_star_threshs = dict()
     model_selected_star = None
     model_selected_unet = None
-    model_selected_care = None
-    model_selected_n2v = None
+    model_selected_den_care = None
     
     CUSTOM_SEG_MODEL = 'CUSTOM_SEG_MODEL'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_model_type_choices = [('2D', VollSeg2D), ('3D', VollSeg3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL)]
-    den_model_type_choices = [ ('DenoiseCARE', CARE) , ('DenoiseN2V', N2V), ('NoDenoising', None), ('Custom N2V/CARE', CUSTOM_DEN_MODEL)]
+    den_model_type_choices = [ ('DenoiseCARE', CARE) ,  ('NoDenoising', None), ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den_care, model_den_n2v):
         if seg_model_type == CUSTOM_SEG_MODEL:
@@ -115,16 +109,13 @@ def plugin_wrapper():
                     path_care = Path(model_den_care)
                     path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
                     return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
-                if model_den_n2v is not None:
-                    path_n2v = Path(model_den_n2v)
-                    path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
-                    return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
+               
     
             elif den_model_type != CUSTOM_DEN_MODEL and model_den_care is not None:
                 
                  return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den_care)
              
-            elif den_model_type != CUSTOM_DEN_MODEL and model_den_n2v is not None:
+            elif den_model_type != CUSTOM_DEN_MODEL:
                 
                  return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den_n2v)
                  
@@ -140,21 +131,15 @@ def plugin_wrapper():
                       path_care = Path(model_den_care)
                       path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
                       return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), CARE(None, name=path_care.name, basedir=str(path_care.parent))
-                  if model_den_n2v is not None:
-                      path_n2v = Path(model_den_n2v)
-                      path_n2v.is_dir() or _raise(FileNotFoundError(f"{path_n2v} is not a directory"))
-                      return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), N2V(None, name=path_n2v.name, basedir=str(path_n2v.parent))
-      
-              elif den_model_type != CUSTOM_DEN_MODEL and model_den_n2v is not None:
                   
-                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_den_n2v)
+              
                    
               elif den_model_type != CUSTOM_DEN_MODEL and model_den_care is not None:
                   
                    return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_den_care)    
                
                 
-              elif den_model_type != CUSTOM_DEN_MODEL and model_den_care == None and model_den_n2v == None:
+              elif den_model_type != CUSTOM_DEN_MODEL and model_den_care == None:
                       
                        return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet)
         
@@ -171,12 +156,11 @@ def plugin_wrapper():
     
     DEFAULTS = dict (
             seg_model_type = VollSeg3D,
-            den_model_type = N2V,
+            den_model_type = CARE,
             model2d_star        = models2d_star[0][1],
             model2d_unet   = models2d_unet[0][1],
             model3d_star        = models3d_star[0][1],
             model3d_unet   = models3d_unet[0][1],
-            model_den_n2v  = models_den_n2v[0][1],
             model_den_care  = models_den_care[0][1],
             norm_image     = True,
             perc_low       =  1.0,
@@ -210,7 +194,6 @@ def plugin_wrapper():
         model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS['model3d_unet']),
         
         model_den_care   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den_care, value=DEFAULTS['model_den_care']),
-        model_den_n2v   = dict(widget_type='ComboBox', visible=False, label='Pre-trained N2V Denoising Model', choices=models_den_n2v, value=DEFAULTS['model_den_n2v']),
         
         model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
         model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
@@ -285,8 +268,7 @@ def plugin_wrapper():
 
        model_star = get_model(*model_selected_star)
        model_unet = get_model(*model_selected_unet)
-       model_den_care = get_model(*model_selected_care)
-       model_den_n2v = get_model(*model_selected_n2v)
+       model_den_care = get_model(*model_selected_den_care)
        lkwargs = {}
        x = get_data(image)
        axes = axes_check_and_normalize(axes, length=x.ndim)
@@ -485,9 +467,8 @@ def plugin_wrapper():
        VollSeg2D:   (plugin.model2d_star, plugin.model2d_unet),
        VollSeg3D:   (plugin.model3d_star, plugin.model3d_unet),
        CARE:         plugin.model_den_care,
-       N2V:          plugin.model_den_n2v,
        CUSTOM_SEG_MODEL: (plugin.model_folder_star, plugin.model_folder_unet),
-       CUSTOM_DEN_MODEL: (plugin.model_folder_den_care, plugin.model_folder_den_n2v),
+       CUSTOM_DEN_MODEL: plugin.model_folder_den_care,
     }
 
     def widgets_inactive(*widgets, active):
@@ -499,22 +480,7 @@ def plugin_wrapper():
        for widget in widgets:
            widget.native.setStyleSheet("" if valid else "background-color: lightcoral")
    
-    # allow some widgets to shrink because their size depends on user input
-    plugin.image.native.setMinimumWidth(240)
-    plugin.model2d_star.native.setMinimumWidth(240)
-    plugin.model3d_star.native.setMinimumWidth(240)
-   
 
-    plugin.label_head.native.setOpenExternalLinks(True)
-    # make reset button smaller
-    # plugin.defaults_button.native.setMaximumWidth(150)
-
-    # plugin.model_axes.native.setReadOnly(True)
-    plugin.model_axes.enabled = False
-
-    # push 'call_button' and 'progress_bar' to bottom
-    layout = plugin.native.layout()
-    layout.insertStretch(layout.count()-2)
    
     class Updater:
         def __init__(self, debug=DEBUG):
@@ -693,7 +659,7 @@ def plugin_wrapper():
 
 
     def select_model(key_star, key_unet, key_den_care, key_den_n2v):
-        nonlocal model_selected_star, model_selected_unet, model_selected_den_care, model_selected_den_n2v 
+        nonlocal model_selected_star, model_selected_unet, model_selected_den_care 
         model_selected_star = key_star
         config_star = model_star_configs.get(key_star)
         update('model_star', config_star is not None, config_star)
@@ -707,9 +673,6 @@ def plugin_wrapper():
         config_den_care = model_den_care_configs.get(key_den_care)
         update('model_den_care', config_den_care is not None, config_den_care)
         
-        model_selected_den_n2v = key_den_n2v
-        config_den_n2v = model_den_n2v_configs.get(key_den_n2v)
-        update('model_den_n2v', config_den_n2v is not None, config_den_n2v)
         
 
     # -------------------------------------------------------------------------
@@ -772,16 +735,14 @@ def plugin_wrapper():
     def _model_change(model_name_star: str, model_name_unet: str, model_name_den_care: str, model_name_den_n2v: str):
         model_class_star, model_class_unet = VollSeg2D if Signal.sender() is plugin.model2d_star else VollSeg3D
         model_class_den_care = CARE
-        model_class_den_n2v = N2V
         
         key_star = model_class_star, model_name_star
         key_unet =  model_class_unet, model_name_unet
         key_den_care = model_class_den_care, model_name_den_care
-        key_den_n2v = model_class_den_n2v, model_name_den_n2v
         if key_star not in model_star_configs:
             @thread_worker
             def _get_model_folder():
-                return get_model_folder(*key_star), get_model_folder(*key_unet), get_model_folder(*key_den_care), get_model_folder(*key_den_n2v) 
+                return get_model_folder(*key_star), get_model_folder(*key_unet), get_model_folder(*key_den_care) 
 
             def _process_model_folder(path):
                 try:
@@ -1017,7 +978,7 @@ def napari_get_reader(path):
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
-    return plugin_wrapper, dict(name='VollSeg', add_vertical_stretch=False)
+    return plugin_wrapper_vollseg, dict(name='VollSeg', add_vertical_stretch=False)
 
 
 

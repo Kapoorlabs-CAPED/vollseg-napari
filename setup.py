@@ -32,24 +32,26 @@ setup(
     packages=find_packages(),
     python_requires='>=3.7',
 
-    package_data={'vollseg_napari': [ 'resources/*' ]},
+      package_data={'vollseg_napari': [ 'resources/*' ]},
 
-    entry_points={'napari.plugin': 'VollSeg = vollseg_napari'},
+      entry_points={'napari.plugin': 'VollSeg = vollseg_napari'},
+      
+      
 
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Science/Research',
-        'Topic :: Scientific/Engineering',
-        'License :: OSI Approved :: BSD License',
+      classifiers=[
+          'Development Status :: 4 - Beta',
+          'Intended Audience :: Science/Research',
+          'Topic :: Scientific/Engineering',
+          'License :: OSI Approved :: BSD License',
 
-        'Operating System :: OS Independent',
+          'Operating System :: OS Independent',
 
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
+          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
+          'Programming Language :: Python :: 3.9',
 
-        'Framework :: napari',
-    ],
+          'Framework :: napari',
+      ],
 
     install_requires=[
         'vollseg',
