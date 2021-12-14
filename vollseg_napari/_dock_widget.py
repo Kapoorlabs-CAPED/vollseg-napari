@@ -76,7 +76,7 @@ def plugin_wrapper_vollseg():
     models2d_unet = [((_aliases2d_unet[m][0] if len(_aliases2d_unet[m]) > 0 else m),m) for m in _models2d_unet]
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
     
-    _models_den, _aliases_den = get_registered_models(StarDist3D)
+    _models_den, _aliases_den = get_registered_models(CARE)
     # use first alias for model selection (if alias exists)
     models_den = [((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m),m) for m in _models_den]
     
@@ -159,7 +159,8 @@ def plugin_wrapper_vollseg():
     output_choices = [Output.Labels.value, Output.Binary_mask.value, Output.Denoised_image.value, Output.Prob.value, Output.Markers.value, Output.All.value]  
     
     DEFAULTS = dict (
-            seg_model_type = VollSeg3D,
+            star_seg_model_type = StarDist3D,
+            unet_seg_model_type = Unet3D,
             den_model_type = CARE,
             model2d_star        = models2d_star[0][1],
             model2d_unet   = models2d_unet[0][1],
@@ -189,8 +190,8 @@ def plugin_wrapper_vollseg():
         image           = dict(label='Input Image'),
         axes            = dict(widget_type='LineEdit', label='Image Axes'),
         label_nn        = dict(widget_type='Label', label='<br><b>Neural Network Prediction:</b>'),
-        star_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Star Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS['seg_star_model_type']),
-        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS['seg_unet_model_type']),
+        star_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Star Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS['star_seg_model_type']),
+        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS['unet_seg_model_type']),
         den_model_type  = dict(widget_type='RadioButtons', label='Den Model Type', orientation='horizontal', choices=den_model_type_choices, value=DEFAULTS['den_model_type']),
         model2d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models2d_star, value=DEFAULTS['model2d_star']),
         model3d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models3d_star, value=DEFAULTS['model3d_star']),
@@ -900,9 +901,9 @@ def plugin_wrapper_vollseg():
 
         # dimensionality of selected model: 2, 3, or None (unknown)
         ndim_model = None
-        if plugin.seg_model_type.value == VollSeg2D:
+        if plugin.seg_model_type.value == StarDist2D or Unet2D:
             ndim_model = 2
-        elif plugin.seg_model_type.value == VollSeg3D:
+        elif plugin.seg_model_type.value == StarDist3D or Unet3D:
             ndim_model = 3
         else:
             if model_selected_star in model_star_configs:
