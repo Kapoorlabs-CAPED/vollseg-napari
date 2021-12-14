@@ -31,7 +31,8 @@ def plugin_wrapper_vollseg():
     from stardist.models import StarDist2D, StarDist3D
     from vollseg import VollSeg3D, VollSeg2D
     from csbdeep.models import Config, CARE
-    
+    from csbdeep.models import  CARE as Unet2D
+    from csbdeep.models import  CARE as Unet3D
     
     from stardist.utils import abspath
     
@@ -745,7 +746,7 @@ def plugin_wrapper_vollseg():
     # -> triggered by _model_type_change
     @change_handler(plugin.model2d_star, plugin.model3d_star, init=False)
     def _model_change_star(model_name_star: str):
-        model_class_star, model_class_unet = StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D
+        model_class_star, model_class_star = StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D
         
         key_star = model_class_star, model_name_star
         if key_star not in model_star_configs:
@@ -781,7 +782,7 @@ def plugin_wrapper_vollseg():
 
     @change_handler(plugin.model2d_unet, plugin.model3d_unet,  init=False)
     def _model_change_unet(model_name_unet: str):
-        model_class_unet = CARE
+        model_class_unet = Unet2D if Signal.sender() is plugin.model2d_star else Unet3D
         
         key_unet =  model_class_unet, model_name_unet
         if key_unet not in model_star_configs:
