@@ -36,7 +36,7 @@ setup(
 
       entry_points={'napari.plugin': 'VollSeg = vollseg_napari'},
       
-      
+      dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
 
       classifiers=[
           'Development Status :: 4 - Beta',
