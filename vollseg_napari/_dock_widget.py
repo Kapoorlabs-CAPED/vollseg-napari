@@ -62,7 +62,7 @@ def plugin_wrapper_vollseg():
     
     # get available models
     _models2d_star, _aliases2d_star = get_registered_models(StarDist2D)
-    print( _models2d_star, _aliases2d_star)
+  
     _models3d_star, _aliases3d_star = get_registered_models(StarDist3D)
     
     
