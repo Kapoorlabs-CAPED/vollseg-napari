@@ -25,7 +25,7 @@ from vollseg import inrimage, klb, h5, spatial_image
 def plugin_wrapper_vollseg():
     
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
-    from csbdeep.models.pretrained import get_registered_models, get_model_folder
+    from vollseg.pretrained import get_registered_models, get_model_folder
     from csbdeep.utils import load_json
     
     from stardist.models import StarDist2D, StarDist3D
