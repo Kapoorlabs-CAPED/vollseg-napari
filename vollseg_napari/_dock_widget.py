@@ -62,6 +62,7 @@ def plugin_wrapper_vollseg():
     
     # get available models
     _models2d_star, _aliases2d_star = get_registered_models(StarDist2D)
+    print( _models2d_star, _aliases2d_star)
     _models3d_star, _aliases3d_star = get_registered_models(StarDist3D)
     
     
@@ -101,25 +102,25 @@ def plugin_wrapper_vollseg():
         if seg_model_type == CUSTOM_SEG_MODEL_STAR:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
-            config = model_star_configs[(seg_model_type,model_star)]
-            model_class = StarDist2D if config['n_dim'] == 2 else StarDist3D
+            config_star = model_star_configs[(seg_model_type,model_star)]
+            model_class_star = StarDist2D if config_star['n_dim'] == 2 else StarDist3D
             
         if seg_model_type == CUSTOM_SEG_MODEL_UNET:    
             path_unet = Path(model_unet)
-            
             path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
-            
+            config_unet = model_star_configs[(seg_model_type,model_unet)]
+            model_class_unet = Unet2D if config_unet['n_dim'] == 2 else Unet3D
             
         if den_model_type == CUSTOM_DEN_MODEL:    
                 if model_den is not None:
                     path_care = Path(model_den)
                     path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
-                    return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
+                    return model_class_star(None, name=path_star.name, basedir=str(path_star.parent)), model_class_unet(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
                
     
         elif den_model_type != CUSTOM_DEN_MODEL and model_den is not None:
                 
-                 return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den)
+                 return model_class_star(None, name=path_star.name, basedir=str(path_star.parent)), model_class_unet(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den)
              
        
        
@@ -127,7 +128,7 @@ def plugin_wrapper_vollseg():
                 
         elif den_model_type != CUSTOM_DEN_MODEL and model_den == None:
                     
-                     return model_class(None, name=path_star.name, basedir=str(path_star.parent)), CARE(None, name=path_unet.name, basedir=str(path_unet.parent))
+                     return model_class_star(None, name=path_star.name, basedir=str(path_star.parent)), model_class_unet(None, name=path_unet.name, basedir=str(path_unet.parent))
         
         else:
             
