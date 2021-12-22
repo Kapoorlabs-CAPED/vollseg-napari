@@ -71,13 +71,13 @@ def plugin_wrapper_vollseg():
     models2d_star = [((_aliases2d_star[m][0] if len(_aliases2d_star[m]) > 0 else m),m) for m in _models2d_star]
     models3d_star = [((_aliases3d_star[m][0] if len(_aliases3d_star[m]) > 0 else m),m) for m in _models3d_star]
     
-    _models2d_unet, _aliases2d_unet = get_registered_models(StarDist3D)
-    _models3d_unet, _aliases3d_unet = get_registered_models(StarDist3D)
+    _models2d_unet, _aliases2d_unet = get_registered_models(Unet2D)
+    _models3d_unet, _aliases3d_unet = get_registered_models(Unet3D)
     # use first alias for model selection (if alias exists)
     models2d_unet = [((_aliases2d_unet[m][0] if len(_aliases2d_unet[m]) > 0 else m),m) for m in _models2d_unet]
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
     
-    _models_den, _aliases_den = get_registered_models(StarDist3D)
+    _models_den, _aliases_den = get_registered_models(CARE)
     # use first alias for model selection (if alias exists)
     models_den = [((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m),m) for m in _models_den]
     
