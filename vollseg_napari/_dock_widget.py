@@ -96,7 +96,7 @@ def plugin_wrapper_vollseg():
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_STAR)]
     seg_unet_model_type_choices = [('2D', UNET2D), ('3D', UNET3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_UNET)]
-    den_model_type_choices = [ ('DenoiseCARE', CARE) , ('Custom CARE', CUSTOM_DEN_MODEL)]
+    den_model_type_choices = [ ('DenoiseCARE', CARE), ( 'No Denoising', NONE ) , ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
         if seg_model_type == CUSTOM_SEG_MODEL_STAR:
@@ -640,7 +640,7 @@ def plugin_wrapper_vollseg():
                     plugin.output_type.tooltip = '3D timelapse data'
                     _restore()
                 else:
-                    # check if image and model are compatible
+                    # check if image and models are compatible
                     ch_model_star = config_star['n_channel_in']
                     ch_model_unet = config_unet['n_channel_in']
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
@@ -655,7 +655,7 @@ def plugin_wrapper_vollseg():
                 _image_axes(self.valid.image_axes)
                 _norm_axes(self.valid.norm_axes)
                 _n_tiles(self.valid.n_tiles)
-                _model(self.valid.model)
+                _model(self.valid.model_star)
                 
                 _restore()
 
@@ -758,6 +758,7 @@ def plugin_wrapper_vollseg():
         selected.show()
         # trigger _model_change_den
         selected.changed(selected.value)
+       
     # show/hide model folder picker
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
