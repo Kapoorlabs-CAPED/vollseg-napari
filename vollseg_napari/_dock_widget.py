@@ -78,7 +78,6 @@ def plugin_wrapper_vollseg():
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
     
     _models_den, _aliases_den = get_registered_models(CARE)
-    _models_den_no, _aliases_den_no =  get_registered_models_NONE('NONE')
     # use first alias for model selection (if alias exists)
     models_den = [((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m),m) for m in _models_den]
     
@@ -810,7 +809,7 @@ def plugin_wrapper_vollseg():
         model_class_unet = UNET2D if Signal.sender() is plugin.model2d_star else UNET3D
         
         key_unet =  model_class_unet, model_name_unet
-        if key_unet not in model_star_configs:
+        if key_unet not in model_unet_configs:
             @thread_worker
             def _get_model_folder():
                 return get_model_folder(*key_unet)
@@ -901,7 +900,7 @@ def plugin_wrapper_vollseg():
         key = CUSTOM_DEN_MODEL, path
         try:
             if not path.is_dir(): return
-            model_unet_configs[key] = load_json(str(path/'config.json'))
+            model_den_configs[key] = load_json(str(path/'config.json'))
         except FileNotFoundError:
             pass
         finally:
