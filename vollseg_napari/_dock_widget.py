@@ -79,12 +79,8 @@ def plugin_wrapper_vollseg():
     
     _models_den, _aliases_den = get_registered_models(CARE)
     _models_den_no, _aliases_den_no =  get_registered_models_NONE('NONE')
-    _aliases_den_no = {'NONE':('NONE',)}
-    _models_den = _models_den +  (_models_den_no,)
-    _aliases_den.update(_aliases_den_no)
     # use first alias for model selection (if alias exists)
     models_den = [((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m),m) for m in _models_den]
-    
     
     
     model_star_configs = dict()
@@ -167,12 +163,13 @@ def plugin_wrapper_vollseg():
     DEFAULTS = dict (
             star_seg_model_type = StarDist3D,
             unet_seg_model_type = UNET3D,
-            den_model_type = 'NONE',
+            den_model_type = CARE,
             model2d_star        = models2d_star[0][1],
             model2d_unet   = models2d_unet[0][1],
             model3d_star        = models3d_star[0][1],
             model3d_unet   = models3d_unet[0][1],
             model_den  = models_den[0][1],
+            model_den_none  = 'NONE',
             norm_image     = True,
             perc_low       =  1.0,
             perc_high      = 99.8,
@@ -206,6 +203,8 @@ def plugin_wrapper_vollseg():
         model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS['model3d_unet']),
         
         model_den   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den, value=DEFAULTS['model_den']),
+        model_den_none   = dict(widget_type='Label', visible=False, label='No Denoising'),
+        
         
         model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
         model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
@@ -252,6 +251,7 @@ def plugin_wrapper_vollseg():
        model2d_unet,
        model3d_unet,
        model_den,
+       model_den_none,
        model_folder_star,
        model_folder_unet,
        model_folder_den,
@@ -476,7 +476,7 @@ def plugin_wrapper_vollseg():
        StarDist3D:   plugin.model3d_star,
        UNET3D: plugin.model3d_unet,
        CARE:         plugin.model_den,
-       'NONE':      plugin.model_den,
+       'NONE':      plugin.model_den_none,
        CUSTOM_SEG_MODEL_STAR: plugin.model_folder_star,
        CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
        CUSTOM_DEN_MODEL: plugin.model_folder_den,
@@ -758,9 +758,11 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.den_model_type, init=False)
     def _den_model_type_change(den_model_type: Union[str, type]):
         selected = widget_for_modeltype[den_model_type]
-        for w in set((plugin.model_den, plugin.model_folder_den)) - {selected}:
+        for w in set((plugin.model_den, plugin.model_den_none, plugin.model_folder_den)) - {selected}:
             w.hide()
         selected.show()
+        print('this was selected', selected)
+       
         # trigger _model_change_den
         selected.changed(selected.value)
        
