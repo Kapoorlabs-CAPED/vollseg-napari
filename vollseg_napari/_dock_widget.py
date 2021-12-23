@@ -469,7 +469,7 @@ def plugin_wrapper_vollseg():
        w.native.setSizePolicy(1|2, 0)
 
     # -------------------------------------------------------------------------
-
+    #
     widget_for_modeltype = {
        StarDist2D:   plugin.model2d_star,
        UNET2D :  plugin.model2d_unet,
