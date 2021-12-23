@@ -25,7 +25,7 @@ from vollseg import inrimage,  h5, spatial_image
 def plugin_wrapper_vollseg():
     
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
-    from vollseg.pretrained import get_registered_models, get_model_folder
+    from vollseg.pretrained import get_registered_models, get_model_folder, get_registered_models_NONE
     from csbdeep.utils import load_json
     
     from stardist.models import StarDist2D, StarDist3D
@@ -78,6 +78,10 @@ def plugin_wrapper_vollseg():
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
     
     _models_den, _aliases_den = get_registered_models(CARE)
+    _models_den_no, _aliases_den_no =  get_registered_models_NONE('NONE')
+    _aliases_den_no = {'NONE':('NONE',)}
+    _models_den = _models_den +  (_models_den_no,)
+    _aliases_den.update(_aliases_den_no)
     # use first alias for model selection (if alias exists)
     models_den = [((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m),m) for m in _models_den]
     
@@ -96,7 +100,7 @@ def plugin_wrapper_vollseg():
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_STAR)]
     seg_unet_model_type_choices = [('2D', UNET2D), ('3D', UNET3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_UNET)]
-    den_model_type_choices = [ ('DenoiseCARE', CARE), ( 'No Denoising', NONE ) , ('Custom CARE', CUSTOM_DEN_MODEL)]
+    den_model_type_choices = [ ('DenoiseCARE', CARE), ( 'NONE', 'NONE' ) , ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
         if seg_model_type == CUSTOM_SEG_MODEL_STAR:
@@ -472,6 +476,7 @@ def plugin_wrapper_vollseg():
        StarDist3D:   plugin.model3d_star,
        UNET3D: plugin.model3d_unet,
        CARE:         plugin.model_den,
+       'NONE':      plugin.model_den,
        CUSTOM_SEG_MODEL_STAR: plugin.model_folder_star,
        CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
        CUSTOM_DEN_MODEL: plugin.model_folder_den,
