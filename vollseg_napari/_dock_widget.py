@@ -21,7 +21,7 @@ import numpy as np
 from pathlib import Path
 from warnings import warn
 from tifffile import imread, imwrite
-from vollseg import inrimage, klb, h5, spatial_image
+from vollseg import inrimage,  h5, spatial_image
 def plugin_wrapper_vollseg():
     
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
@@ -31,8 +31,8 @@ def plugin_wrapper_vollseg():
     from stardist.models import StarDist2D, StarDist3D
     from vollseg import VollSeg3D, VollSeg2D
     from csbdeep.models import Config, CARE
-    from csbdeep.models import  CARE as Unet2D
-    from csbdeep.models import  CARE as Unet3D
+    from vollseg import UNET2D
+    from vollseg import UNET3D
     
     from stardist.utils import abspath
     
@@ -71,8 +71,8 @@ def plugin_wrapper_vollseg():
     models2d_star = [((_aliases2d_star[m][0] if len(_aliases2d_star[m]) > 0 else m),m) for m in _models2d_star]
     models3d_star = [((_aliases3d_star[m][0] if len(_aliases3d_star[m]) > 0 else m),m) for m in _models3d_star]
     
-    _models2d_unet, _aliases2d_unet = get_registered_models(Unet2D)
-    _models3d_unet, _aliases3d_unet = get_registered_models(Unet3D)
+    _models2d_unet, _aliases2d_unet = get_registered_models(UNET2D)
+    _models3d_unet, _aliases3d_unet = get_registered_models(UNET3D)
     # use first alias for model selection (if alias exists)
     models2d_unet = [((_aliases2d_unet[m][0] if len(_aliases2d_unet[m]) > 0 else m),m) for m in _models2d_unet]
     models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
@@ -95,8 +95,8 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_STAR)]
-    seg_unet_model_type_choices = [('2D', Unet2D), ('3D', Unet3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_UNET)]
-    den_model_type_choices = [ ('DenoiseCARE', CARE) ,  ('NoDenoising', None), ('Custom CARE', CUSTOM_DEN_MODEL)]
+    seg_unet_model_type_choices = [('2D', UNET2D), ('3D', UNET3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_UNET)]
+    den_model_type_choices = [ ('DenoiseCARE', CARE) , ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
         if seg_model_type == CUSTOM_SEG_MODEL_STAR:
@@ -109,7 +109,7 @@ def plugin_wrapper_vollseg():
             path_unet = Path(model_unet)
             path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
             config_unet = model_star_configs[(seg_model_type,model_unet)]
-            model_class_unet = Unet2D if config_unet['n_dim'] == 2 else Unet3D
+            model_class_unet = UNET2D if config_unet['n_dim'] == 2 else UNET3D
             
         if den_model_type == CUSTOM_DEN_MODEL:    
                 if model_den is not None:
@@ -162,7 +162,7 @@ def plugin_wrapper_vollseg():
     
     DEFAULTS = dict (
             star_seg_model_type = StarDist3D,
-            unet_seg_model_type = Unet3D,
+            unet_seg_model_type = UNET3D,
             den_model_type = CARE,
             model2d_star        = models2d_star[0][1],
             model2d_unet   = models2d_unet[0][1],
@@ -359,7 +359,7 @@ def plugin_wrapper_vollseg():
            x_reorder = np.moveaxis(x, t, 0)
            axes_reorder = axes.replace('T','')
            
-           if isinstance(model_star, VollSeg3D):
+           if isinstance(model_star, StarDist3D):
           
                   if model_den is not None:
                       noise_model = model_den
@@ -370,7 +370,7 @@ def plugin_wrapper_vollseg():
                   n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                                                    for _x in progress(x_reorder))))
             
-           elif isinstance(model_star, VollSeg2D):
+           elif isinstance(model_star, StarDist2D):
           
                   if model_den is not None:
                       noise_model = model_den
@@ -468,9 +468,9 @@ def plugin_wrapper_vollseg():
 
     widget_for_modeltype = {
        StarDist2D:   plugin.model2d_star,
-       Unet2D :  plugin.model2d_unet,
+       UNET2D :  plugin.model2d_unet,
        StarDist3D:   plugin.model3d_star,
-       Unet3D: plugin.model3d_unet,
+       UNET3D: plugin.model3d_unet,
        CARE:         plugin.model_den,
        CUSTOM_SEG_MODEL_STAR: plugin.model_folder_star,
        CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
@@ -492,7 +492,7 @@ def plugin_wrapper_vollseg():
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
             self.debug = debug
-            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model', 'n_tiles', 'norm_axes', 'dounet', 'prob_map_watershed' , 'min_size', 'min_size_mask', 'max_size')})
+            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes', 'dounet', 'prob_map_watershed' , 'min_size', 'min_size_mask', 'max_size')})
             self.args  = SimpleNamespace()
             self.viewer = None
 
@@ -532,17 +532,21 @@ def plugin_wrapper_vollseg():
             def _model(valid):
                 widgets_valid(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den.line_edit,  valid=valid)
                 if valid:
-                    config = self.args.model
-                    axes = config.get('axes', 'ZYXC'[-len(config['net_input_shape']):])
-                    if 'T' in axes:
+                    config_star = self.args.model_star
+                    axes_star = config_star.get('axes', 'ZYXC'[-len(config_star['net_input_shape']):])
+                    
+                    config_unet = self.args.model_unet
+                    axes_unet = config_unet.get('axes', 'ZYXC'[-len(config_unet['net_input_shape']):])
+                    
+                    if 'T' in axes_star:
                         raise RuntimeError("model with axis 'T' not supported")
-                    plugin.model_axes.value = axes.replace("C", f"C[{config['n_channel_in']}]")
+                    plugin.model_axes.value = axes_star.replace("C", f"C[{config_star['n_channel_in']}]")
                     plugin.model_folder_star.line_edit.tooltip = ''
                     plugin.model_folder_unet.line_edit.tooltip = ''
                     plugin.model_folder_den.line_edit.tooltip = ''
                     
                     
-                    return axes, config
+                    return axes_star, axes_unet, config_star, config_unet
                 else:
                     plugin.model_axes.value = ''
                     plugin.model_folder_star.line_edit.tooltip = 'Invalid model directory'
@@ -607,9 +611,9 @@ def plugin_wrapper_vollseg():
             all_valid = False
             help_msg = ''
 
-            if self.valid.image_axes and self.valid.n_tiles and self.valid.model and self.valid.norm_axes:
+            if self.valid.image_axes and self.valid.n_tiles and self.valid.model_star and self.valid.model_unet and self.valid.norm_axes:
                 axes_image, image  = _image_axes(True)
-                axes_model, config = _model(True)
+                axes_model_star, config_star, axes_model_unet, config_unet = _model(True)
                 axes_norm          = _norm_axes(True)
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
@@ -630,22 +634,23 @@ def plugin_wrapper_vollseg():
                     err = f"Image axes ({axes_image}) must contain at least one of the normalization axes ({', '.join(axes_norm)})"
                     plugin.norm_axes.tooltip = err
                     _restore()
-                elif 'T' in axes_image and config.get('n_dim') == 3 and plugin.output_type.value in  (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
+                elif 'T' in axes_image and config_star.get('n_dim') == 3 and plugin.output_type.value in  (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
                     # not supported
                     widgets_valid(plugin.output_type, valid=False)
                     plugin.output_type.tooltip = '3D timelapse data'
                     _restore()
                 else:
                     # check if image and model are compatible
-                    ch_model = config['n_channel_in']
+                    ch_model_star = config_star['n_channel_in']
+                    ch_model_unet = config_unet['n_channel_in']
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
-                    all_valid = set(axes_model.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model == ch_image
+                    all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image and ch_model_unet == ch_image
 
                     widgets_valid(plugin.image, plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den.line_edit, valid=all_valid)
                     if all_valid:
                         help_msg = ''
                     else:
-                        help_msg = f'Model with axes {axes_model.replace("C", f"C[{ch_model}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
+                        help_msg = f'Model with axes {axes_model_star.replace("C", f"C[{ch_model_star}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
             else:
                 _image_axes(self.valid.image_axes)
                 _norm_axes(self.valid.norm_axes)
@@ -691,11 +696,11 @@ def plugin_wrapper_vollseg():
     
     @change_handler(plugin.dounet)
     def _dounet_change(active: bool):
-        widgets_inactive(plugin.dounet, active=active)
+        plugin.dounet.value = active
         
     @change_handler(plugin.prob_map_watershed)
     def _prob_map_watershed_change(active: bool):
-        widgets_inactive(plugin.prob_map_watershed, active=active)
+        plugin.prob_map_watershed.value = active
                          
                          
     # ensure that percentile low < percentile high
@@ -794,7 +799,7 @@ def plugin_wrapper_vollseg():
 
     @change_handler(plugin.model2d_unet, plugin.model3d_unet,  init=False)
     def _model_change_unet(model_name_unet: str):
-        model_class_unet = Unet2D if Signal.sender() is plugin.model2d_star else Unet3D
+        model_class_unet = UNET2D if Signal.sender() is plugin.model2d_star else UNET3D
         
         key_unet =  model_class_unet, model_name_unet
         if key_unet not in model_star_configs:
@@ -823,18 +828,18 @@ def plugin_wrapper_vollseg():
             
             
     @change_handler( plugin.model_den, init=False)
-    def _model_change_den(model_name_unet: str):
-        model_class_unet= CARE
+    def _model_change_den(model_name_den: str):
+        model_class_den = CARE
         
-        key_unet =  model_class_unet, model_name_unet
-        if key_unet not in model_unet_configs:
+        key_den =  model_class_den, model_name_den
+        if key_den not in model_den_configs:
             @thread_worker
             def _get_model_folder():
-                return get_model_folder(*key_unet)
+                return get_model_folder(*key_den)
 
             def _process_model_folder(path):
                 
-                    select_model_unet(key_unet)
+                    select_model_den(key_den)
                     plugin.progress_bar.hide()
 
             worker = _get_model_folder()
@@ -849,7 +854,7 @@ def plugin_wrapper_vollseg():
             plugin.progress_bar.show()
 
         else:
-            select_model_unet(key_unet)
+            select_model_unet(key_den)
             
             
             
@@ -905,9 +910,9 @@ def plugin_wrapper_vollseg():
 
         # dimensionality of selected model: 2, 3, or None (unknown)
         ndim_model = None
-        if plugin.seg_model_type.value == StarDist2D or Unet2D:
+        if plugin.seg_model_type.value == StarDist2D or UNET2D:
             ndim_model = 2
-        elif plugin.seg_model_type.value == StarDist3D or Unet3D:
+        elif plugin.seg_model_type.value == StarDist3D or UNET3D:
             ndim_model = 3
         else:
             if model_selected_star in model_star_configs:
@@ -1047,11 +1052,11 @@ def inrimage_file_reader(path):
    # here with no optional metadata
    return [(array,)]
 
-def klbimage_file_reader(path):
-   array = klb.read_klb(path)
+#def klbimage_file_reader(path):
+   #array = klb.read_klb(path)
    # return it as a list of LayerData tuples,
    # here with no optional metadata
-   return [(array,)]
+   #return [(array,)]
 
 def tifimage_file_reader(path):
    array = imread(path)
@@ -1071,8 +1076,8 @@ def napari_get_reader(path:str):
    # If we recognize the format, we return the actual reader function
    if isinstance(path, str) and path.endswith(".inr") or path.endswith(".inr.gz"):
       return inrimage_file_reader
-   if isinstance(path, str) and path.endswith(".klb"):
-      return klbimage_file_reader
+   #if isinstance(path, str) and path.endswith(".klb"):
+      #return klbimage_file_reader
    if isinstance(path, str) and path.endswith(".tif"):
       return tifimage_file_reader
    if isinstance(path, str) and path.endswith(".h5"):
@@ -1085,7 +1090,7 @@ def napari_get_reader(path:str):
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
-    return plugin_wrapper_vollseg, dict(name='VollSeg', add_vertical_stretch=False)
+    return plugin_wrapper_vollseg, dict(name='VollSeg', add_vertical_stretch=True)
 
 
 
