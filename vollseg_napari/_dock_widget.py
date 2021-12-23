@@ -167,7 +167,7 @@ def plugin_wrapper_vollseg():
     DEFAULTS = dict (
             star_seg_model_type = StarDist3D,
             unet_seg_model_type = UNET3D,
-            den_model_type = CARE,
+            den_model_type = 'NONE',
             model2d_star        = models2d_star[0][1],
             model2d_unet   = models2d_unet[0][1],
             model3d_star        = models3d_star[0][1],
