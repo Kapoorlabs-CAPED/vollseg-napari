@@ -210,7 +210,7 @@ def plugin_wrapper_vollseg():
         
         # don't want to load persisted values for these widgets
         plugin.axes.value = ''
-        plugin.n_tiles.value = DEFAULTS['n_tiles']
+        plugin_parameters.n_tiles.value = DEFAULTS['n_tiles']
         plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
 
         # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
@@ -264,7 +264,7 @@ def plugin_wrapper_vollseg():
             norm_axes,
             set_thresholds,
             defaults_button,
-            
+            progress_bar: mw.ProgressBar
             ) -> List[napari.types.LayerDataTuple]:
                axes = plugin_model.axes
                x = plugin_model.x
@@ -511,15 +511,15 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
     #
     widget_for_modeltype = {
-       StarDist2D:   plugin.model2d_star,
-       UNET2D :  plugin.model2d_unet,
-       StarDist3D:   plugin.model3d_star,
-       UNET3D: plugin.model3d_unet,
-       CARE:         plugin.model_den,
-       'NONE':      plugin.model_den_none,
-       CUSTOM_SEG_MODEL_STAR: plugin.model_folder_star,
-       CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
-       CUSTOM_DEN_MODEL: plugin.model_folder_den,
+       StarDist2D:   plugin_model.model2d_star,
+       UNET2D :  plugin_model.model2d_unet,
+       StarDist3D:   plugin_model.model3d_star,
+       UNET3D: plugin_model.model3d_unet,
+       CARE:         plugin_model.model_den,
+       'NONE':      plugin_model.model_den_none,
+       CUSTOM_SEG_MODEL_STAR: plugin_model.model_folder_star,
+       CUSTOM_SEG_MODEL_UNET: plugin_model.model_folder_unet,
+       CUSTOM_DEN_MODEL: plugin_model.model_folder_den,
     }
     
     
@@ -589,11 +589,11 @@ def plugin_wrapper_vollseg():
                         if len(layers_remaining) == 0:
                             plugin.image.tooltip = ''
                             plugin.axes.value = ''
-                            plugin.n_tiles.value = 'None'
+                            plugin_parameters.n_tiles.value = 'None'
 
 
             def _model(valid):
-                widgets_valid(plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den.line_edit,  valid=valid)
+                widgets_valid(plugin_model.model2d_star, plugin_model.model2d_unet, plugin_model.model3d_star, plugin_model.model3d_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit,  valid=valid)
                 if valid:
                     config_star = self.args.model_star
                     axes_star = config_star.get('axes', 'ZYXC'[-len(config_star['net_input_shape']):])
@@ -603,28 +603,28 @@ def plugin_wrapper_vollseg():
                     
                     if 'T' in axes_star:
                         raise RuntimeError("model with axis 'T' not supported")
-                    plugin.model_axes.value = axes_star.replace("C", f"C[{config_star['n_channel_in']}]")
-                    plugin.model_folder_star.line_edit.tooltip = ''
-                    plugin.model_folder_unet.line_edit.tooltip = ''
-                    plugin.model_folder_den.line_edit.tooltip = ''
+                    plugin_model.model_axes.value = axes_star.replace("C", f"C[{config_star['n_channel_in']}]")
+                    plugin_model.model_folder_star.line_edit.tooltip = ''
+                    plugin_model.model_folder_unet.line_edit.tooltip = ''
+                    plugin_model.model_folder_den.line_edit.tooltip = ''
                     
                     
                     return axes_star, axes_unet, config_star, config_unet
                 else:
-                    plugin.model_axes.value = ''
-                    plugin.model_folder_star.line_edit.tooltip = 'Invalid model directory'
-                    plugin.model_folder_unet.line_edit.tooltip = 'Invalid model directory'
-                    plugin.model_folder_den.line_edit.tooltip = 'Invalid model directory'
+                    plugin_model.model_axes.value = ''
+                    plugin_model.model_folder_star.line_edit.tooltip = 'Invalid model directory'
+                    plugin_model.model_folder_unet.line_edit.tooltip = 'Invalid model directory'
+                    plugin_model.model_folder_den.line_edit.tooltip = 'Invalid model directory'
 
             def _image_axes(valid):
                 axes, image, err = getattr(self.args, 'image_axes', (None,None,None))
                 widgets_valid(plugin.axes, valid=(valid or (image is None and (axes is None or len(axes) == 0))))
-                if valid and 'T' in axes and plugin.output_type.value in (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
-                    plugin.output_type.native.setStyleSheet("background-color: orange")
-                    plugin.output_type.tooltip = 'Displaying many labels can be very slow.'
+                if valid and 'T' in axes and plugin_parameters.output_type.value in (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
+                    plugin_parameters.output_type.native.setStyleSheet("background-color: orange")
+                    plugin_parameters.output_type.tooltip = 'Displaying many labels can be very slow.'
                 else:
-                    plugin.output_type.native.setStyleSheet("")
-                    plugin.output_type.tooltip = ''
+                    plugin_parameters.output_type.native.setStyleSheet("")
+                    plugin_parameters.output_type.tooltip = ''
                 if valid:
                     plugin.axes.tooltip = '\n'.join([f'{a} = {s}' for a,s in zip(axes,get_data(image).shape)])
                     return axes, image
@@ -639,28 +639,28 @@ def plugin_wrapper_vollseg():
 
             def _norm_axes(valid):
                 norm_axes, err = getattr(self.args, 'norm_axes', (None,None))
-                widgets_valid(plugin.norm_axes, valid=valid)
+                widgets_valid(plugin_parameters.norm_axes, valid=valid)
                 if valid:
-                    plugin.norm_axes.tooltip = f"Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together."
+                    plugin_parameters.norm_axes.tooltip = f"Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together."
                     return norm_axes
                 else:
                     if err is not None:
                         err = str(err)
                         err = err[:-1] if err.endswith('.') else err
-                        plugin.norm_axes.tooltip = err
+                        plugin_parameters.norm_axes.tooltip = err
                         # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
                     else:
-                        plugin.norm_axes.tooltip = ''
+                        plugin_parameters.norm_axes.tooltip = ''
 
             def _n_tiles(valid):
                 n_tiles, image, err = getattr(self.args, 'n_tiles', (None,None,None))
-                widgets_valid(plugin.n_tiles, valid=(valid or image is None))
+                widgets_valid(plugin_parameters.n_tiles, valid=(valid or image is None))
                 if valid:
-                    plugin.n_tiles.tooltip = 'no tiling' if n_tiles is None else '\n'.join([f'{t}: {s}' for t,s in zip(n_tiles,get_data(image).shape)])
+                    plugin_parameters.n_tiles.tooltip = 'no tiling' if n_tiles is None else '\n'.join([f'{t}: {s}' for t,s in zip(n_tiles,get_data(image).shape)])
                     return n_tiles
                 else:
                     msg = str(err) if err is not None else ''
-                    plugin.n_tiles.tooltip = msg
+                    plugin_parameters.n_tiles.tooltip = msg
 
             def _no_tiling_for_axis(axes_image, n_tiles, axis):
                 if n_tiles is not None and axis in axes_image:
@@ -681,15 +681,15 @@ def plugin_wrapper_vollseg():
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
                     # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin.n_tiles, valid=False)
+                    widgets_valid(plugin_parameters.n_tiles, valid=False)
                     err = 'number of tiles must be 1 for C axis'
-                    plugin.n_tiles.tooltip = err
+                    plugin_parameters.n_tiles.tooltip = err
                     _restore()
                 elif not _no_tiling_for_axis(axes_image, n_tiles, 'T'):
                     # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin.n_tiles, valid=False)
+                    widgets_valid(plugin_parameters.n_tiles, valid=False)
                     err = 'number of tiles must be 1 for T axis'
-                    plugin.n_tiles.tooltip = err
+                    plugin_parameters.n_tiles.tooltip = err
                     _restore()
                 elif set(axes_norm).isdisjoint(set(axes_image)):
                     # check if image axes and normalization axes are compatible
@@ -697,10 +697,10 @@ def plugin_wrapper_vollseg():
                     err = f"Image axes ({axes_image}) must contain at least one of the normalization axes ({', '.join(axes_norm)})"
                     plugin.norm_axes.tooltip = err
                     _restore()
-                elif 'T' in axes_image and config_star.get('n_dim') == 3 and plugin.output_type.value in  (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
+                elif 'T' in axes_image and config_star.get('n_dim') == 3 and plugin_parameters.output_type.value in  (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
                     # not supported
-                    widgets_valid(plugin.output_type, valid=False)
-                    plugin.output_type.tooltip = '3D timelapse data'
+                    widgets_valid(plugin_parameters.output_type, valid=False)
+                    plugin_parameters.output_type.tooltip = '3D timelapse data'
                     _restore()
                 else:
                     # check if image and models are compatible
@@ -709,7 +709,7 @@ def plugin_wrapper_vollseg():
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
                     all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image and ch_model_unet == ch_image
 
-                    widgets_valid(plugin.image, plugin.model2d_star, plugin.model2d_unet, plugin.model3d_star, plugin.model3d_unet, plugin.model_den, plugin.model_folder_star.line_edit, plugin.model_folder_unet.line_edit, plugin.model_folder_den.line_edit, valid=all_valid)
+                    widgets_valid(plugin.image, plugin_model.model2d_star, plugin_model.model2d_unet, plugin_model.model3d_star, plugin_model.model3d_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
                     if all_valid:
                         help_msg = ''
                     else:
@@ -723,7 +723,7 @@ def plugin_wrapper_vollseg():
                 _restore()
 
             self.help(help_msg)
-            plugin.call_button.enabled = all_valid
+            plugin_parameters.call_button.enabled = all_valid
             # widgets_valid(plugin.call_button, valid=all_valid)
             if self.debug:
                 print(f"valid ({all_valid}):", ', '.join([f'{k}={v}' for k,v in vars(self.valid).items()]))
@@ -753,33 +753,33 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # hide percentile selection if normalization turned off
-    @change_handler(plugin.norm_image)
+    @change_handler(plugin_parameters.norm_image)
     def _norm_image_change(active: bool):
-        widgets_inactive(plugin.perc_low, plugin.perc_high, plugin.norm_axes, active=active)
+        widgets_inactive(plugin_parameters.perc_low, plugin_parameters.perc_high, plugin_parameters.norm_axes, active=active)
     
-    @change_handler(plugin.dounet)
+    @change_handler(plugin_parameters.dounet)
     def _dounet_change(active: bool):
-        plugin.dounet.value = active
+        plugin_parameters.dounet.value = active
         
-    @change_handler(plugin.prob_map_watershed)
+    @change_handler(plugin_parameters.prob_map_watershed)
     def _prob_map_watershed_change(active: bool):
-        plugin.prob_map_watershed.value = active
+        plugin_parameters.prob_map_watershed.value = active
                          
                          
     # ensure that percentile low < percentile high
-    @change_handler(plugin.perc_low)
+    @change_handler(plugin_parameters.perc_low)
     def _perc_low_change():
-        plugin.perc_high.value = max(plugin.perc_low.value+0.01, plugin.perc_high.value)
+        plugin_parameters.perc_high.value = max(plugin_parameters.perc_low.value+0.01, plugin_parameters.perc_high.value)
 
-    @change_handler(plugin.perc_high)
+    @change_handler(plugin_parameters.perc_high)
     def _perc_high_change():
-        plugin.perc_low.value  = min(plugin.perc_low.value, plugin.perc_high.value-0.01)
+        plugin_parameters.perc_low.value  = min(plugin_parameters.perc_low.value, plugin_parameters.perc_high.value-0.01)
 
-    @change_handler(plugin.norm_axes)
+    @change_handler(plugin_parameters.norm_axes)
     def _norm_axes_change(value: str):
         if value != value.upper():
             with plugin.axes.changed.blocked():
-                plugin.norm_axes.value = value.upper()
+                plugin_parameters.norm_axes.value = value.upper()
         try:
             axes = axes_check_and_normalize(value, disallowed='S')
             if len(axes) >= 1:
@@ -793,19 +793,19 @@ def plugin_wrapper_vollseg():
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
     # TODO: seems to be triggered too when a layer is added or removed (why?)
-    @change_handler(plugin.star_seg_model_type, init=False)
+    @change_handler(plugin_model.star_seg_model_type, init=False)
     def _seg_model_type_change_star(seg_model_type: Union[str, type]):
         selected = widget_for_modeltype[seg_model_type]
-        for w in set((plugin.model2d_star,  plugin.model3d_star, plugin.model_folder_star)) - {selected}:
+        for w in set((plugin_model.model2d_star,  plugin_model.model3d_star, plugin_model.model_folder_star)) - {selected}:
             w.hide()
         selected.show()
         # trigger _model_change_star()
         selected.changed(selected.value)
         
-    @change_handler(plugin.unet_seg_model_type, init=False)
+    @change_handler(plugin_model.unet_seg_model_type, init=False)
     def _seg_model_type_change_unet(seg_model_type: Union[str, type]):
         selected = widget_for_modeltype[seg_model_type]
-        for w in set((plugin.model2d_unet, plugin.model3d_unet, plugin.model_folder_unet)) - {selected}:
+        for w in set((plugin_model.model2d_unet, plugin_model.model3d_unet, plugin_model.model_folder_unet)) - {selected}:
             w.hide()
         selected.show()
         # trigger _model_change_unet
@@ -813,10 +813,10 @@ def plugin_wrapper_vollseg():
    
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
     # TODO: seems to be triggered too when a layer is added or removed (why?)
-    @change_handler(plugin.den_model_type, init=False)
+    @change_handler(plugin_model.den_model_type, init=False)
     def _den_model_type_change(den_model_type: Union[str, type]):
         selected = widget_for_modeltype[den_model_type]
-        for w in set((plugin.model_den, plugin.model_den_none, plugin.model_folder_den)) - {selected}:
+        for w in set((plugin_model.model_den, plugin_model.model_den_none, plugin_model.model_folder_den)) - {selected}:
             w.hide()
         selected.show()
         print('this was selected', selected)
@@ -827,7 +827,7 @@ def plugin_wrapper_vollseg():
     # show/hide model folder picker
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
-    @change_handler(plugin.model2d_star, plugin.model3d_star, init=False)
+    @change_handler(plugin_model.model2d_star, plugin_model.model3d_star, init=False)
     def _model_change_star(model_name_star: str):
         model_class_star, model_class_star = StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D
         
@@ -847,7 +847,7 @@ def plugin_wrapper_vollseg():
                         pass
                 finally:
                     select_model_star(key_star)
-                    plugin.progress_bar.hide()
+                    plugin_parameters.progress_bar.hide()
 
             worker = _get_model_folder()
             worker.returned.connect(_process_model_folder)
@@ -856,14 +856,14 @@ def plugin_wrapper_vollseg():
             # delay showing progress bar -> won't show up if model already downloaded
             # TODO: hacky -> better way to do this?
             time.sleep(0.1)
-            plugin.call_button.enabled = False
-            plugin.progress_bar.label = 'Downloading model'
-            plugin.progress_bar.show()
+            plugin_parameters.call_button.enabled = False
+            plugin_parameters.progress_bar.label = 'Downloading model'
+            plugin_parameters.progress_bar.show()
 
         else:
             select_model_star(key_star)
 
-    @change_handler(plugin.model2d_unet, plugin.model3d_unet,  init=False)
+    @change_handler(plugin_model.model2d_unet, plugin_model.model3d_unet,  init=False)
     def _model_change_unet(model_name_unet: str):
         model_class_unet = UNET2D if Signal.sender() is plugin.model2d_star else UNET3D
         
@@ -876,7 +876,7 @@ def plugin_wrapper_vollseg():
             def _process_model_folder(path):
                 
                     select_model_unet(key_unet)
-                    plugin.progress_bar.hide()
+                    plugin_parameters.progress_bar.hide()
 
             worker = _get_model_folder()
             worker.returned.connect(_process_model_folder)
@@ -885,15 +885,15 @@ def plugin_wrapper_vollseg():
             # delay showing progress bar -> won't show up if model already downloaded
             # TODO: hacky -> better way to do this?
             time.sleep(0.1)
-            plugin.call_button.enabled = False
-            plugin.progress_bar.label = 'Downloading model'
-            plugin.progress_bar.show()
+            plugin_parameters.call_button.enabled = False
+            plugin_parameters.progress_bar.label = 'Downloading model'
+            plugin_parameters.progress_bar.show()
 
         else:
             select_model_unet(key_unet)
             
             
-    @change_handler( plugin.model_den, init=False)
+    @change_handler( plugin_model.model_den, init=False)
     def _model_change_den(model_name_den: str):
         model_class_den = CARE
         
@@ -906,7 +906,7 @@ def plugin_wrapper_vollseg():
             def _process_model_folder(path):
                 
                     select_model_den(key_den)
-                    plugin.progress_bar.hide()
+                    plugin_parameters.progress_bar.hide()
 
             worker = _get_model_folder()
             worker.returned.connect(_process_model_folder)
@@ -915,9 +915,9 @@ def plugin_wrapper_vollseg():
             # delay showing progress bar -> won't show up if model already downloaded
             # TODO: hacky -> better way to do this?
             time.sleep(0.1)
-            plugin.call_button.enabled = False
-            plugin.progress_bar.label = 'Downloading model'
-            plugin.progress_bar.show()
+            plugin_parameters.call_button.enabled = False
+            plugin_parameters.progress_bar.label = 'Downloading model'
+            plugin_parameters.progress_bar.show()
 
         else:
             select_model_unet(key_den)
@@ -927,7 +927,7 @@ def plugin_wrapper_vollseg():
     # load config/thresholds from custom model path
     # -> triggered by _model_type_change
     # note: will be triggered at every keystroke (when typing the path)
-    @change_handler(plugin.model_folder_star, init=False)
+    @change_handler(plugin_model.model_folder_star, init=False)
     def _model_star_folder_change(_path: str):
         path = Path(_path)
         key = CUSTOM_SEG_MODEL_STAR, path
@@ -940,7 +940,7 @@ def plugin_wrapper_vollseg():
         finally:
             select_model_star(key)
             
-    @change_handler(plugin.model_folder_unet, init=False)
+    @change_handler(plugin_model.model_folder_unet, init=False)
     def _model_unet_folder_change(_path: str):
             path = Path(_path)
             key = CUSTOM_SEG_MODEL_UNET, path
@@ -953,7 +953,7 @@ def plugin_wrapper_vollseg():
                 select_model_unet(key) 
                 
                 
-    @change_handler(plugin.model_folder_den, init=False)
+    @change_handler(plugin_model.model_folder_den, init=False)
     def _model_den_folder_change(_path: str):
         path = Path(_path)
         key = CUSTOM_DEN_MODEL, path
@@ -969,7 +969,7 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # -> triggered by napari (if there are any open images on plugin launch)
-    @change_handler(plugin.image, init=False)
+    @change_handler(plugin_model.image, init=False)
     def _image_change(image: napari.layers.Image):
         ndim = get_data(image).ndim
         plugin.image.tooltip = f"Shape: {get_data(image).shape}"
@@ -1001,12 +1001,12 @@ def plugin_wrapper_vollseg():
             plugin.axes.changed(axes)
         else:
             plugin.axes.value = axes
-        plugin.n_tiles.changed(plugin.n_tiles.value)
+        plugin_parameters.n_tiles.changed(plugin_parameters.n_tiles.value)
         plugin.norm_axes.changed(plugin.norm_axes.value)
 
 
     # -> triggered by _image_change
-    @change_handler(plugin.axes, init=False)
+    @change_handler(plugin_model.axes, init=False)
     def _axes_change(value: str):
         if value != value.upper():
             with plugin.axes.changed.blocked():
@@ -1023,28 +1023,28 @@ def plugin_wrapper_vollseg():
             widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
 
-    @change_handler(plugin.min_size, init=False)
+    @change_handler(plugin_parameters.min_size, init=False)
     def _min_size_change():
-        value = plugin.min_size.get_value()
-        update(plugin.min_size, value)
+        value = plugin_parameters.min_size.get_value()
+        update(plugin_parameters.min_size, value)
     
-    @change_handler(plugin.min_size_mask, init=False)
+    @change_handler(plugin_parameters.min_size_mask, init=False)
     def _min_size_mask_change():
-        value = plugin.min_size_mask.get_value()
-        update(plugin.min_size_mask, value)
+        value = plugin_parameters.min_size_mask.get_value()
+        update(plugin_parameters.min_size_mask, value)
         
-    @change_handler(plugin.max_size, init=False)
+    @change_handler(plugin_parameters.max_size, init=False)
     def _max_size_change():
-        value = plugin.max_size.get_value()
-        update(plugin.max_size, value)    
+        value = plugin_parameters.max_size.get_value()
+        update(plugin_parameters.max_size, value)    
     
     # -> triggered by _image_change
-    @change_handler(plugin.n_tiles, init=False)
+    @change_handler(plugin_parameters.n_tiles, init=False)
     def _n_tiles_change():
         image = plugin.image.value
         try:
             image is not None or _raise(ValueError("no image selected"))
-            value = plugin.n_tiles.get_value()
+            value = plugin_parameters.n_tiles.get_value()
             if value is None:
                 update('n_tiles', True, (None, image, None))
                 return
@@ -1064,7 +1064,7 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # set thresholds to optimized values for chosen model
-    @change_handler(plugin.set_thresholds, init=False)
+    @change_handler(plugin_parameters.set_thresholds, init=False)
     def _set_thresholds():
         if model_selected_star in model_star_threshs:
             thresholds = model_star_threshs[model_selected_star]
@@ -1072,12 +1072,12 @@ def plugin_wrapper_vollseg():
             plugin.prob_thresh.value = thresholds['prob']
 
     # output type changed
-    @change_handler(plugin.output_type, init=False)
+    @change_handler(plugin_parameters.output_type, init=False)
     def _output_type_change():
         update._update()
 
     # restore defaults
-    @change_handler(plugin.defaults_button, init=False)
+    @change_handler(plugin_parameters.defaults_button, init=False)
     def restore_defaults():
         for k,v in DEFAULTS.items():
             getattr(plugin,k).value = v
@@ -1086,13 +1086,13 @@ def plugin_wrapper_vollseg():
 
     # allow some widgets to shrink because their size depends on user input
     plugin.image.native.setMinimumWidth(120)
-    plugin.model2d_star.native.setMinimumWidth(120)
-    plugin.model3d_star.native.setMinimumWidth(120)
+    plugin_model.model2d_star.native.setMinimumWidth(120)
+    plugin_model.model3d_star.native.setMinimumWidth(120)
     
-    plugin.model2d_unet.native.setMinimumWidth(120)
-    plugin.model3d_unet.native.setMinimumWidth(120)
+    plugin_model.model2d_unet.native.setMinimumWidth(120)
+    plugin_model.model3d_unet.native.setMinimumWidth(120)
     
-    plugin.model_den.native.setMinimumWidth(120)
+    plugin_model.model_den.native.setMinimumWidth(120)
     
     
     
@@ -1102,7 +1102,7 @@ def plugin_wrapper_vollseg():
     # plugin.defaults_button.native.setMaximumWidth(150)
 
     # plugin.model_axes.native.setReadOnly(True)
-    plugin.model_axes.enabled = False
+    plugin_model.model_axes.enabled = False
 
     # push 'call_button' and 'progress_bar' to bottom
     layout = plugin.native.layout()
