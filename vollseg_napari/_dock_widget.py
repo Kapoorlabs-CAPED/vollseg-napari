@@ -193,7 +193,8 @@ def plugin_wrapper_vollseg():
     logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
 
     @magicgui (
-        label_head      = dict(widget_type='Label', label=f'<h1><img src="{logo}">VollSeg</h1>'),
+        image           = dict(label='Input Image'),
+        axes            = dict(widget_type='LineEdit', label='Image Axes'),
         progress_bar    = dict(label=' ', min=0, max=0, visible=False),
         layout          = 'vertical',
         persist         = True,
@@ -202,25 +203,20 @@ def plugin_wrapper_vollseg():
         
     def plugin (
            viewer: napari.Viewer,
-           label_head,
+           image: napari.layers.Image,
+           axes,  
            progress_bar: mw.ProgressBar
            
            
        ) -> List[napari.types.LayerDataTuple]:
-        
-        # don't want to load persisted values for these widgets
-        plugin_model.axes.value = ''
-        plugin_parameters.n_tiles.value = DEFAULTS_PARAMETERS['n_tiles']
-        plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
-
-        # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
-        for w in (plugin.label_head):
-           w.native.setSizePolicy(1|2, 0)
+          x = get_data(image)
+          print(x.shape)
+          axes = axes_check_and_normalize(axes, length=x.ndim)
+          progress_bar.label = 'Starting VollSeg'
           
     @magicgui (
         
         norm_image      = dict(widget_type='CheckBox', text='Normalize Image', value=DEFAULTS_PARAMETERS['norm_image']),
-        label_nms       = dict(widget_type='Label', label='<br><b>NMS Postprocessing:</b>'),
         min_size_mask        = dict(widget_type='FloatSpinBox', label='Min Size UNET',     min=0.0, max=1000.0, step=1,  value=DEFAULTS_PARAMETERS['min_size_mask']),
         min_size       = dict(widget_type='FloatSpinBox', label='Min Size Star',             min=0.0, max=1000.0, step=1,  value=DEFAULTS_PARAMETERS['min_size']),
         max_size       = dict(widget_type='FloatSpinBox', label='Max Size Star',             min=1000, max=100000.0, step=100,  value=DEFAULTS_PARAMETERS['max_size']),
@@ -230,9 +226,6 @@ def plugin_wrapper_vollseg():
         
         prob_thresh     = dict(widget_type='FloatSpinBox', label='Probability/Score Threshold', min=0.0, max=  1.0, step=0.05, value=DEFAULTS_PARAMETERS['prob_thresh']),
         nms_thresh      = dict(widget_type='FloatSpinBox', label='Overlap Threshold',           min=0.0, max=  1.0, step=0.05, value=DEFAULTS_PARAMETERS['nms_thresh']),
-        
-        
-
         prob_map_watershed      = dict(widget_type='CheckBox', text='Use Probability Map (watershed)', value=DEFAULTS_PARAMETERS['prob_map_watershed']),
         dounet      = dict(widget_type='CheckBox', text='Use UNET for binary mask (else denoised)', value=DEFAULTS_PARAMETERS['dounet']),
         set_thresholds  = dict(widget_type='PushButton', text='Set optimized postprocessing thresholds (for selected model)'),
@@ -244,7 +237,6 @@ def plugin_wrapper_vollseg():
     
     def plugin_parameters(
             norm_image,
-            label_nms,
             min_size_mask,
             min_size,
             max_size,
@@ -263,24 +255,22 @@ def plugin_wrapper_vollseg():
            
             defaults_parameters_button
             ) -> List[napari.types.LayerDataTuple]:
-               axes = plugin_model.axes
-               x = plugin_model.x
+               n_tiles.value = DEFAULTS_PARAMETERS['n_tiles']
                progress_bar =plugin.progress_bar
-               image = plugin_model.image
                lkwargs = plugin_model.lkwargs
-               if not axes.replace('T','').startswith(plugin_model.model_star._axes_out.replace('C','')):
-                   warn(f"output images have different axes ({plugin_model.model_star._axes_out.replace('C','')}) than input image ({plugin_model.axes})")
+               if not plugin.axes.replace('T','').startswith(plugin_model.model_star._axes_out.replace('C','')):
+                   warn(f"output images have different axes ({plugin_model.model_star._axes_out.replace('C','')}) than input image ({plugin.axes})")
                    # TODO: adjust image.scale according to shuffled axes
 
                if norm_image:
                    axes_norm = axes_check_and_normalize(plugin_model.norm_axes)
-                   axes_norm = ''.join(set(axes_norm).intersection(set(plugin_model.axes))) # relevant axes present in input image
+                   axes_norm = ''.join(set(axes_norm).intersection(set(plugin.axes))) # relevant axes present in input image
                    assert len(axes_norm) > 0
                    # always jointly normalize channels for RGB images
-                   if ('C' in plugin_model.axes and plugin_model.image.rgb == True) and ('C' not in axes_norm):
+                   if ('C' in plugin.axes and plugin.image.rgb == True) and ('C' not in axes_norm):
                        axes_norm = axes_norm + 'C'
                        warn("jointly normalizing channels of RGB input image")
-                   ax = axes_dict(plugin_model.axes)
+                   ax = axes_dict(plugin.axes)
                    _axis = tuple(sorted(ax[a] for a in axes_norm))
                    # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
                    # #       also needs to be documented somewhere
@@ -301,10 +291,10 @@ def plugin_wrapper_vollseg():
                    plugin_model.x = normalize(plugin_model.x, perc_low,perc_high, axis=_axis)
 
                # TODO: progress bar (labels) often don't show up. events not processed?
-               if 'T' in axes:
+               if 'T' in plugin.axes:
                    app = use_app()
-                   t = axes_dict(axes)['T']
-                   n_frames = x.shape[t]
+                   t = axes_dict(plugin.axes)['T']
+                   n_frames = plugin_model.shape[t]
                    if n_tiles is not None:
                        # remove tiling value for time axis
                        n_tiles = tuple(v for i,v in enumerate(n_tiles) if i != t)
@@ -343,9 +333,9 @@ def plugin_wrapper_vollseg():
                    progress_bar.show()
                    use_app().process_events()
 
-               if 'T' in axes:
-                   x_reorder = np.moveaxis(x, t, 0)
-                   axes_reorder = axes.replace('T','')     
+               if 'T' in plugin.axes:
+                   plugin_model.x_reorder = np.moveaxis(plugin_model.x, t, 0)
+                   axes_reorder = plugin.axes.replace('T','')     
                    if isinstance(plugin_model.model_star, StarDist3D):
                   
                           if plugin_model.model_den is not None:
@@ -392,7 +382,7 @@ def plugin_wrapper_vollseg():
                           
                           if plugin_model.model_den == None:
                               noise_model = None
-                          pred =  VollSeg3D( x,  plugin_model.model_unet, plugin_model.model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                          pred =  VollSeg3D( plugin_model.x,  plugin_model.model_unet, plugin_model.model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                           n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                     
                    elif isinstance(plugin_model.model_star, StarDist2D):
@@ -402,7 +392,7 @@ def plugin_wrapper_vollseg():
                           
                           if plugin_model.model_den == None:
                               noise_model = None
-                          pred = VollSeg2D( x,  plugin_model.model_unet, plugin_model.model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                          pred = VollSeg2D( plugin_model.x,  plugin_model.model_unet, plugin_model.model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
                           n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                           
                           
@@ -419,11 +409,11 @@ def plugin_wrapper_vollseg():
                     
                
                # if timeseries, only scale spatial part...
-               im_scale = tuple(s for i,s in enumerate(image.scale) if not axes[i] in ('T','C'))
+               im_scale = tuple(s for i,s in enumerate(plugin.image.scale) if not plugin.axes[i] in ('T','C'))
                scale = list(s1*s2 for s1, s2 in zip(im_scale, plugin_model.model_star.config.grid))
                # small correction as napari centers object
                translate = list(0.5*(s-1) for s in plugin_model.model_star.config.grid)
-               if 'T' in axes:
+               if 'T' in plugin.axes:
                     scale.insert(t,1)
                     translate.insert(t,0)
                 
@@ -432,22 +422,21 @@ def plugin_wrapper_vollseg():
                                           **lkwargs), 'image'))
 
                if output_type in (Output.Labels.value,Output.All.value):
-                   layers.append((labels, dict(name='VollSeg labels', scale=image.scale, opacity=.5, **lkwargs), 'labels'))
+                   layers.append((labels, dict(name='VollSeg labels', scale=plugin.image.scale, opacity=.5, **lkwargs), 'labels'))
                if output_type in (Output.Binary_mask.value,Output.All.value):
-                   layers.append((SizedMask, dict(name='VollSeg Binary', scale=image.scale, opacity=.5, **lkwargs), 'binary mask'))
+                   layers.append((SizedMask, dict(name='VollSeg Binary', scale=plugin.image.scale, opacity=.5, **lkwargs), 'binary mask'))
                if output_type in (Output.Denoised_image.value,Output.All.value) and noise_model is not None:
-                   layers.append((denimage, dict(name='Denoised Image', scale=image.scale, opacity=.5, **lkwargs), 'denoised image'))    
+                   layers.append((denimage, dict(name='Denoised Image', scale=plugin.image.scale, opacity=.5, **lkwargs), 'denoised image'))    
                if output_type in (Output.Markers.value,Output.All.value):
-                   layers.append((Markers, dict(name='Markers', scale=image.scale, opacity=.5, **lkwargs), 'markers'))    
+                   layers.append((Markers, dict(name='Markers', scale=plugin.image.scale, opacity=.5, **lkwargs), 'markers'))    
                return layers
          
         
         
     @magicgui (
         
+        label_head      = dict(widget_type='Label', label=f'<h1><img src="{logo}">VollSeg</h1>'),
         
-        image           = dict(label='Input Image'),
-        axes            = dict(widget_type='LineEdit', label='Image Axes'),
         star_seg_model_type  = dict(widget_type='RadioButtons', label='StarDist Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS_MODEL['star_seg_model_type']),
         unet_seg_model_type  = dict(widget_type='RadioButtons', label='Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS_MODEL['unet_seg_model_type']),
         den_model_type  = dict(widget_type='RadioButtons', label='Denoising Model Type', orientation='horizontal', choices=den_model_type_choices, value=DEFAULTS_MODEL['den_model_type']),
@@ -470,8 +459,8 @@ def plugin_wrapper_vollseg():
     
     def plugin_model (
        viewer: napari.Viewer,     
-       image: Image,
-       axes,     
+       label_head,
+          
        star_seg_model_type,
        unet_seg_model_type,
        den_model_type,
@@ -494,9 +483,14 @@ def plugin_wrapper_vollseg():
        model_unet = get_model(*model_selected_unet)
        model_den = get_model(*model_selected_den)
        lkwargs = {}
-       x = get_data(image)
-       axes = axes_check_and_normalize(axes, length=x.ndim)
+      
+       # don't want to load persisted values for these widgets
+       
+       plugin_model.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
 
+       # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
+       for w in (plugin_model.label_head):
+          w.native.setSizePolicy(1|2, 0)
        
            
           
@@ -583,8 +577,8 @@ def plugin_wrapper_vollseg():
                     def _layer_removed(event):
                         layers_remaining = event.source
                         if len(layers_remaining) == 0:
-                            plugin_model.image.tooltip = ''
-                            plugin_model.axes.value = ''
+                            plugin.image.tooltip = ''
+                            plugin.axes.value = ''
                             plugin_parameters.n_tiles.value = 'None'
 
 
@@ -621,7 +615,7 @@ def plugin_wrapper_vollseg():
 
             def _image_axes(valid):
                 axes, image, err = getattr(self.args, 'image_axes', (None,None,None))
-                widgets_valid(plugin_model.axes, valid=(valid or (image is None and (axes is None or len(axes) == 0))))
+                widgets_valid(plugin.axes, valid=(valid or (image is None and (axes is None or len(axes) == 0))))
                 if valid and 'T' in axes and plugin_parameters.output_type.value in (Output.Binary_mask.value,Output.Labels.value,Output.Markers.value, Output.Denoised_image.value, Output.Prob.value , Output.All.value):
                     plugin_parameters.output_type.native.setStyleSheet("background-color: orange")
                     plugin_parameters.output_type.tooltip = 'Displaying many labels can be very slow.'
@@ -629,16 +623,16 @@ def plugin_wrapper_vollseg():
                     plugin_parameters.output_type.native.setStyleSheet("")
                     plugin_parameters.output_type.tooltip = ''
                 if valid:
-                    plugin_model.axes.tooltip = '\n'.join([f'{a} = {s}' for a,s in zip(axes,get_data(image).shape)])
+                    plugin.axes.tooltip = '\n'.join([f'{a} = {s}' for a,s in zip(axes,get_data(image).shape)])
                     return axes, image
                 else:
                     if err is not None:
                         err = str(err)
                         err = err[:-1] if err.endswith('.') else err
-                        plugin_model.axes.tooltip = err
+                        plugin.axes.tooltip = err
                         # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
                     else:
-                        plugin_model.axes.tooltip = ''
+                        plugin.axes.tooltip = ''
 
             def _norm_axes(valid):
                 norm_axes, err = getattr(self.args, 'norm_axes', (None,None))
@@ -671,7 +665,7 @@ def plugin_wrapper_vollseg():
                 return True
 
             def _restore():
-                widgets_valid(plugin_model.image, valid=plugin_model.image.value is not None)
+                widgets_valid(plugin.image, valid=plugin.image.value is not None)
 
 
             all_valid = False
@@ -721,7 +715,7 @@ def plugin_wrapper_vollseg():
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
                     all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image and den_star and unet_star
 
-                    widgets_valid(plugin_model.image, plugin_model.model2d_star,  plugin_model.model3d_star, plugin_model.model_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
+                    widgets_valid(plugin.image, plugin_model.model2d_star,  plugin_model.model3d_star, plugin_model.model_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
                     if all_valid:
                         help_msg = ''
                     else:
@@ -782,7 +776,6 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_parameters.perc_low)
     def _perc_low_change():
         plugin_parameters.perc_high.value = max(plugin_parameters.perc_low.value+0.01, plugin_parameters.perc_high.value)
-
     @change_handler(plugin_parameters.perc_high)
     def _perc_high_change():
         plugin_parameters.perc_low.value  = min(plugin_parameters.perc_low.value, plugin_parameters.perc_high.value-0.01)
@@ -790,7 +783,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_model.norm_axes)
     def _norm_axes_change(value: str):
         if value != value.upper():
-            with plugin_model.axes.changed.blocked():
+            with plugin.axes.changed.blocked():
                 plugin_model.norm_axes.value = value.upper()
         try:
             axes = axes_check_and_normalize(value, disallowed='S')
@@ -980,16 +973,16 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # -> triggered by napari (if there are any open images on plugin launch)
-    @change_handler(plugin_model.image, init=False)
+    @change_handler(plugin.image, init=False)
     def _image_change(image: napari.layers.Image):
         ndim = get_data(image).ndim
-        plugin_model.image.tooltip = f"Shape: {get_data(image).shape}"
+        plugin.image.tooltip = f"Shape: {get_data(image).shape}"
 
         # dimensionality of selected model: 2, 3, or None (unknown)
         ndim_model = None
-        if plugin.seg_model_type.value == StarDist2D:
+        if plugin_model.seg_model_type.value == StarDist2D:
             ndim_model = 2
-        elif plugin.seg_model_type.value == StarDist3D:
+        elif plugin_model.seg_model_type.value == StarDist3D:
             ndim_model = 3
         else:
             if model_selected_star in model_star_configs:
@@ -1007,22 +1000,22 @@ def plugin_wrapper_vollseg():
         else:
             raise NotImplementedError()
 
-        if (axes == plugin_model.axes.value):
+        if (axes == plugin.axes.value):
             # make sure to trigger a changed event, even if value didn't actually change
-            plugin_model.axes.changed(axes)
+            plugin.axes.changed(axes)
         else:
-            plugin_model.axes.value = axes
+            plugin.axes.value = axes
         plugin_parameters.n_tiles.changed(plugin_parameters.n_tiles.value)
         plugin_model.norm_axes.changed(plugin_model.norm_axes.value)
 
 
     # -> triggered by _image_change
-    @change_handler(plugin_model.axes, init=False)
+    @change_handler(plugin.axes, init=False)
     def _axes_change(value: str):
         if value != value.upper():
-            with plugin_model.axes.changed.blocked():
-                plugin_model.axes.value = value.upper()
-        image = plugin_model.image.value
+            with plugin.axes.changed.blocked():
+                plugin.axes.value = value.upper()
+        image = plugin.image.value
         axes = ''
         try:
             image is not None or _raise(ValueError("no image selected"))
@@ -1030,15 +1023,15 @@ def plugin_wrapper_vollseg():
             update('image_axes', True, (axes, image, None))
         except ValueError as err:
             update('image_axes', False, (value, image, err))
-        finally:
-            widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
+        #finally:
+            #widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
    
     
     # -> triggered by _image_change
     @change_handler(plugin_parameters.n_tiles, init=False)
     def _n_tiles_change():
-        image = plugin_model.image.value
+        image = plugin.image.value
         try:
             image is not None or _raise(ValueError("no image selected"))
             value = plugin_parameters.n_tiles.get_value()
@@ -1071,9 +1064,9 @@ def plugin_wrapper_vollseg():
 
            
     @change_handler(plugin_parameters.min_size)
-    def _min_size_change():
+    def _min_size_change(value:float):
         
-        plugin_parameters.min_size.value = min(plugin_parameters.min_size.value, plugin_parameters.max_size.value)
+        plugin_parameters.min_size.value = value
         
     
     @change_handler(plugin_parameters.min_size_mask)
@@ -1103,7 +1096,7 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # allow some widgets to shrink because their size depends on user input
-    plugin_model.image.native.setMinimumWidth(120)
+    plugin.image.native.setMinimumWidth(120)
     plugin_model.model2d_star.native.setMinimumWidth(120)
     plugin_model.model3d_star.native.setMinimumWidth(120)
     
@@ -1114,7 +1107,7 @@ def plugin_wrapper_vollseg():
     
     
 
-    plugin.label_head.native.setOpenExternalLinks(True)
+    plugin_model.label_head.native.setOpenExternalLinks(True)
     # make reset button smaller
     # plugin.defaults_button.native.setMaximumWidth(150)
 
