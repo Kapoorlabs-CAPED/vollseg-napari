@@ -25,11 +25,10 @@ from vollseg import inrimage,  h5, spatial_image
 from qtpy.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout,
 QGroupBox, QGridLayout, QListWidget, QPushButton, QFileDialog,
 QTabWidget, QLabel, QLineEdit, QScrollArea, QCheckBox, QSpinBox)
-
 def plugin_wrapper_vollseg():
     
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
-    from vollseg.pretrained import get_registered_models, get_model_folder, get_registered_models_NONE
+    from vollseg.pretrained import get_registered_models, get_model_folder
     from csbdeep.utils import load_json
     
     from stardist.models import StarDist2D, StarDist3D
@@ -94,7 +93,7 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom STAR', CUSTOM_SEG_MODEL_STAR)]
-    seg_unet_model_type_choices = [('Pre', UNET ), ('NONE', 'NONE'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
+    seg_unet_model_type_choices = [('Pre', UNET ), ('NOUNET', 'NOUNET'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
     den_model_type_choices = [ ('DenoiseCARE', CARE), ( 'NONE', 'NONE' ) , ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
@@ -881,7 +880,7 @@ def plugin_wrapper_vollseg():
         else:
             select_model_star(key_star)
 
-    @change_handler(plugin_model.model2d_unet, plugin_model.model3d_unet,  init=False)
+    @change_handler(plugin_model.model_unet,  init=False)
     def _model_change_unet(model_name_unet: str):
         model_class_unet = UNET
         
