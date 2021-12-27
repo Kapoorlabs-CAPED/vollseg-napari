@@ -93,7 +93,7 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom STAR', CUSTOM_SEG_MODEL_STAR)]
-    seg_unet_model_type_choices = [('Pre', UNET ), ('NOUNET', 'NOUNET'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
+    seg_unet_model_type_choices = [('PreTrained', UNET ), ('NOUNET', 'NOUNET'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
     den_model_type_choices = [ ('DenoiseCARE', CARE), ( 'NONE', 'NONE' ) , ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
@@ -194,10 +194,6 @@ def plugin_wrapper_vollseg():
 
     @magicgui (
         label_head      = dict(widget_type='Label', label=f'<h1><img src="{logo}">VollSeg</h1>'),
-        image           = dict(label='Input Image'),
-        
-        label_nn        = dict(widget_type='Label', label='<br><b>Neural Network Prediction:</b>'),
-        
         progress_bar    = dict(label=' ', min=0, max=0, visible=False),
         layout          = 'vertical',
         persist         = True,
@@ -207,8 +203,6 @@ def plugin_wrapper_vollseg():
     def plugin (
            viewer: napari.Viewer,
            label_head,
-           image: Image,
-           label_nn,
            progress_bar: mw.ProgressBar
            
            
@@ -220,7 +214,7 @@ def plugin_wrapper_vollseg():
         plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
 
         # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
-        for w in (plugin.label_head, plugin.label_nn):
+        for w in (plugin.label_head):
            w.native.setSizePolicy(1|2, 0)
           
     @magicgui (
@@ -589,7 +583,7 @@ def plugin_wrapper_vollseg():
                     def _layer_removed(event):
                         layers_remaining = event.source
                         if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
+                            plugin_model.image.tooltip = ''
                             plugin_model.axes.value = ''
                             plugin_parameters.n_tiles.value = 'None'
 
@@ -677,7 +671,7 @@ def plugin_wrapper_vollseg():
                 return True
 
             def _restore():
-                widgets_valid(plugin.image, valid=plugin.image.value is not None)
+                widgets_valid(plugin_model.image, valid=plugin_model.image.value is not None)
 
 
             all_valid = False
@@ -727,7 +721,7 @@ def plugin_wrapper_vollseg():
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
                     all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image and den_star and unet_star
 
-                    widgets_valid(plugin.image, plugin_model.model2d_star,  plugin_model.model3d_star, plugin_model.model_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
+                    widgets_valid(plugin_model.image, plugin_model.model2d_star,  plugin_model.model3d_star, plugin_model.model_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
                     if all_valid:
                         help_msg = ''
                     else:
@@ -989,7 +983,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_model.image, init=False)
     def _image_change(image: napari.layers.Image):
         ndim = get_data(image).ndim
-        plugin.image.tooltip = f"Shape: {get_data(image).shape}"
+        plugin_model.image.tooltip = f"Shape: {get_data(image).shape}"
 
         # dimensionality of selected model: 2, 3, or None (unknown)
         ndim_model = None
@@ -1028,7 +1022,7 @@ def plugin_wrapper_vollseg():
         if value != value.upper():
             with plugin_model.axes.changed.blocked():
                 plugin_model.axes.value = value.upper()
-        image = plugin.image.value
+        image = plugin_model.image.value
         axes = ''
         try:
             image is not None or _raise(ValueError("no image selected"))
@@ -1044,7 +1038,7 @@ def plugin_wrapper_vollseg():
     # -> triggered by _image_change
     @change_handler(plugin_parameters.n_tiles, init=False)
     def _n_tiles_change():
-        image = plugin.image.value
+        image = plugin_model.image.value
         try:
             image is not None or _raise(ValueError("no image selected"))
             value = plugin_parameters.n_tiles.get_value()
@@ -1109,7 +1103,7 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # allow some widgets to shrink because their size depends on user input
-    plugin.image.native.setMinimumWidth(120)
+    plugin_model.image.native.setMinimumWidth(120)
     plugin_model.model2d_star.native.setMinimumWidth(120)
     plugin_model.model3d_star.native.setMinimumWidth(120)
     
