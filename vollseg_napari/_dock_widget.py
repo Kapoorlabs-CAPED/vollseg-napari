@@ -214,7 +214,7 @@ def plugin_wrapper_vollseg():
         plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
 
         # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
-        for w in (plugin.label_head, plugin.label_nn, plugin.label_nms, plugin.label_adv):
+        for w in (plugin.label_head, plugin.label_nn):
            w.native.setSizePolicy(1|2, 0)
           
     @magicgui (
@@ -271,6 +271,7 @@ def plugin_wrapper_vollseg():
                progress_bar =plugin_model.progress_bar
                image = plugin_model.image
                lkwargs = plugin_model.lkwargs
+               print(lkwargs)
                if not axes.replace('T','').startswith(plugin_model.model_star._axes_out.replace('C','')):
                    warn(f"output images have different axes ({plugin_model.model_star._axes_out.replace('C','')}) than input image ({plugin_model.axes})")
                    # TODO: adjust image.scale according to shuffled axes
@@ -555,7 +556,7 @@ def plugin_wrapper_vollseg():
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
             self.debug = debug
-            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes', 'dounet', 'prob_map_watershed' , 'min_size', 'min_size_mask', 'max_size')})
+            self.valid = SimpleNamespace(**{k:False for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes')})
             self.args  = SimpleNamespace()
             self.viewer = None
 
@@ -829,7 +830,7 @@ def plugin_wrapper_vollseg():
     # -> triggered by _model_type_change
     @change_handler(plugin_model.model2d_star, plugin_model.model3d_star, init=False)
     def _model_change_star(model_name_star: str):
-        model_class_star, model_class_star = StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D
+        model_class_star, model_class_star = StarDist2D if Signal.sender() is plugin_model.model2d_star else StarDist3D
         
         key_star = model_class_star, model_name_star
         if key_star not in model_star_configs:
@@ -865,7 +866,7 @@ def plugin_wrapper_vollseg():
 
     @change_handler(plugin_model.model2d_unet, plugin_model.model3d_unet,  init=False)
     def _model_change_unet(model_name_unet: str):
-        model_class_unet = UNET2D if Signal.sender() is plugin.model2d_star else UNET3D
+        model_class_unet = UNET2D if Signal.sender() is plugin_model.model2d_unet else UNET3D
         
         key_unet =  model_class_unet, model_name_unet
         if key_unet not in model_unet_configs:
