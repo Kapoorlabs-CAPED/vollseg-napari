@@ -35,8 +35,7 @@ def plugin_wrapper_vollseg():
     from stardist.models import StarDist2D, StarDist3D
     from vollseg import VollSeg3D, VollSeg2D
     from csbdeep.models import Config, CARE
-    from vollseg import UNET2D
-    from vollseg import UNET3D
+    from vollseg import UNET
     
     from stardist.utils import abspath
     
@@ -75,12 +74,9 @@ def plugin_wrapper_vollseg():
     models2d_star = [((_aliases2d_star[m][0] if len(_aliases2d_star[m]) > 0 else m),m) for m in _models2d_star]
     models3d_star = [((_aliases3d_star[m][0] if len(_aliases3d_star[m]) > 0 else m),m) for m in _models3d_star]
     
-    _models2d_unet, _aliases2d_unet = get_registered_models(UNET2D)
-    _models3d_unet, _aliases3d_unet = get_registered_models(UNET3D)
+    _models_unet, _aliases_unet = get_registered_models(UNET)
     # use first alias for model selection (if alias exists)
-    models2d_unet = [((_aliases2d_unet[m][0] if len(_aliases2d_unet[m]) > 0 else m),m) for m in _models2d_unet]
-    models3d_unet = [((_aliases3d_unet[m][0] if len(_aliases3d_unet[m]) > 0 else m),m) for m in _models3d_unet]
-    
+    models_unet = [((_aliases_unet[m][0] if len(_aliases_unet[m]) > 0 else m),m) for m in _models_unet]
     _models_den, _aliases_den = get_registered_models(CARE)
     # use first alias for model selection (if alias exists)
     models_den = [((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m),m) for m in _models_den]
@@ -98,7 +94,7 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom STAR', CUSTOM_SEG_MODEL_STAR)]
-    seg_unet_model_type_choices = [('Pre', UNET3D ), ('NONE', 'NONE'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
+    seg_unet_model_type_choices = [('Pre', UNET ), ('NONE', 'NONE'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
     den_model_type_choices = [ ('DenoiseCARE', CARE), ( 'NONE', 'NONE' ) , ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
@@ -111,8 +107,7 @@ def plugin_wrapper_vollseg():
         if seg_model_type == CUSTOM_SEG_MODEL_UNET:    
             path_unet = Path(model_unet)
             path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
-            config_unet = model_star_configs[(seg_model_type,model_unet)]
-            model_class_unet = UNET2D if config_unet['n_dim'] == 2 else UNET3D
+            model_class_unet = UNET
             
         if den_model_type == CUSTOM_DEN_MODEL:    
                 if model_den is not None:
@@ -165,15 +160,14 @@ def plugin_wrapper_vollseg():
     
     DEFAULTS_MODEL = dict (
             star_seg_model_type = StarDist3D,
-            unet_seg_model_type = UNET3D,
+            unet_seg_model_type = UNET,
             den_model_type = CARE,
             model2d_star        = models2d_star[0][1],
-            model2d_unet   = models2d_unet[0][1],
+            model_unet   = models_unet[0][1],
             model3d_star        = models3d_star[0][1],
-            model3d_unet   = models3d_unet[0][1],
             model_den  = models_den[0][1],
             model_den_none  = 'NONE',
-            model_unet_none = 'NONE',
+            model_unet_none = 'NOUNET',
             norm_axes      = 'ZYX',
             
             
@@ -467,12 +461,11 @@ def plugin_wrapper_vollseg():
         model2d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models2d_star, value=DEFAULTS_MODEL['model2d_star']),
         model3d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models3d_star, value=DEFAULTS_MODEL['model3d_star']),
         
-        model2d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models2d_unet, value=DEFAULTS_MODEL['model2d_unet']),
-        model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS_MODEL['model3d_unet']),
+        model_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models_unet, value=DEFAULTS_MODEL['model_unet']),
         
         model_den   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den, value=DEFAULTS_MODEL['model_den']),
         model_den_none   = dict(widget_type='Label', visible=False, label='No Denoising'),
-        model_unet_none   = dict(widget_type='Label', visible=False, label='No UNET'),
+        model_unet_none   = dict(widget_type='Label', visible=False, label='NOUNET'),
         
         model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
         model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
@@ -491,10 +484,10 @@ def plugin_wrapper_vollseg():
        den_model_type,
        model2d_star,
        model3d_star,
-       model2d_unet,
-       model3d_unet,
+       model_unet,
        model_den,
        model_den_none,
+       model_unet_none,
        model_folder_star,
        model_folder_unet,
        model_folder_den,
@@ -522,11 +515,11 @@ def plugin_wrapper_vollseg():
     #
     widget_for_modeltype = {
        StarDist2D:   plugin_model.model2d_star,
-       UNET2D :  plugin_model.model2d_unet,
        StarDist3D:   plugin_model.model3d_star,
-       UNET3D: plugin_model.model3d_unet,
+       UNET: plugin_model.model_unet,
        CARE:         plugin_model.model_den,
        'NONE':      plugin_model.model_den_none,
+       'NOUNET': plugin_model.model_unet_none,
        CUSTOM_SEG_MODEL_STAR: plugin_model.model_folder_star,
        CUSTOM_SEG_MODEL_UNET: plugin_model.model_folder_unet,
        CUSTOM_DEN_MODEL: plugin_model.model_folder_den,
@@ -603,12 +596,12 @@ def plugin_wrapper_vollseg():
 
 
             def _model(valid):
-                widgets_valid(plugin_model.model2d_star, plugin_model.model2d_unet, plugin_model.model3d_star, plugin_model.model3d_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit,  valid=valid)
+                widgets_valid(plugin_model.model2d_star, plugin_model.model_unet, plugin_model.model3d_star, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit,  valid=valid)
                 if valid:
                     print(valid)
                     config_star = self.args.model_star
                     axes_star = config_star.get('axes', 'ZYXC'[-len(config_star['net_input_shape']):])
-                    if plugin_model.model2d_unet is not None or plugin_model.model3d_unet is not None:
+                    if plugin_model.model_unet is not None or plugin_model.model_unet is not None:
                         
                         config_unet = self.args.model_unet
                         axes_unet = config_unet.get('axes', 'ZYXC'[-len(config_unet['net_input_shape']):])
@@ -735,7 +728,7 @@ def plugin_wrapper_vollseg():
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
                     all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image and den_star and unet_star
 
-                    widgets_valid(plugin.image, plugin_model.model2d_star, plugin_model.model2d_unet, plugin_model.model3d_star, plugin_model.model3d_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
+                    widgets_valid(plugin.image, plugin_model.model2d_star,  plugin_model.model3d_star, plugin_model.model_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
                     if all_valid:
                         help_msg = ''
                     else:
@@ -831,7 +824,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_model.unet_seg_model_type, init=False)
     def _seg_model_type_change_unet(seg_model_type: Union[str, type]):
         selected = widget_for_modeltype[seg_model_type]
-        for w in set((plugin_model.model2d_unet, plugin_model.model3d_unet, plugin_model.model_folder_unet)) - {selected}:
+        for w in set((plugin_model.model_unet, plugin_model.model_unet_none, plugin_model.model_folder_unet)) - {selected}:
             w.hide()
         selected.show()
         # trigger _model_change_unet
@@ -890,7 +883,7 @@ def plugin_wrapper_vollseg():
 
     @change_handler(plugin_model.model2d_unet, plugin_model.model3d_unet,  init=False)
     def _model_change_unet(model_name_unet: str):
-        model_class_unet = UNET3D
+        model_class_unet = UNET
         
         key_unet =  model_class_unet, model_name_unet
         if key_unet not in model_unet_configs:
@@ -945,7 +938,7 @@ def plugin_wrapper_vollseg():
             plugin.progress_bar.show()
 
         else:
-            select_model_unet(key_den)
+            select_model_den(key_den)
             
             
             
@@ -1001,9 +994,9 @@ def plugin_wrapper_vollseg():
 
         # dimensionality of selected model: 2, 3, or None (unknown)
         ndim_model = None
-        if plugin.seg_model_type.value == StarDist2D or UNET2D:
+        if plugin.seg_model_type.value == StarDist2D:
             ndim_model = 2
-        elif plugin.seg_model_type.value == StarDist3D or UNET3D:
+        elif plugin.seg_model_type.value == StarDist3D:
             ndim_model = 3
         else:
             if model_selected_star in model_star_configs:
@@ -1121,8 +1114,7 @@ def plugin_wrapper_vollseg():
     plugin_model.model2d_star.native.setMinimumWidth(120)
     plugin_model.model3d_star.native.setMinimumWidth(120)
     
-    plugin_model.model2d_unet.native.setMinimumWidth(120)
-    plugin_model.model3d_unet.native.setMinimumWidth(120)
+    plugin_model.model_unet.native.setMinimumWidth(120)
     
     plugin_model.model_den.native.setMinimumWidth(120)
     
