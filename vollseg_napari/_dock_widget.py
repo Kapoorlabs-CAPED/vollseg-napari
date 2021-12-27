@@ -22,6 +22,10 @@ from pathlib import Path
 from warnings import warn
 from tifffile import imread, imwrite
 from vollseg import inrimage,  h5, spatial_image
+from qtpy.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout,
+QGroupBox, QGridLayout, QListWidget, QPushButton, QFileDialog,
+QTabWidget, QLabel, QLineEdit, QScrollArea, QCheckBox, QSpinBox)
+
 def plugin_wrapper_vollseg():
     
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
@@ -191,27 +195,30 @@ def plugin_wrapper_vollseg():
         label_head      = dict(widget_type='Label', label=f'<h1><img src="{logo}">VollSeg</h1>'),
         image           = dict(label='Input Image'),
         axes            = dict(widget_type='LineEdit', label='Image Axes'),
-        label_nn        = dict(widget_type='Label', label='<br><b>Neural Network Prediction:</b>'),
-        star_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Star Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS['star_seg_model_type']),
-        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS['unet_seg_model_type']),
-        den_model_type  = dict(widget_type='RadioButtons', label='Den Model Type', orientation='horizontal', choices=den_model_type_choices, value=DEFAULTS['den_model_type']),
-        model2d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models2d_star, value=DEFAULTS['model2d_star']),
-        model3d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models3d_star, value=DEFAULTS['model3d_star']),
+        label_nn        = dict(widget_type='Label', label='<br><b>Neural Network Prediction:</b>')
+        )
         
-        model2d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models2d_unet, value=DEFAULTS['model2d_unet']),
-        model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS['model3d_unet']),
+    def plugin (
+           viewer: napari.Viewer,
+           label_head,
+           image: Image,
+           axes,
+           label_nn,
+           
+           
+       ) -> List[napari.types.LayerDataTuple]:
         
-        model_den   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den, value=DEFAULTS['model_den']),
-        model_den_none   = dict(widget_type='Label', visible=False, label='No Denoising'),
+        # don't want to load persisted values for these widgets
+        plugin.axes.value = ''
+        plugin.n_tiles.value = DEFAULTS['n_tiles']
+        plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
+
+        # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
+        for w in (plugin.label_head, plugin.label_nn, plugin.label_nms, plugin.label_adv):
+           w.native.setSizePolicy(1|2, 0)
+          
+    @magicgui (
         
-        
-        model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
-        model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
-        model_folder_den    = dict(widget_type='FileEdit', visible=False, label='Custom Denoising Model', mode='d'),
-        
-        
-        result_folder    = dict(widget_type='FileEdit', visible=False, label='Result Folder', mode='d'),
-        model_axes      = dict(widget_type='LineEdit', label='Model Axes', value=''),
         norm_image      = dict(widget_type='CheckBox', text='Normalize Image', value=DEFAULTS['norm_image']),
         label_nms       = dict(widget_type='Label', label='<br><b>NMS Postprocessing:</b>'),
         min_size_mask        = dict(widget_type='FloatSpinBox', label='Min Size UNET',     min=0.0, max=1000.0, step=1,  value=DEFAULTS['min_size_mask']),
@@ -233,15 +240,243 @@ def plugin_wrapper_vollseg():
         progress_bar    = dict(label=' ', min=0, max=0, visible=False),
         layout          = 'vertical',
         persist         = True,
-        call_button     = True,
+        call_button     = True
+        
+        
+        
+        )       
+    
+    def plugin_parameters(
+            norm_image,
+            perc_low,
+            perc_high,
+            min_size_mask,
+            min_size,
+            max_size,
+            label_nms,
+            prob_thresh,
+            nms_thresh,
+            prob_map_watershed,
+            dounet,
+            output_type,
+            label_adv,
+            n_tiles,
+            norm_axes,
+            set_thresholds,
+            defaults_button,
+            
+            ) -> List[napari.types.LayerDataTuple]:
+               axes = plugin_model.axes
+               x = plugin_model.x
+               progress_bar =plugin_model.progress_bar
+               image = plugin_model.image
+               lkwargs = plugin_model.lkwargs
+               if not axes.replace('T','').startswith(plugin_model.model_star._axes_out.replace('C','')):
+                   warn(f"output images have different axes ({plugin_model.model_star._axes_out.replace('C','')}) than input image ({plugin_model.axes})")
+                   # TODO: adjust image.scale according to shuffled axes
+
+               if norm_image:
+                   axes_norm = axes_check_and_normalize(norm_axes)
+                   axes_norm = ''.join(set(axes_norm).intersection(set(plugin_model.axes))) # relevant axes present in input image
+                   assert len(axes_norm) > 0
+                   # always jointly normalize channels for RGB images
+                   if ('C' in plugin_model.axes and plugin_model.image.rgb == True) and ('C' not in axes_norm):
+                       axes_norm = axes_norm + 'C'
+                       warn("jointly normalizing channels of RGB input image")
+                   ax = axes_dict(plugin_model.axes)
+                   _axis = tuple(sorted(ax[a] for a in axes_norm))
+                   # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
+                   # #       also needs to be documented somewhere
+                   # if 'T' in axes:
+                   #     if 'C' not in axes or image.rgb == True:
+                   #          # normalize channels jointly, frames independently
+                   #          _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],))
+                   #     else:
+                   #         # normalize channels independently, frames independently
+                   #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],ax['C']))
+                   # else:
+                   #     if 'C' not in axes or image.rgb == True:
+                   #          # normalize channels jointly
+                   #         _axis = None
+                   #     else:
+                   #         # normalize channels independently
+                   #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['C'],))
+                   plugin_model.x = normalize(plugin_model.x, perc_low,perc_high, axis=_axis)
+
+               # TODO: progress bar (labels) often don't show up. events not processed?
+               if 'T' in axes:
+                   app = use_app()
+                   t = axes_dict(axes)['T']
+                   n_frames = x.shape[t]
+                   if n_tiles is not None:
+                       # remove tiling value for time axis
+                       n_tiles = tuple(v for i,v in enumerate(n_tiles) if i != t)
+                   def progress(it, **kwargs):
+                       progress_bar.label = 'VollSeg Prediction (frames)'
+                       progress_bar.range = (0, n_frames)
+                       progress_bar.value = 0
+                       progress_bar.show()
+                       app.process_events()
+                       for item in it:
+                           yield item
+                           progress_bar.increment()
+                           app.process_events()
+                       app.process_events()
+               elif n_tiles is not None and np.prod(n_tiles) > 1:
+                   n_tiles = tuple(n_tiles)
+                   app = use_app()
+                   def progress(it, **kwargs):
+                       progress_bar.label = 'CNN Prediction (tiles)'
+                       progress_bar.range = (0, kwargs.get('total',0))
+                       progress_bar.value = 0
+                       progress_bar.show()
+                       app.process_events()
+                       for item in it:
+                           yield item
+                           progress_bar.increment()
+                           app.process_events()
+                       #
+                       progress_bar.label = 'NMS Postprocessing'
+                       progress_bar.range = (0, 0)
+                       app.process_events()
+               else:
+                   progress = False
+                   progress_bar.label = 'VollSeg Prediction'
+                   progress_bar.range = (0, 0)
+                   progress_bar.show()
+                   use_app().process_events()
+
+               if 'T' in axes:
+                   x_reorder = np.moveaxis(x, t, 0)
+                   axes_reorder = axes.replace('T','')     
+                   if isinstance(plugin_model.model_star, StarDist3D):
+                  
+                          if plugin_model.model_den is not None:
+                              noise_model = plugin_model.model_den
+                           
+                          if plugin_model.model_den == None:
+                              noise_model = None
+                          res = tuple(zip(*tuple( VollSeg3D( _x,  plugin_model.model_unet, plugin_model.model_star, axes=plugin_model.axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                          n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
+                                                           for _x in progress(plugin_model.x_reorder))))
+                    
+                   elif isinstance(plugin_model.model_star, StarDist2D):
+                  
+                          if plugin_model.model_den is not None:
+                              noise_model = plugin_model.model_den
+                          
+                          if plugin_model.model_den == None:
+                              noise_model = None
+                          res = tuple(zip(*tuple( VollSeg2D( _x,  plugin_model.model_unet, plugin_model.model_star, axes=plugin_model.axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                          n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
+                                                           for _x in progress(plugin_model.x_reorder))))
+                       
+                       
+                       
+                  
+                   if plugin_model.noise_model is not None:
+                       
+                       labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = res
+                   else:
+                       labels, SizedMask, StarImage, ProbabilityMap, Markers = res
+
+                   labels = np.asarray(labels)
+
+                   labels = np.moveaxis(labels, 0, t)
+
+                   
+
+               else:
+                   # TODO: possible to run this in a way that it can be canceled?
+                   if isinstance(plugin_model.model_star, StarDist3D):
+                  
+                          if plugin_model.model_den is not None:
+                              noise_model = plugin_model.model_den
+                          
+                          if plugin_model.model_den == None:
+                              noise_model = None
+                          pred =  VollSeg3D( x,  plugin_model.model_unet, plugin_model.model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                          n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
+                    
+                   elif isinstance(plugin_model.model_star, StarDist2D):
+                  
+                          if plugin_model.model_den is not None:
+                              noise_model = plugin_model.model_den
+                          
+                          if plugin_model.model_den == None:
+                              noise_model = None
+                          pred = VollSeg2D( x,  plugin_model.model_unet, plugin_model.model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                          n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
+                          
+                          
+               progress_bar.hide()
+
+
+               layers = []
+             
+               if noise_model is not None:
+                    
+                    labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
+               else:
+                    labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
+                    
+               
+               # if timeseries, only scale spatial part...
+               im_scale = tuple(s for i,s in enumerate(image.scale) if not axes[i] in ('T','C'))
+               scale = list(s1*s2 for s1, s2 in zip(im_scale, plugin_model.model_star.config.grid))
+               # small correction as napari centers object
+               translate = list(0.5*(s-1) for s in plugin_model.model_star.config.grid)
+               if 'T' in axes:
+                    scale.insert(t,1)
+                    translate.insert(t,0)
+                
+               layers.append((ProbabilityMap, dict(name='Base Watershed Image',
+                                          scale=scale, translate=translate,
+                                          **lkwargs), 'image'))
+
+               if output_type in (Output.Labels.value,Output.All.value):
+                   layers.append((labels, dict(name='VollSeg labels', scale=image.scale, opacity=.5, **lkwargs), 'labels'))
+               if output_type in (Output.Binary_mask.value,Output.All.value):
+                   layers.append((SizedMask, dict(name='VollSeg Binary', scale=image.scale, opacity=.5, **lkwargs), 'binary mask'))
+               if output_type in (Output.Denoised_image.value,Output.All.value) and noise_model is not None:
+                   layers.append((denimage, dict(name='Denoised Image', scale=image.scale, opacity=.5, **lkwargs), 'denoised image'))    
+               if output_type in (Output.Markers.value,Output.All.value):
+                   layers.append((Markers, dict(name='Markers', scale=image.scale, opacity=.5, **lkwargs), 'markers'))    
+               return layers
+         
+        
+        
+    @magicgui (
+        
+        
+        image           = dict(label='Input Image'),
+        axes            = dict(widget_type='LineEdit', label='Image Axes'),
+        star_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Star Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS['star_seg_model_type']),
+        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS['unet_seg_model_type']),
+        den_model_type  = dict(widget_type='RadioButtons', label='Den Model Type', orientation='horizontal', choices=den_model_type_choices, value=DEFAULTS['den_model_type']),
+        model2d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models2d_star, value=DEFAULTS['model2d_star']),
+        model3d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models3d_star, value=DEFAULTS['model3d_star']),
+        
+        model2d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models2d_unet, value=DEFAULTS['model2d_unet']),
+        model3d_unet    = dict(widget_type='ComboBox', visible=False, label='Pre-trained UNET Model', choices=models3d_unet, value=DEFAULTS['model3d_unet']),
+        
+        model_den   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den, value=DEFAULTS['model_den']),
+        model_den_none   = dict(widget_type='Label', visible=False, label='No Denoising'),
+        
+        
+        model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
+        model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
+        model_folder_den    = dict(widget_type='FileEdit', visible=False, label='Custom Denoising Model', mode='d'),
+        
+        
+        model_axes      = dict(widget_type='LineEdit', label='Model Axes', value=''),
+        
     )
     
-    def plugin (
-       viewer: napari.Viewer,
-       label_head,
+    def plugin_model (
+       viewer: napari.Viewer,     
        image: Image,
-       axes,
-       label_nn,
+       axes,     
        star_seg_model_type,
        unet_seg_model_type,
        den_model_type,
@@ -254,25 +489,8 @@ def plugin_wrapper_vollseg():
        model_folder_star,
        model_folder_unet,
        model_folder_den,
-       result_folder,
        model_axes,
-       norm_image,
-       perc_low,
-       perc_high,
-       min_size_mask,
-       min_size,
-       max_size,
-       label_nms,
-       prob_thresh,
-       nms_thresh,
-       prob_map_watershed,
-       dounet,
-       output_type,
-       label_adv,
-       n_tiles,
-       norm_axes,
-       set_thresholds,
-       defaults_button,
+       
        progress_bar: mw.ProgressBar,
    ) -> List[napari.types.LayerDataTuple]:
 
@@ -283,189 +501,12 @@ def plugin_wrapper_vollseg():
        x = get_data(image)
        axes = axes_check_and_normalize(axes, length=x.ndim)
 
-       if not axes.replace('T','').startswith(model_star._axes_out.replace('C','')):
-           warn(f"output images have different axes ({model_star._axes_out.replace('C','')}) than input image ({axes})")
-           # TODO: adjust image.scale according to shuffled axes
-
-       if norm_image:
-           axes_norm = axes_check_and_normalize(norm_axes)
-           axes_norm = ''.join(set(axes_norm).intersection(set(axes))) # relevant axes present in input image
-           assert len(axes_norm) > 0
-           # always jointly normalize channels for RGB images
-           if ('C' in axes and image.rgb == True) and ('C' not in axes_norm):
-               axes_norm = axes_norm + 'C'
-               warn("jointly normalizing channels of RGB input image")
-           ax = axes_dict(axes)
-           _axis = tuple(sorted(ax[a] for a in axes_norm))
-           # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
-           # #       also needs to be documented somewhere
-           # if 'T' in axes:
-           #     if 'C' not in axes or image.rgb == True:
-           #          # normalize channels jointly, frames independently
-           #          _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],))
-           #     else:
-           #         # normalize channels independently, frames independently
-           #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],ax['C']))
-           # else:
-           #     if 'C' not in axes or image.rgb == True:
-           #          # normalize channels jointly
-           #         _axis = None
-           #     else:
-           #         # normalize channels independently
-           #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['C'],))
-           x = normalize(x, perc_low,perc_high, axis=_axis)
-
-       # TODO: progress bar (labels) often don't show up. events not processed?
-       if 'T' in axes:
-           app = use_app()
-           t = axes_dict(axes)['T']
-           n_frames = x.shape[t]
-           if n_tiles is not None:
-               # remove tiling value for time axis
-               n_tiles = tuple(v for i,v in enumerate(n_tiles) if i != t)
-           def progress(it, **kwargs):
-               progress_bar.label = 'VollSeg Prediction (frames)'
-               progress_bar.range = (0, n_frames)
-               progress_bar.value = 0
-               progress_bar.show()
-               app.process_events()
-               for item in it:
-                   yield item
-                   progress_bar.increment()
-                   app.process_events()
-               app.process_events()
-       elif n_tiles is not None and np.prod(n_tiles) > 1:
-           n_tiles = tuple(n_tiles)
-           app = use_app()
-           def progress(it, **kwargs):
-               progress_bar.label = 'CNN Prediction (tiles)'
-               progress_bar.range = (0, kwargs.get('total',0))
-               progress_bar.value = 0
-               progress_bar.show()
-               app.process_events()
-               for item in it:
-                   yield item
-                   progress_bar.increment()
-                   app.process_events()
-               #
-               progress_bar.label = 'NMS Postprocessing'
-               progress_bar.range = (0, 0)
-               app.process_events()
-       else:
-           progress = False
-           progress_bar.label = 'VollSeg Prediction'
-           progress_bar.range = (0, 0)
-           progress_bar.show()
-           use_app().process_events()
-
-       if 'T' in axes:
-           x_reorder = np.moveaxis(x, t, 0)
-           axes_reorder = axes.replace('T','')
-           
-           if isinstance(model_star, StarDist3D):
-          
-                  if model_den is not None:
-                      noise_model = model_den
-                   
-                  if model_den == None:
-                      noise_model = None
-                  res = tuple(zip(*tuple( VollSeg3D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
-                  n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
-                                                   for _x in progress(x_reorder))))
-            
-           elif isinstance(model_star, StarDist2D):
-          
-                  if model_den is not None:
-                      noise_model = model_den
-                  
-                  if model_den == None:
-                      noise_model = None
-                  res = tuple(zip(*tuple( VollSeg2D( _x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
-                  n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
-                                                   for _x in progress(x_reorder))))
-               
-               
-               
-          
-           if noise_model is not None:
-               
-               labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = res
-           else:
-               labels, SizedMask, StarImage, ProbabilityMap, Markers = res
-
-           labels = np.asarray(labels)
-
-           labels = np.moveaxis(labels, 0, t)
-
-           
-
-       else:
-           # TODO: possible to run this in a way that it can be canceled?
-           if isinstance(model_star, StarDist3D):
-          
-                  if model_den is not None:
-                      noise_model = model_den
-                  
-                  if model_den == None:
-                      noise_model = None
-                  pred =  VollSeg3D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
-                  n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
-            
-           elif isinstance(model_star, StarDist2D):
-          
-                  if model_den is not None:
-                      noise_model = model_den
-                  
-                  if model_den == None:
-                      noise_model = None
-                  pred = VollSeg2D( x,  model_unet, model_star, axes=axes_reorder, noise_model = noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
-                  n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
-                  
-                  
-       progress_bar.hide()
-
-
-       layers = []
-     
-       if noise_model is not None:
-            
-            labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
-       else:
-            labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
-            
        
-       # if timeseries, only scale spatial part...
-       im_scale = tuple(s for i,s in enumerate(image.scale) if not axes[i] in ('T','C'))
-       scale = list(s1*s2 for s1, s2 in zip(im_scale, model_star.config.grid))
-       # small correction as napari centers object
-       translate = list(0.5*(s-1) for s in model_star.config.grid)
-       if 'T' in axes:
-            scale.insert(t,1)
-            translate.insert(t,0)
-        
-       layers.append((ProbabilityMap, dict(name='Base Watershed Image',
-                                  scale=scale, translate=translate,
-                                  **lkwargs), 'image'))
-
-       if output_type in (Output.Labels.value,Output.All.value):
-           layers.append((labels, dict(name='VollSeg labels', scale=image.scale, opacity=.5, **lkwargs), 'labels'))
-       if output_type in (Output.Binary_mask.value,Output.All.value):
-           layers.append((SizedMask, dict(name='VollSeg Binary', scale=image.scale, opacity=.5, **lkwargs), 'binary mask'))
-       if output_type in (Output.Denoised_image.value,Output.All.value) and noise_model is not None:
-           layers.append((denimage, dict(name='Denoised Image', scale=image.scale, opacity=.5, **lkwargs), 'denoised image'))    
-       if output_type in (Output.Markers.value,Output.All.value):
-           layers.append((Markers, dict(name='Markers', scale=image.scale, opacity=.5, **lkwargs), 'markers'))    
-       return layers
+           
+          
     # -------------------------------------------------------------------------
 
-    # don't want to load persisted values for these widgets
-    plugin.axes.value = ''
-    plugin.n_tiles.value = DEFAULTS['n_tiles']
-    plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
-
-    # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
-    for w in (plugin.label_head, plugin.label_nn, plugin.label_nms, plugin.label_adv):
-       w.native.setSizePolicy(1|2, 0)
+    
 
     # -------------------------------------------------------------------------
     #
@@ -480,6 +521,24 @@ def plugin_wrapper_vollseg():
        CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
        CUSTOM_DEN_MODEL: plugin.model_folder_den,
     }
+    
+    
+    
+    tabs = QTabWidget()
+    model_tab = QWidget()
+    _model_tab_layout = QVBoxLayout()
+    model_tab.setLayout(_model_tab_layout)
+    _model_tab_layout.addWidget(plugin_model.native)
+    tabs.addTab(model_tab, 'Model Selection')
+    
+    
+    parameter_tab = QWidget()
+    _parameter_tab_layout = QVBoxLayout()
+    parameter_tab.setLayout(_parameter_tab_layout)
+    _parameter_tab_layout.addWidget(plugin_parameters.native)
+    tabs.addTab(parameter_tab, 'Parameter Selection')
+    
+    plugin.native.layout().addWidget(tabs)
 
     def widgets_inactive(*widgets, active):
        for widget in widgets:
