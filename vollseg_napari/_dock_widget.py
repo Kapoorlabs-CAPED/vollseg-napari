@@ -1092,6 +1092,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_parameters.defaults_parameters_button, init=False)
     def restore_param_defaults():
         for k,v in DEFAULTS_PARAMETERS.items():
+            print(k,v)
             getattr(plugin,k).value = v
             
     @change_handler(plugin_model.defaults_model_button, init=False)
