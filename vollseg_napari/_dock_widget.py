@@ -97,8 +97,8 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_STAR = 'CUSTOM_SEG_MODEL_STAR'
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
-    seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_STAR)]
-    seg_unet_model_type_choices = [('2D', UNET2D), ('3D', UNET3D), ('Custom 2D/3D', CUSTOM_SEG_MODEL_UNET)]
+    seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom STAR', CUSTOM_SEG_MODEL_STAR)]
+    seg_unet_model_type_choices = [('Pre', UNET3D ), ('NONE', 'NONE'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
     den_model_type_choices = [ ('DenoiseCARE', CARE), ( 'NONE', 'NONE' ) , ('Custom CARE', CUSTOM_DEN_MODEL)]
     @functools.lru_cache(maxsize=None)
     def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
@@ -173,6 +173,7 @@ def plugin_wrapper_vollseg():
             model3d_unet   = models3d_unet[0][1],
             model_den  = models_den[0][1],
             model_den_none  = 'NONE',
+            model_unet_none = 'NONE',
             norm_axes      = 'ZYX',
             
             
@@ -460,9 +461,9 @@ def plugin_wrapper_vollseg():
         
         image           = dict(label='Input Image'),
         axes            = dict(widget_type='LineEdit', label='Image Axes'),
-        star_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Star Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS_MODEL['star_seg_model_type']),
-        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Seg Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS_MODEL['unet_seg_model_type']),
-        den_model_type  = dict(widget_type='RadioButtons', label='Den Model Type', orientation='horizontal', choices=den_model_type_choices, value=DEFAULTS_MODEL['den_model_type']),
+        star_seg_model_type  = dict(widget_type='RadioButtons', label='StarDist Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS_MODEL['star_seg_model_type']),
+        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS_MODEL['unet_seg_model_type']),
+        den_model_type  = dict(widget_type='RadioButtons', label='Denoising Model Type', orientation='horizontal', choices=den_model_type_choices, value=DEFAULTS_MODEL['den_model_type']),
         model2d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models2d_star, value=DEFAULTS_MODEL['model2d_star']),
         model3d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models3d_star, value=DEFAULTS_MODEL['model3d_star']),
         
@@ -471,7 +472,7 @@ def plugin_wrapper_vollseg():
         
         model_den   = dict(widget_type='ComboBox', visible=False, label='Pre-trained CARE Denoising Model', choices=models_den, value=DEFAULTS_MODEL['model_den']),
         model_den_none   = dict(widget_type='Label', visible=False, label='No Denoising'),
-        
+        model_unet_none   = dict(widget_type='Label', visible=False, label='No UNET'),
         
         model_folder_star    = dict(widget_type='FileEdit', visible=False, label='Custom StarDist Model', mode='d'),
         model_folder_unet    = dict(widget_type='FileEdit', visible=False, label='Custom UNET Model', mode='d'),
@@ -607,10 +608,16 @@ def plugin_wrapper_vollseg():
                     print(valid)
                     config_star = self.args.model_star
                     axes_star = config_star.get('axes', 'ZYXC'[-len(config_star['net_input_shape']):])
-                    
-                    config_unet = self.args.model_unet
-                    axes_unet = config_unet.get('axes', 'ZYXC'[-len(config_unet['net_input_shape']):])
-                    
+                    if plugin_model.model2d_unet is not None or plugin_model.model3d_unet is not None:
+                        
+                        config_unet = self.args.model_unet
+                        axes_unet = config_unet.get('axes', 'ZYXC'[-len(config_unet['net_input_shape']):])
+                    else: config_unet == None
+                    if plugin_model.model_den is not None:
+                        
+                        config_den = self.args.model_den
+                        axes_den = config_den.get('axes', 'ZYXC'[-len(config_den['net_input_shape']):])
+                    else: config_den == None
                     if 'T' in axes_star:
                         raise RuntimeError("model with axis 'T' not supported")
                     plugin_model.model_axes.value = axes_star.replace("C", f"C[{config_star['n_channel_in']}]")
@@ -619,7 +626,7 @@ def plugin_wrapper_vollseg():
                     plugin_model.model_folder_den.line_edit.tooltip = ''
                     
                     
-                    return axes_star, axes_unet, config_star, config_unet
+                    return axes_star, axes_unet, axes_den, config_star, config_unet, config_den
                 else:
                     plugin_model.model_axes.value = ''
                     plugin_model.model_folder_star.line_edit.tooltip = 'Invalid model directory'
@@ -686,7 +693,7 @@ def plugin_wrapper_vollseg():
 
             if self.valid.image_axes and self.valid.n_tiles and self.valid.model_star and self.valid.model_unet and self.valid.norm_axes:
                 axes_image, image  = _image_axes(True)
-                axes_model_star, config_star, axes_model_unet, config_unet = _model(True)
+                axes_model_star,  axes_model_unet, axes_model_den, config_star, config_unet, config_den = _model(True)
                 axes_norm          = _norm_axes(True)
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
@@ -715,9 +722,18 @@ def plugin_wrapper_vollseg():
                 else:
                     # check if image and models are compatible
                     ch_model_star = config_star['n_channel_in']
-                    ch_model_unet = config_unet['n_channel_in']
+                    unet_star = True
+                    if config_unet is not None:
+                       ch_model_unet = config_unet['n_channel_in']
+                       if ch_model_star != ch_model_unet:
+                           unet_star = False
+                    den_star = True       
+                    if config_den is not None:
+                        ch_model_den = config_den['n_channel_in']
+                        if ch_model_star!=ch_model_den:
+                            den_star = False
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
-                    all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image
+                    all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image and den_star and unet_star
 
                     widgets_valid(plugin.image, plugin_model.model2d_star, plugin_model.model2d_unet, plugin_model.model3d_star, plugin_model.model3d_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
                     if all_valid:
@@ -829,7 +845,6 @@ def plugin_wrapper_vollseg():
         for w in set((plugin_model.model_den, plugin_model.model_den_none, plugin_model.model_folder_den)) - {selected}:
             w.hide()
         selected.show()
-        print('this was selected', selected)
        
         # trigger _model_change_den
         selected.changed(selected.value)
@@ -875,7 +890,7 @@ def plugin_wrapper_vollseg():
 
     @change_handler(plugin_model.model2d_unet, plugin_model.model3d_unet,  init=False)
     def _model_change_unet(model_name_unet: str):
-        model_class_unet = UNET2D if Signal.sender() is plugin_model.model2d_unet else UNET3D
+        model_class_unet = UNET3D
         
         key_unet =  model_class_unet, model_name_unet
         if key_unet not in model_unet_configs:
