@@ -188,7 +188,7 @@ def plugin_wrapper_vollseg():
             prob_map_watershed = True,
             
     )                  
-     
+    print(DEFAULTS) 
     logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
 
     @magicgui (
@@ -596,6 +596,7 @@ def plugin_wrapper_vollseg():
             def _model(valid):
                 widgets_valid(plugin_model.model2d_star, plugin_model.model2d_unet, plugin_model.model3d_star, plugin_model.model3d_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit,  valid=valid)
                 if valid:
+                    print(valid)
                     config_star = self.args.model_star
                     axes_star = config_star.get('axes', 'ZYXC'[-len(config_star['net_input_shape']):])
                     
@@ -708,7 +709,7 @@ def plugin_wrapper_vollseg():
                     ch_model_star = config_star['n_channel_in']
                     ch_model_unet = config_unet['n_channel_in']
                     ch_image = get_data(image).shape[axes_dict(axes_image)['C']] if 'C' in axes_image else 1
-                    all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image and ch_model_unet == ch_image
+                    all_valid = set(axes_model_star.replace('C','')) == set(axes_image.replace('C','').replace('T','')) and ch_model_star == ch_image
 
                     widgets_valid(plugin.image, plugin_model.model2d_star, plugin_model.model2d_unet, plugin_model.model3d_star, plugin_model.model3d_unet, plugin_model.model_den, plugin_model.model_folder_star.line_edit, plugin_model.model_folder_unet.line_edit, plugin_model.model_folder_den.line_edit, valid=all_valid)
                     if all_valid:
@@ -1023,21 +1024,7 @@ def plugin_wrapper_vollseg():
         finally:
             widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
-
-    @change_handler(plugin_parameters.min_size, init=False)
-    def _min_size_change():
-        value = plugin_parameters.min_size.get_value()
-        update(plugin_parameters.min_size, value)
-    
-    @change_handler(plugin_parameters.min_size_mask, init=False)
-    def _min_size_mask_change():
-        value = plugin_parameters.min_size_mask.get_value()
-        update(plugin_parameters.min_size_mask, value)
-        
-    @change_handler(plugin_parameters.max_size, init=False)
-    def _max_size_change():
-        value = plugin_parameters.max_size.get_value()
-        update(plugin_parameters.max_size, value)    
+   
     
     # -> triggered by _image_change
     @change_handler(plugin_parameters.n_tiles, init=False)
@@ -1072,6 +1059,21 @@ def plugin_wrapper_vollseg():
             plugin.nms_thresh.value = thresholds['nms']
             plugin.prob_thresh.value = thresholds['prob']
 
+   
+    @change_handler(plugin_parameters.min_size)
+    def _min_size_change():
+        
+        plugin_parameters.min_size.value = plugin_parameters.min_size.value
+        
+    
+    @change_handler(plugin_parameters.min_size_mask)
+    def _min_size_mask_change():
+        plugin_parameters.min_size_mask.value = plugin_parameters.min_size_mask.value
+        
+    @change_handler(plugin_parameters.max_size)
+    def _max_size_change():
+        plugin_parameters.max_size.value = plugin_parameters.max_size.value
+
     # output type changed
     @change_handler(plugin_parameters.output_type, init=False)
     def _output_type_change():
@@ -1082,7 +1084,6 @@ def plugin_wrapper_vollseg():
     def restore_defaults():
         for k,v in DEFAULTS.items():
             getattr(plugin,k).value = v
-
     # -------------------------------------------------------------------------
 
     # allow some widgets to shrink because their size depends on user input
