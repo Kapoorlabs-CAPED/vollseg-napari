@@ -37,8 +37,10 @@ from qtpy.QtWidgets import (
     QScrollArea,
     QCheckBox,
     QSpinBox,
+    QSizePolicy
 )
-from qtpy.QtWidgets import QMainWindow
+
+
 
 
 def plugin_wrapper_vollseg():
@@ -369,30 +371,6 @@ def plugin_wrapper_vollseg():
             text="Normalize Image",
             value=DEFAULTS_PARAMETERS["norm_image"],
         ),
-        min_size_mask=dict(
-            widget_type="FloatSpinBox",
-            label="Min Size UNET",
-            min=0.0,
-            max=1000.0,
-            step=1,
-            value=DEFAULTS_PARAMETERS["min_size_mask"],
-        ),
-        min_size=dict(
-            widget_type="FloatSpinBox",
-            label="Min Size Star",
-            min=0.0,
-            max=1000.0,
-            step=1,
-            value=DEFAULTS_PARAMETERS["min_size"],
-        ),
-        max_size=dict(
-            widget_type="FloatSpinBox",
-            label="Max Size Star",
-            min=1000,
-            max=100000.0,
-            step=100,
-            value=DEFAULTS_PARAMETERS["max_size"],
-        ),
         perc_low=dict(
             widget_type="FloatSpinBox",
             label="Percentile low",
@@ -425,25 +403,9 @@ def plugin_wrapper_vollseg():
             step=0.05,
             value=DEFAULTS_PARAMETERS["nms_thresh"],
         ),
-        prob_map_watershed=dict(
-            widget_type="CheckBox",
-            text="Use Probability Map (watershed)",
-            value=DEFAULTS_PARAMETERS["prob_map_watershed"],
-        ),
-        dounet=dict(
-            widget_type="CheckBox",
-            text="Use UNET for binary mask (else denoised)",
-            value=DEFAULTS_PARAMETERS["dounet"],
-        ),
         set_thresholds=dict(
             widget_type="PushButton",
             text="Set optimized postprocessing thresholds (for selected model)",
-        ),
-        output_type=dict(
-            widget_type="ComboBox",
-            label="Output Type",
-            choices=output_choices,
-            value=DEFAULTS_PARAMETERS["output_type"],
         ),
         n_tiles=dict(
             widget_type="LiteralEvalLineEdit",
@@ -454,63 +416,110 @@ def plugin_wrapper_vollseg():
             widget_type="PushButton", text="Restore Parameter Defaults"
         ),
     )
-    def plugin_parameters(
+
+    def plugin_star_parameters(
         norm_image,
-        min_size_mask,
-        min_size,
-        max_size,
         perc_low,
         perc_high,
         prob_thresh,
         nms_thresh,
-        prob_map_watershed,
-        dounet,
         set_thresholds,
-        output_type,
         n_tiles,
         defaults_parameters_button,
     ) -> List[napari.types.LayerDataTuple]:
+        
+         if norm_image:
+             axes_norm = axes_check_and_normalize(plugin.norm_axes)
+             axes_norm = "".join(
+                 set(axes_norm).intersection(set(plugin.axes))
+             )  # relevant axes present in input image
+             assert len(axes_norm) > 0
+             # always jointly normalize channels for RGB images
+             if ("C" in plugin.axes and plugin.image.rgb == True) and (
+                 "C" not in axes_norm
+             ):
+                 axes_norm = axes_norm + "C"
+                 warn("jointly normalizing channels of RGB input image")
+             ax = axes_dict(plugin.axes)
+             _axis = tuple(sorted(ax[a] for a in axes_norm))
+             # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
+             # #       also needs to be documented somewhere
+             # if 'T' in axes:
+             #     if 'C' not in axes or image.rgb == True:
+             #          # normalize channels jointly, frames independently
+             #          _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],))
+             #     else:
+             #         # normalize channels independently, frames independently
+             #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],ax['C']))
+             # else:
+             #     if 'C' not in axes or image.rgb == True:
+             #          # normalize channels jointly
+             #         _axis = None
+             #     else:
+             #         # normalize channels independently
+             #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['C'],))
+             plugin.x = normalize(plugin.x, perc_low, perc_high, axis=_axis)
+    @magicgui(
+        
+        min_size_mask=dict(
+            widget_type="FloatSpinBox",
+            label="Min Size UNET",
+            min=0.0,
+            max=1000.0,
+            step=1,
+            value=DEFAULTS_PARAMETERS["min_size_mask"],
+        ),
+        min_size=dict(
+            widget_type="FloatSpinBox",
+            label="Min Size Star",
+            min=0.0,
+            max=1000.0,
+            step=1,
+            value=DEFAULTS_PARAMETERS["min_size"],
+        ),
+        max_size=dict(
+            widget_type="FloatSpinBox",
+            label="Max Size Star",
+            min=1000,
+            max=100000.0,
+            step=100,
+            value=DEFAULTS_PARAMETERS["max_size"],
+        ),
+        
+        prob_map_watershed=dict(
+            widget_type="CheckBox",
+            text="Use Probability Map (watershed)",
+            value=DEFAULTS_PARAMETERS["prob_map_watershed"],
+        ),
+        dounet=dict(
+            widget_type="CheckBox",
+            text="Use UNET for binary mask (else denoised)",
+            value=DEFAULTS_PARAMETERS["dounet"],
+        ),
+        defaults_parameters_button=dict(
+            widget_type="PushButton", text="Restore Parameter Defaults"
+        ),
+    )
+    def plugin_extra_parameters(
+        min_size_mask,
+        min_size,
+        max_size,
+        prob_map_watershed,
+        dounet,
+        output_type,
+        defaults_parameters_button,
+    ) -> List[napari.types.LayerDataTuple]:
 
-        if norm_image:
-            axes_norm = axes_check_and_normalize(plugin.norm_axes)
-            axes_norm = "".join(
-                set(axes_norm).intersection(set(plugin.axes))
-            )  # relevant axes present in input image
-            assert len(axes_norm) > 0
-            # always jointly normalize channels for RGB images
-            if ("C" in plugin.axes and plugin.image.rgb == True) and (
-                "C" not in axes_norm
-            ):
-                axes_norm = axes_norm + "C"
-                warn("jointly normalizing channels of RGB input image")
-            ax = axes_dict(plugin.axes)
-            _axis = tuple(sorted(ax[a] for a in axes_norm))
-            # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
-            # #       also needs to be documented somewhere
-            # if 'T' in axes:
-            #     if 'C' not in axes or image.rgb == True:
-            #          # normalize channels jointly, frames independently
-            #          _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],))
-            #     else:
-            #         # normalize channels independently, frames independently
-            #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],ax['C']))
-            # else:
-            #     if 'C' not in axes or image.rgb == True:
-            #          # normalize channels jointly
-            #         _axis = None
-            #     else:
-            #         # normalize channels independently
-            #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['C'],))
-            plugin.x = normalize(plugin.x, perc_low, perc_high, axis=_axis)
+        
 
         # TODO: progress bar (labels) often don't show up. events not processed?
         if "T" in plugin.axes:
             app = use_app()
             t = axes_dict(plugin.axes)["T"]
             n_frames = plugin.shape[t]
-            if n_tiles is not None:
+            if plugin_star_parameters.n_tiles is not None:
                 # remove tiling value for time axis
-                n_tiles = tuple(v for i, v in enumerate(n_tiles) if i != t)
+                plugin_star_parameters.n_tiles = tuple(v for i, v in enumerate(plugin_star_parameters.n_tiles) if i != t)
 
             def progress(it, **kwargs):
                 plugin.progress_bar.label = "VollSeg Prediction (frames)"
@@ -524,8 +533,8 @@ def plugin_wrapper_vollseg():
                     app.process_events()
                 app.process_events()
 
-        elif n_tiles is not None and np.prod(n_tiles) > 1:
-            n_tiles = tuple(n_tiles)
+        elif plugin_star_parameters.n_tiles is not None and np.prod(plugin_star_parameters.n_tiles) > 1:
+            plugin_star_parameters.n_tiles = tuple(plugin_star_parameters.n_tiles)
             app = use_app()
 
             def progress(it, **kwargs):
@@ -569,12 +578,12 @@ def plugin_wrapper_vollseg():
                                 plugin.model_star,
                                 axes=axes_reorder,
                                 noise_model=noise_model,
-                                prob_thresh=prob_thresh,
-                                nms_thresh=nms_thresh,
-                                min_size_mask=min_size_mask,
+                                prob_thresh=plugin_star_parameters.prob_thresh,
+                                nms_thresh=plugin_star_parameters.nms_thresh,
+                                min_size_mask=plugin_star_parameters.min_size_mask,
                                 min_size=min_size,
                                 max_size=max_size,
-                                n_tiles=n_tiles,
+                                n_tiles=plugin_star_parameters.n_tiles,
                                 UseProbability=prob_map_watershed,
                                 dounet=dounet,
                             )
@@ -599,12 +608,12 @@ def plugin_wrapper_vollseg():
                                 plugin.model_star,
                                 axes=axes_reorder,
                                 noise_model=noise_model,
-                                prob_thresh=prob_thresh,
-                                nms_thresh=nms_thresh,
+                                prob_thresh=plugin_star_parameters.prob_thresh,
+                                nms_thresh=plugin_star_parameters.nms_thresh,
                                 min_size_mask=min_size_mask,
                                 min_size=min_size,
                                 max_size=max_size,
-                                n_tiles=n_tiles,
+                                n_tiles=plugin_star_parameters.n_tiles,
                                 UseProbability=prob_map_watershed,
                                 dounet=dounet,
                             )
@@ -638,12 +647,12 @@ def plugin_wrapper_vollseg():
                     plugin.model_star,
                     axes=axes_reorder,
                     noise_model=noise_model,
-                    prob_thresh=prob_thresh,
-                    nms_thresh=nms_thresh,
+                    prob_thresh=plugin_star_parameters.prob_thresh,
+                    nms_thresh=plugin_star_parameters.nms_thresh,
                     min_size_mask=min_size_mask,
                     min_size=min_size,
                     max_size=max_size,
-                    n_tiles=n_tiles,
+                    n_tiles=plugin_star_parameters.n_tiles,
                     UseProbability=prob_map_watershed,
                     dounet=dounet,
                 )
@@ -661,12 +670,12 @@ def plugin_wrapper_vollseg():
                     plugin.model_star,
                     axes=axes_reorder,
                     noise_model=noise_model,
-                    prob_thresh=prob_thresh,
-                    nms_thresh=nms_thresh,
+                    prob_thresh=plugin_star_parameters.prob_thresh,
+                    nms_thresh=plugin_star_parameters.nms_thresh,
                     min_size_mask=min_size_mask,
                     min_size=min_size,
                     max_size=max_size,
-                    n_tiles=n_tiles,
+                    n_tiles=plugin_star_parameters.n_tiles,
                     UseProbability=prob_map_watershed,
                     dounet=dounet,
                 )
@@ -765,9 +774,9 @@ def plugin_wrapper_vollseg():
         return layers
 
     plugin.axes.value = ""
-    plugin_parameters.n_tiles.value = DEFAULTS_PARAMETERS["n_tiles"]
+    plugin_star_parameters.n_tiles.value = DEFAULTS_PARAMETERS["n_tiles"]
     plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
-
+    plugin.label_head.native.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
     # -------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------
@@ -786,18 +795,18 @@ def plugin_wrapper_vollseg():
 
     tabs = QTabWidget()
 
-    model_tab = QWidget()
-    _model_tab_layout = QVBoxLayout()
-    model_tab.setLayout(_model_tab_layout)
-    _model_tab_layout.addWidget(plugin.native)
-    tabs.addTab(model_tab, "Model Selection")
+    parameter_star_tab = QWidget()
+    _parameter_star_tab_layout = QVBoxLayout()
+    parameter_star_tab.setLayout(_parameter_star_tab_layout)
+    _parameter_star_tab_layout.addWidget(plugin_star_parameters.native)
+    tabs.addTab(parameter_star_tab, "StarDist Parameter Selection")
 
-    parameter_tab = QWidget()
-    _parameter_tab_layout = QVBoxLayout()
-    parameter_tab.setLayout(_parameter_tab_layout)
-    _parameter_tab_layout.addWidget(plugin_parameters.native)
-    tabs.addTab(parameter_tab, "Parameter Selection")
-
+    parameter_extra_tab = QWidget()
+    _parameter_extra_tab_layout = QVBoxLayout()
+    parameter_extra_tab.setLayout(_parameter_extra_tab_layout)
+    _parameter_extra_tab_layout.addWidget(plugin_extra_parameters.native)
+    tabs.addTab(parameter_extra_tab, "VollSeg Parameter Selection")
+    plugin.native.layout().addWidget(tabs)
     def widgets_inactive(*widgets, active):
         for widget in widgets:
             widget.visible = active
@@ -851,7 +860,7 @@ def plugin_wrapper_vollseg():
                         if len(layers_remaining) == 0:
                             plugin.image.tooltip = ""
                             plugin.axes.value = ""
-                            plugin_parameters.n_tiles.value = "None"
+                            plugin_star_parameters.n_tiles.value = "None"
 
             def _model(valid):
                 widgets_valid(
@@ -899,7 +908,7 @@ def plugin_wrapper_vollseg():
                 if (
                     valid
                     and "T" in axes
-                    and plugin_parameters.output_type.value
+                    and plugin_extra_parameters.output_type.value
                     in (
                         Output.Binary_mask.value,
                         Output.Labels.value,
@@ -909,15 +918,17 @@ def plugin_wrapper_vollseg():
                         Output.All.value,
                     )
                 ):
-                    plugin_parameters.output_type.native.setStyleSheet(
+                    plugin_extra_parameters.output_type.native.setStyleSheet(
                         "background-color: orange"
                     )
-                    plugin_parameters.output_type.tooltip = (
+                    plugin_extra_parameters.output_type.tooltip = (
                         "Displaying many labels can be very slow."
                     )
                 else:
-                    plugin_parameters.output_type.native.setStyleSheet("")
-                    plugin_parameters.output_type.tooltip = ""
+                    plugin_extra_parameters.output_type.native.setStyleSheet("")
+                    plugin_extra_parameters.output_type.tooltip = ""
+                    
+                    
                 if valid:
                     plugin.axes.tooltip = "\n".join(
                         [f"{a} = {s}" for a, s in zip(axes, get_data(image).shape)]
@@ -949,9 +960,9 @@ def plugin_wrapper_vollseg():
 
             def _n_tiles(valid):
                 n_tiles, image, err = getattr(self.args, "n_tiles", (None, None, None))
-                widgets_valid(plugin_parameters.n_tiles, valid=(valid or image is None))
+                widgets_valid(plugin_star_parameters.n_tiles, valid=(valid or image is None))
                 if valid:
-                    plugin_parameters.n_tiles.tooltip = (
+                    plugin_star_parameters.n_tiles.tooltip = (
                         "no tiling"
                         if n_tiles is None
                         else "\n".join(
@@ -964,7 +975,7 @@ def plugin_wrapper_vollseg():
                     return n_tiles
                 else:
                     msg = str(err) if err is not None else ""
-                    plugin_parameters.n_tiles.tooltip = msg
+                    plugin_star_parameters.n_tiles.tooltip = msg
 
             def _no_tiling_for_axis(axes_image, n_tiles, axis):
                 if n_tiles is not None and axis in axes_image:
@@ -996,15 +1007,15 @@ def plugin_wrapper_vollseg():
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, "C"):
                     # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin_parameters.n_tiles, valid=False)
+                    widgets_valid(plugin_star_parameters.n_tiles, valid=False)
                     err = "number of tiles must be 1 for C axis"
-                    plugin_parameters.n_tiles.tooltip = err
+                    plugin_star_parameters.n_tiles.tooltip = err
                     _restore()
                 elif not _no_tiling_for_axis(axes_image, n_tiles, "T"):
                     # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin_parameters.n_tiles, valid=False)
+                    widgets_valid(plugin_star_parameters.n_tiles, valid=False)
                     err = "number of tiles must be 1 for T axis"
-                    plugin_parameters.n_tiles.tooltip = err
+                    plugin_star_parameters.n_tiles.tooltip = err
                     _restore()
                 elif set(axes_norm).isdisjoint(set(axes_image)):
                     # check if image axes and normalization axes are compatible
@@ -1015,7 +1026,7 @@ def plugin_wrapper_vollseg():
                 elif (
                     "T" in axes_image
                     and config_star.get("n_dim") == 3
-                    and plugin_parameters.output_type.value
+                    and plugin_extra_parameters.output_type.value
                     in (
                         Output.Binary_mask.value,
                         Output.Labels.value,
@@ -1026,8 +1037,8 @@ def plugin_wrapper_vollseg():
                     )
                 ):
                     # not supported
-                    widgets_valid(plugin_parameters.output_type, valid=False)
-                    plugin_parameters.output_type.tooltip = "3D timelapse data"
+                    widgets_valid(plugin_extra_parameters.output_type, valid=False)
+                    plugin_extra_parameters.output_type.tooltip = "3D timelapse data"
                     _restore()
                 else:
                     # check if image and models are compatible
@@ -1098,34 +1109,34 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # hide percentile selection if normalization turned off
-    @change_handler(plugin_parameters.norm_image)
+    @change_handler(plugin_star_parameters.norm_image)
     def _norm_image_change(active: bool):
         widgets_inactive(
-            plugin_parameters.perc_low,
-            plugin_parameters.perc_high,
+            plugin_star_parameters.perc_low,
+            plugin_star_parameters.perc_high,
             plugin.norm_axes,
             active=active,
         )
 
-    @change_handler(plugin_parameters.dounet)
+    @change_handler(plugin_extra_parameters.dounet)
     def _dounet_change(active: bool):
-        plugin_parameters.dounet.value = active
+        plugin_extra_parameters.dounet.value = active
 
-    @change_handler(plugin_parameters.prob_map_watershed)
+    @change_handler(plugin_extra_parameters.prob_map_watershed)
     def _prob_map_watershed_change(active: bool):
-        plugin_parameters.prob_map_watershed.value = active
+        plugin_extra_parameters.prob_map_watershed.value = active
 
     # ensure that percentile low < percentile high
-    @change_handler(plugin_parameters.perc_low)
+    @change_handler(plugin_star_parameters.perc_low)
     def _perc_low_change():
-        plugin_parameters.perc_high.value = max(
-            plugin_parameters.perc_low.value + 0.01, plugin_parameters.perc_high.value
+        plugin_star_parameters.perc_high.value = max(
+            plugin_star_parameters.perc_low.value + 0.01, plugin_star_parameters.perc_high.value
         )
 
-    @change_handler(plugin_parameters.perc_high)
+    @change_handler(plugin_star_parameters.perc_high)
     def _perc_high_change():
-        plugin_parameters.perc_low.value = min(
-            plugin_parameters.perc_low.value, plugin_parameters.perc_high.value - 0.01
+        plugin_star_parameters.perc_low.value = min(
+            plugin_star_parameters.perc_low.value, plugin_star_parameters.perc_high.value - 0.01
         )
 
     @change_handler(plugin.norm_axes)
@@ -1364,7 +1375,7 @@ def plugin_wrapper_vollseg():
             plugin.axes.changed(axes)
         else:
             plugin.axes.value = axes
-        plugin_parameters.n_tiles.changed(plugin_parameters.n_tiles.value)
+        plugin_star_parameters.n_tiles.changed(plugin_star_parameters.n_tiles.value)
         plugin.norm_axes.changed(plugin.norm_axes.value)
 
     # -> triggered by _image_change
@@ -1387,12 +1398,12 @@ def plugin_wrapper_vollseg():
         # widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
     # -> triggered by _image_change
-    @change_handler(plugin_parameters.n_tiles, init=False)
+    @change_handler(plugin_star_parameters.n_tiles, init=False)
     def _n_tiles_change():
         image = plugin.image.value
         try:
             image is not None or _raise(ValueError("no image selected"))
-            value = plugin_parameters.n_tiles.get_value()
+            value = plugin_star_parameters.n_tiles.get_value()
             if value is None:
                 update("n_tiles", True, (None, image, None))
                 return
@@ -1411,33 +1422,33 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # set thresholds to optimized values for chosen model
-    @change_handler(plugin_parameters.set_thresholds, init=False)
+    @change_handler(plugin_star_parameters.set_thresholds, init=False)
     def _set_thresholds():
         if model_selected_star in model_star_threshs:
             thresholds = model_star_threshs[model_selected_star]
             plugin.nms_thresh.value = thresholds["nms"]
             plugin.prob_thresh.value = thresholds["prob"]
 
-    @change_handler(plugin_parameters.min_size)
+    @change_handler(plugin_extra_parameters.min_size)
     def _min_size_change(value: float):
 
-        plugin_parameters.min_size.value = value
+        plugin_extra_parameters.min_size.value = value
 
-    @change_handler(plugin_parameters.min_size_mask)
+    @change_handler(plugin_extra_parameters.min_size_mask)
     def _min_size_mask_change(value: float):
-        plugin_parameters.min_size_mask.value = value
+        plugin_extra_parameters.min_size_mask.value = value
 
-    @change_handler(plugin_parameters.max_size)
+    @change_handler(plugin_extra_parameters.max_size)
     def _max_size_change(value: float):
-        plugin_parameters.max_size.value = value
+        plugin_extra_parameters.max_size.value = value
 
     # output type changed
-    @change_handler(plugin_parameters.output_type, init=False)
+    @change_handler(plugin_extra_parameters.output_type, init=False)
     def _output_type_change():
         update._update()
 
     # restore defaults
-    @change_handler(plugin_parameters.defaults_parameters_button, init=False)
+    @change_handler(plugin_star_parameters.defaults_parameters_button, init=False)
     def restore_param_defaults():
         for k, v in DEFAULTS_PARAMETERS.items():
             print(k, v)
@@ -1466,7 +1477,7 @@ def plugin_wrapper_vollseg():
     # plugin.model_axes.native.setReadOnly(True)
     plugin.model_axes.enabled = False
 
-    return tabs
+    return plugin
 
 
 def inrimage_file_reader(path):
