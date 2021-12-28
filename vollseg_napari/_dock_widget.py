@@ -92,60 +92,41 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_STAR = 'CUSTOM_SEG_MODEL_STAR'
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
-    seg_star_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom STAR', CUSTOM_SEG_MODEL_STAR)]
-    seg_unet_model_type_choices = [('PreTrained', UNET ), ('NOUNET', 'NOUNET'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
+    star_seg_model_type_choices = [('2D', StarDist2D), ('3D', StarDist3D), ('Custom STAR', CUSTOM_SEG_MODEL_STAR)]
+    unet_seg_model_type_choices = [('PreTrained', UNET ), ('NOUNET', 'NOUNET'), ('Custom UNET', CUSTOM_SEG_MODEL_UNET)]
     den_model_type_choices = [ ('DenoiseCARE', CARE), ( 'NONE', 'NONE' ) , ('Custom CARE', CUSTOM_DEN_MODEL)]
+    
     @functools.lru_cache(maxsize=None)
-    def get_model(seg_model_type, den_model_type, model_star, model_unet, model_den):
-        if seg_model_type == CUSTOM_SEG_MODEL_STAR:
+    def get_model_star(star_seg_model_type, model_star):
+        if star_seg_model_type == CUSTOM_SEG_MODEL_STAR:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(FileNotFoundError(f"{path_star} is not a directory"))
-            config_star = model_star_configs[(seg_model_type,model_star)]
+            config_star = model_star_configs[(star_seg_model_type,model_star)]
             model_class_star = StarDist2D if config_star['n_dim'] == 2 else StarDist3D
-            
-        if seg_model_type == CUSTOM_SEG_MODEL_UNET:    
-            path_unet = Path(model_unet)
-            path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
-            model_class_unet = UNET
-            
-        if den_model_type == CUSTOM_DEN_MODEL:    
-                if model_den is not None:
-                    path_care = Path(model_den)
-                    path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
-                    return model_class_star(None, name=path_star.name, basedir=str(path_star.parent)), model_class_unet(None, name=path_unet.name, basedir=str(path_unet.parent)), CARE(None, name=path_care.name, basedir=str(path_care.parent))
-               
-    
-        elif den_model_type != CUSTOM_DEN_MODEL and model_den is not None:
-                
-                 return model_class_star(None, name=path_star.name, basedir=str(path_star.parent)), model_class_unet(None, name=path_unet.name, basedir=str(path_unet.parent)), den_model_type.from_pretrained(model_den)
-             
-       
-       
-                 
-                
-        elif den_model_type != CUSTOM_DEN_MODEL and model_den == None:
-                    
-                     return model_class_star(None, name=path_star.name, basedir=str(path_star.parent)), model_class_unet(None, name=path_unet.name, basedir=str(path_unet.parent))
-        
+            return model_class_star(None, name=path_star.name, basedir=str(path_star.parent))
         else:
-            
-              if den_model_type == CUSTOM_DEN_MODEL:    
-                  if model_den is not None:
-                      path_care = Path(model_den)
-                      path_care.is_dir() or _raise(FileNotFoundError(f"{path_care} is not a directory"))
-                      return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), CARE(None, name=path_care.name, basedir=str(path_care.parent))
-                  
-              
-                   
-              elif den_model_type != CUSTOM_DEN_MODEL and model_den is not None:
-                  
-                   return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet), den_model_type.from_pretrained(model_den)    
-               
-                
-              elif den_model_type != CUSTOM_DEN_MODEL and model_den == None:
-                      
-                       return seg_model_type.from_pretrained(model_star), seg_model_type.from_pretrained(model_unet)
+            return star_seg_model_type.from_pretrained(model_star)
         
+    @functools.lru_cache(maxsize=None)
+    def get_model_unet(unet_seg_model_type, model_unet):
+            if unet_seg_model_type == CUSTOM_SEG_MODEL_UNET:
+                path_unet = Path(model_unet)
+                path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
+                model_class_unet = UNET
+                return model_class_unet(None, name=path_unet.name, basedir=str(path_unet.parent))
+            else:
+                return unet_seg_model_type.from_pretrained(model_unet)
+            
+    @functools.lru_cache(maxsize=None)
+    def get_model_den(den_model_type, model_den):
+                if den_model_type == CUSTOM_DEN_MODEL:
+                    path_den = Path(model_den)
+                    path_den.is_dir() or _raise(FileNotFoundError(f"{path_den} is not a directory"))
+                    model_class_den = CARE
+                    return model_class_den(None, name=path_den.name, basedir=str(path_den.parent))
+                else:
+                    return den_model_type.from_pretrained(model_den)        
+    
 
 
     class Output(Enum):
@@ -437,8 +418,8 @@ def plugin_wrapper_vollseg():
         
         label_head      = dict(widget_type='Label', label=f'<h1><img src="{logo}">VollSeg</h1>'),
         
-        star_seg_model_type  = dict(widget_type='RadioButtons', label='StarDist Model Type', orientation='horizontal', choices=seg_star_model_type_choices, value=DEFAULTS_MODEL['star_seg_model_type']),
-        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Unet Model Type', orientation='horizontal', choices=seg_unet_model_type_choices, value=DEFAULTS_MODEL['unet_seg_model_type']),
+        star_seg_model_type  = dict(widget_type='RadioButtons', label='StarDist Model Type', orientation='horizontal', choices=star_seg_model_type_choices, value=DEFAULTS_MODEL['star_seg_model_type']),
+        unet_seg_model_type  = dict(widget_type='RadioButtons', label='Unet Model Type', orientation='horizontal', choices=unet_seg_model_type_choices, value=DEFAULTS_MODEL['unet_seg_model_type']),
         den_model_type  = dict(widget_type='RadioButtons', label='Denoising Model Type', orientation='horizontal', choices=den_model_type_choices, value=DEFAULTS_MODEL['den_model_type']),
         model2d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models2d_star, value=DEFAULTS_MODEL['model2d_star']),
         model3d_star    = dict(widget_type='ComboBox', visible=False, label='Pre-trained StarDist Model', choices=models3d_star, value=DEFAULTS_MODEL['model3d_star']),
@@ -478,19 +459,21 @@ def plugin_wrapper_vollseg():
        defaults_model_button
        
    ) -> List[napari.types.LayerDataTuple]:
-
-       model_star = get_model(*model_selected_star)
-       model_unet = get_model(*model_selected_unet)
-       model_den = get_model(*model_selected_den)
-       lkwargs = {}
+        
+          
+        model_star = get_model_star(*model_selected_star)
+        model_unet = get_model_unet(*model_selected_unet)
+        print(model_selected_unet)
+        model_den =  get_model_den(*model_selected_den)
+        lkwargs = {}
       
-       # don't want to load persisted values for these widgets
+        # don't want to load persisted values for these widgets
        
-       plugin_model.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
+        plugin_model.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
 
-       # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
-       for w in (plugin_model.label_head):
-          w.native.setSizePolicy(1|2, 0)
+        # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
+        for w in (plugin_model.label_head):
+           w.native.setSizePolicy(1|2, 0)
        
            
           
@@ -591,12 +574,10 @@ def plugin_wrapper_vollseg():
                     if plugin_model.model_unet is not None or plugin_model.model_unet is not None:
                         
                         config_unet = self.args.model_unet
-                        axes_unet = config_unet.get('axes', 'ZYXC'[-len(config_unet['net_input_shape']):])
                     else: config_unet == None
                     if plugin_model.model_den is not None:
                         
                         config_den = self.args.model_den
-                        axes_den = config_den.get('axes', 'ZYXC'[-len(config_den['net_input_shape']):])
                     else: config_den == None
                     if 'T' in axes_star:
                         raise RuntimeError("model with axis 'T' not supported")
@@ -606,7 +587,7 @@ def plugin_wrapper_vollseg():
                     plugin_model.model_folder_den.line_edit.tooltip = ''
                     
                     
-                    return axes_star, axes_unet, axes_den, config_star, config_unet, config_den
+                    return axes_star, config_star, config_unet, config_den
                 else:
                     plugin_model.model_axes.value = ''
                     plugin_model.model_folder_star.line_edit.tooltip = 'Invalid model directory'
@@ -980,9 +961,9 @@ def plugin_wrapper_vollseg():
 
         # dimensionality of selected model: 2, 3, or None (unknown)
         ndim_model = None
-        if plugin_model.seg_model_type.value == StarDist2D:
+        if plugin_model.star_seg_model_type.value == StarDist2D:
             ndim_model = 2
-        elif plugin_model.seg_model_type.value == StarDist3D:
+        elif plugin_model.star_seg_model_type.value == StarDist3D:
             ndim_model = 3
         else:
             if model_selected_star in model_star_configs:
