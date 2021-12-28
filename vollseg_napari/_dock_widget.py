@@ -114,7 +114,10 @@ def plugin_wrapper_vollseg():
                 path_unet.is_dir() or _raise(FileNotFoundError(f"{path_unet} is not a directory"))
                 model_class_unet = UNET
                 return model_class_unet(None, name=path_unet.name, basedir=str(path_unet.parent))
-            else:
+            elif unet_seg_model_type == 'NOUNET':
+                return None 
+            
+            elif unet_seg_model_type == UNET:
                 return unet_seg_model_type.from_pretrained(model_unet)
             
     @functools.lru_cache(maxsize=None)
@@ -124,10 +127,11 @@ def plugin_wrapper_vollseg():
                     path_den.is_dir() or _raise(FileNotFoundError(f"{path_den} is not a directory"))
                     model_class_den = CARE
                     return model_class_den(None, name=path_den.name, basedir=str(path_den.parent))
-                else:
+                elif den_model_type == CARE:
                     return den_model_type.from_pretrained(model_den)        
-    
-
+                   
+                elif den_model_type == 'NONE':
+                    return None
 
     class Output(Enum):
         Labels = 'Label Image'
@@ -237,7 +241,6 @@ def plugin_wrapper_vollseg():
             defaults_parameters_button
             ) -> List[napari.types.LayerDataTuple]:
                n_tiles.value = DEFAULTS_PARAMETERS['n_tiles']
-               progress_bar =plugin.progress_bar
                lkwargs = plugin_model.lkwargs
                if not plugin.axes.replace('T','').startswith(plugin_model.model_star._axes_out.replace('C','')):
                    warn(f"output images have different axes ({plugin_model.model_star._axes_out.replace('C','')}) than input image ({plugin.axes})")
@@ -280,38 +283,38 @@ def plugin_wrapper_vollseg():
                        # remove tiling value for time axis
                        n_tiles = tuple(v for i,v in enumerate(n_tiles) if i != t)
                    def progress(it, **kwargs):
-                       progress_bar.label = 'VollSeg Prediction (frames)'
-                       progress_bar.range = (0, n_frames)
-                       progress_bar.value = 0
-                       progress_bar.show()
+                       plugin.progress_bar.label = 'VollSeg Prediction (frames)'
+                       plugin.progress_bar.range = (0, n_frames)
+                       plugin.progress_bar.value = 0
+                       plugin.progress_bar.show()
                        app.process_events()
                        for item in it:
                            yield item
-                           progress_bar.increment()
+                           plugin.progress_bar.increment()
                            app.process_events()
                        app.process_events()
                elif n_tiles is not None and np.prod(n_tiles) > 1:
                    n_tiles = tuple(n_tiles)
                    app = use_app()
                    def progress(it, **kwargs):
-                       progress_bar.label = 'CNN Prediction (tiles)'
-                       progress_bar.range = (0, kwargs.get('total',0))
-                       progress_bar.value = 0
-                       progress_bar.show()
+                       plugin.progress_bar.label = 'CNN Prediction (tiles)'
+                       plugin.progress_bar.range = (0, kwargs.get('total',0))
+                       plugin.progress_bar.value = 0
+                       plugin.rogress_bar.show()
                        app.process_events()
                        for item in it:
                            yield item
-                           progress_bar.increment()
+                           plugin.progress_bar.increment()
                            app.process_events()
                        #
-                       progress_bar.label = 'NMS Postprocessing'
-                       progress_bar.range = (0, 0)
+                       plugin.progress_bar.label = 'NMS Postprocessing'
+                       plugin.progress_bar.range = (0, 0)
                        app.process_events()
                else:
                    progress = False
-                   progress_bar.label = 'VollSeg Prediction'
-                   progress_bar.range = (0, 0)
-                   progress_bar.show()
+                   plugin.progress_bar.label = 'VollSeg Prediction'
+                   plugin.progress_bar.range = (0, 0)
+                   plugin.progress_bar.show()
                    use_app().process_events()
 
                if 'T' in plugin.axes:
@@ -377,7 +380,7 @@ def plugin_wrapper_vollseg():
                           n_tiles = n_tiles, UseProbability = prob_map_watershed, dounet = dounet)
                           
                           
-               progress_bar.hide()
+               plugin.progress_bar.hide()
 
 
                layers = []
@@ -460,20 +463,20 @@ def plugin_wrapper_vollseg():
        
    ) -> List[napari.types.LayerDataTuple]:
         
-          
+        
         model_star = get_model_star(*model_selected_star)
-        model_unet = get_model_unet(*model_selected_unet)
-        print(model_selected_unet)
-        model_den =  get_model_den(*model_selected_den)
+        if model_selected_unet is not None:
+            model_unet = get_model_unet(*model_selected_unet)
+        else: model_unet = None
+        if model_selected_den is not None:
+          model_den =  get_model_den(*model_selected_den)
+        else: model_den = None  
         lkwargs = {}
       
         # don't want to load persisted values for these widgets
        
         plugin_model.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
 
-        # make labels prettier (https://doc.qt.io/qt-5/qsizepolicy.html#Policy-enum)
-        for w in (plugin_model.label_head):
-           w.native.setSizePolicy(1|2, 0)
        
            
           
