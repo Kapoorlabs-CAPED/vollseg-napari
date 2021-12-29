@@ -338,6 +338,7 @@ def plugin_wrapper_vollseg():
             text="Use UNET for binary mask (else denoised)",
             value=DEFAULTS_VOLL_PARAMETERS["dounet"],
         ),
+        output_type     = dict(widget_type='ComboBox', label='Output Type', choices=output_choices, value=DEFAULTS_VOLL_PARAMETERS['output_type']),
         defaults_vollseg_parameters_button=dict(
             widget_type="PushButton", text="Restore VollSeg Parameter Defaults"
         ),
@@ -575,9 +576,14 @@ def plugin_wrapper_vollseg():
             progress_bar.show()
             use_app().process_events()
 
+
+        # semantic output axes of predictions
+        assert model_star._axes_out[-1] == 'C'
+        axes_out = list(model_star._axes_out[:-1])
         if "T" in axes:
-            x_reorder = np.moveaxis(plugin.x, t, 0)
-            axes_reorder = axes.replace("T", "")
+            x_reorder = np.moveaxis(x, t, 0)
+            axes_reorder = axes.replace('T','')
+            axes_out.insert(t, 'T')
             if isinstance(model_star, StarDist3D):
 
                 if model_den is not None:
@@ -700,7 +706,9 @@ def plugin_wrapper_vollseg():
                 )
 
         progress_bar.hide()
-
+        # determine scale for output axes
+        scale_in_dict = dict(zip(axes, image.scale))
+        scale_out = [scale_in_dict.get(a,1.0) for a in axes_out] 
         layers = []
 
         if noise_model is not None:
@@ -709,39 +717,31 @@ def plugin_wrapper_vollseg():
         else:
             labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
 
-        # if timeseries, only scale spatial part...
-        im_scale = tuple(
-            s
-            for i, s in enumerate(image.scale)
-            if not axes[i] in ("T", "C")
-        )
-        scale = list(s1 * s2 for s1, s2 in zip(im_scale, model_star.config.grid))
-        # small correction as napari centers object
-        translate = list(0.5 * (s - 1) for s in model_star.config.grid)
-        if "T" in axes:
-            scale.insert(t, 1)
-            translate.insert(t, 0)
-
+        grid_dict = dict(zip(model_star.config.axes.replace('C',''),model_star.config.grid))
+        # scale output axes to match input axes
+        _scale = [s*grid_dict.get(a,1) for a,s in zip(axes_out, scale_out)]
+        # small translation correction if grid > 1 (since napari centers objects)
+        _translate = [0.5*(grid_dict.get(a,1)-1) for a in axes_out]
         layers.append(
             (
                 ProbabilityMap,
                 dict(
                     name="Base Watershed Image",
-                    scale=scale,
-                    translate=translate,
+                    scale=scale_out,
+                    translate=_translate,
                     **lkwargs,
                 ),
                 "image",
             )
         )
-
+        print(plugin_extra_parameters.output_type) 
         if plugin_extra_parameters.output_type in (Output.Labels.value, Output.All.value):
             layers.append(
                 (
                     labels,
                     dict(
                         name="VollSeg labels",
-                        scale=image.scale,
+                        scale=scale_out,
                         opacity=0.5,
                         **lkwargs,
                     ),
@@ -754,11 +754,11 @@ def plugin_wrapper_vollseg():
                     SizedMask,
                     dict(
                         name="VollSeg Binary",
-                        scale=image.scale,
+                        scale=scale_out,
                         opacity=0.5,
                         **lkwargs,
                     ),
-                    "binary mask",
+                    "image",
                 )
             )
         if (
@@ -770,11 +770,11 @@ def plugin_wrapper_vollseg():
                     denimage,
                     dict(
                         name="Denoised Image",
-                        scale=image.scale,
+                        scale=scale_out,
                         opacity=0.5,
                         **lkwargs,
                     ),
-                    "denoised image",
+                    "image",
                 )
             )
         if plugin_extra_parameters.output_type in (Output.Markers.value, Output.All.value):
@@ -783,11 +783,11 @@ def plugin_wrapper_vollseg():
                     Markers,
                     dict(
                         name="Markers",
-                        scale=image.scale,
+                        scale=scale_out,
                         opacity=0.5,
                         **lkwargs,
                     ),
-                    "markers",
+                    "image",
                 )
             )
         return layers
