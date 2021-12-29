@@ -235,9 +235,133 @@ def plugin_wrapper_vollseg():
     )
     
     
+    
+    @magicgui(
+        norm_image=dict(
+            widget_type="CheckBox",
+            text="Normalize Image",
+            value=DEFAULTS_STAR_PARAMETERS["norm_image"],
+        ),
+        perc_low=dict(
+            widget_type="FloatSpinBox",
+            label="Percentile low",
+            min=0.0,
+            max=100.0,
+            step=0.1,
+            value=DEFAULTS_STAR_PARAMETERS["perc_low"],
+        ),
+        perc_high=dict(
+            widget_type="FloatSpinBox",
+            label="Percentile high",
+            min=0.0,
+            max=100.0,
+            step=0.1,
+            value=DEFAULTS_STAR_PARAMETERS["perc_high"],
+        ),
+        prob_thresh=dict(
+            widget_type="FloatSpinBox",
+            label="Probability/Score Threshold",
+            min=0.0,
+            max=1.0,
+            step=0.05,
+            value=DEFAULTS_STAR_PARAMETERS["prob_thresh"],
+        ),
+        nms_thresh=dict(
+            widget_type="FloatSpinBox",
+            label="Overlap Threshold",
+            min=0.0,
+            max=1.0,
+            step=0.05,
+            value=DEFAULTS_STAR_PARAMETERS["nms_thresh"],
+        ),
+        set_thresholds=dict(
+            widget_type="PushButton",
+            text="Set optimized postprocessing thresholds (for selected model)",
+        ),
+        n_tiles=dict(
+            widget_type="LiteralEvalLineEdit",
+            label="Number of Tiles",
+            value=DEFAULTS_STAR_PARAMETERS["n_tiles"],
+        ),
+        defaults_star_parameters_button=dict(
+            widget_type="PushButton", text="Restore StarDist Parameter Defaults"
+        ),
+    )
+
+    def plugin_star_parameters(
+        norm_image,
+        perc_low,
+        perc_high,
+        prob_thresh,
+        nms_thresh,
+        set_thresholds,
+        n_tiles,
+        defaults_star_parameters_button,
+    ) -> List[napari.types.LayerDataTuple]:
+        
+         return locals.values()
+         
+    @magicgui(
+        
+        min_size_mask=dict(
+            widget_type="FloatSpinBox",
+            label="Min Size Mask (px)",
+            min=0.0,
+            max=1000.0,
+            step=1,
+            value=DEFAULTS_VOLL_PARAMETERS["min_size_mask"],
+        ),
+        min_size=dict(
+            widget_type="FloatSpinBox",
+            label="Min Size Cells (px)",
+            min=0.0,
+            max=1000.0,
+            step=1,
+            value=DEFAULTS_VOLL_PARAMETERS["min_size"],
+        ),
+        max_size=dict(
+            widget_type="FloatSpinBox",
+            label="Max Size Cells (px)",
+            min=1000,
+            max=100000.0,
+            step=100,
+            value=DEFAULTS_VOLL_PARAMETERS["max_size"],
+        ),
+        
+        prob_map_watershed=dict(
+            widget_type="CheckBox",
+            text="Use Probability Map (watershed)",
+            value=DEFAULTS_VOLL_PARAMETERS["prob_map_watershed"],
+        ),
+        dounet=dict(
+            widget_type="CheckBox",
+            text="Use UNET for binary mask (else denoised)",
+            value=DEFAULTS_VOLL_PARAMETERS["dounet"],
+        ),
+        defaults_vollseg_parameters_button=dict(
+            widget_type="PushButton", text="Restore VollSeg Parameter Defaults"
+        ),
+    )
+    def plugin_extra_parameters(
+        min_size_mask,
+        min_size,
+        max_size,
+        prob_map_watershed,
+        dounet,
+        output_type,
+        defaults_vollseg_parameters_button,
+    ) -> List[napari.types.LayerDataTuple]:
+
+        return locals.values()
+    
+    
     logo = abspath(__file__, "resources/vollseg_logo_napari.png")
 
     @magicgui(
+        
+        
+        
+        
         label_head=dict(
             widget_type="Label", label=f'<h1><img src="{logo}">VollSeg</h1>'
         ),
@@ -342,41 +466,29 @@ def plugin_wrapper_vollseg():
         model_folder_den,
         model_axes,
         norm_axes,
-        norm_image,
-        perc_low,
-        perc_high,
-        prob_thresh,
-        nms_thresh,
-        set_thresholds,
-        n_tiles,
-        min_size_mask,
-        min_size,
-        max_size,
-        prob_map_watershed,
-        dounet,
-        output_type,
         defaults_model_button,
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
         x = get_data(image)
         print('Image shape',x.shape)
-        print("Min Size", min_size)
+        print("Min Size", plugin_extra_parameters.min_size)
+        print("Norm Image", plugin_star_parameters.norm_image)
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = "Starting VollSeg"
-        if norm_image:
+        if plugin_star_parameters.norm_image:
             axes_norm = axes_check_and_normalize(norm_axes)
             print(axes_norm)
             axes_norm = "".join(
-                set(axes_norm).intersection(set(plugin.axes))
+                set(axes_norm).intersection(set(axes))
             )  # relevant axes present in input image
             assert len(axes_norm) > 0
             # always jointly normalize channels for RGB images
-            if ("C" in plugin.axes and plugin.image.rgb == True) and (
+            if ("C" in axes and image.rgb == True) and (
                 "C" not in axes_norm
             ):
                 axes_norm = axes_norm + "C"
                 warn("jointly normalizing channels of RGB input image")
-            ax = axes_dict(plugin.axes)
+            ax = axes_dict(axes)
             _axis = tuple(sorted(ax[a] for a in axes_norm))
             # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
             # #       also needs to be documented somewhere
@@ -394,7 +506,7 @@ def plugin_wrapper_vollseg():
             #     else:
             #         # normalize channels independently
             #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['C'],))
-            x = normalize(x, perc_low, perc_high, axis=_axis)
+            x = normalize(x, plugin_star_parameters.perc_low.value, plugin_star_parameters.perc_high.value, axis=_axis)
         model_star = get_model_star(*model_selected_star)
         print('line edit error?', model_star)
         if model_selected_unet is not None:
@@ -417,13 +529,13 @@ def plugin_wrapper_vollseg():
         # don't want to load persisted values for these widgets
         
         # TODO: progress bar (labels) often don't show up. events not processed?
-        if "T" in plugin.axes:
+        if "T" in axes:
             app = use_app()
             t = axes_dict(plugin.axes)["T"]
-            n_frames = plugin.shape[t]
-            if n_tiles is not None:
+            n_frames = x.shape[t]
+            if plugin_star_parameters.n_tiles is not None:
                 # remove tiling value for time axis
-                n_tiles = tuple(v for i, v in enumerate(n_tiles) if i != t)
+                plugin_star_parameters.n_tiles.value = tuple(v for i, v in enumerate(plugin_star_parameters.n_tiles.value) if i != t)
 
             def progress(it, **kwargs):
                 progress_bar.label = "VollSeg Prediction (frames)"
@@ -437,8 +549,8 @@ def plugin_wrapper_vollseg():
                     app.process_events()
                 app.process_events()
 
-        elif n_tiles is not None and np.prod(n_tiles) > 1:
-            n_tiles = tuple(n_tiles)
+        elif plugin_star_parameters.n_tiles.value is not None and np.prod(plugin_star_parameters.n_tiles.value) > 1:
+            plugin_star_parameters.n_tiles.value = tuple(plugin_star_parameters.n_tiles.value)
             app = use_app()
 
             def progress(it, **kwargs):
@@ -468,10 +580,10 @@ def plugin_wrapper_vollseg():
             axes_reorder = plugin.axes.replace("T", "")
             if isinstance(plugin.model_star, StarDist3D):
 
-                if plugin.model_den is not None:
+                if model_den is not None:
                     noise_model = plugin.model_den
 
-                if plugin.model_den == None:
+                if model_den == None:
                     noise_model = None
                 res = tuple(
                     zip(
@@ -482,14 +594,14 @@ def plugin_wrapper_vollseg():
                                 model_star,
                                 axes=axes_reorder,
                                 noise_model=noise_model,
-                                prob_thresh=prob_thresh,
-                                nms_thresh=nms_thresh,
-                                min_size_mask=min_size_mask,
-                                min_size=min_size,
-                                max_size=max_size,
-                                n_tiles=n_tiles,
-                                UseProbability=prob_map_watershed,
-                                dounet=dounet,
+                                prob_thresh=plugin_star_parameters.prob_thresh,
+                                nms_thresh=plugin_star_parameters.nms_thresh,
+                                min_size_mask=plugin_extra_parameters.min_size_mask,
+                                min_size=plugin_extra_parameters.min_size,
+                                max_size=plugin_extra_parameters.max_size,
+                                n_tiles=plugin_star_parameters.n_tiles,
+                                UseProbability=plugin_extra_parameters.prob_map_watershed,
+                                dounet=plugin_extra_parameters.dounet,
                             )
                             for _x in progress(plugin.x_reorder)
                         )
@@ -498,10 +610,10 @@ def plugin_wrapper_vollseg():
 
             elif isinstance(plugin.model_star, StarDist2D):
 
-                if plugin.model_den is not None:
+                if model_den is not None:
                     noise_model = plugin.model_den
 
-                if plugin.model_den == None:
+                if model_den == None:
                     noise_model = None
                     
                 print("Starting VollSeg")    
@@ -514,14 +626,14 @@ def plugin_wrapper_vollseg():
                                 model_star,
                                 axes=axes_reorder,
                                 noise_model=noise_model,
-                                prob_thresh=prob_thresh,
-                                nms_thresh=nms_thresh,
-                                min_size_mask=min_size_mask,
-                                min_size=min_size,
-                                max_size=max_size,
-                                n_tiles=n_tiles,
-                                UseProbability=prob_map_watershed,
-                                dounet=dounet,
+                                prob_thresh=plugin_star_parameters.prob_thresh,
+                                nms_thresh=plugin_star_parameters.nms_thresh,
+                                min_size_mask=plugin_extra_parameters.min_size_mask,
+                                min_size=plugin_extra_parameters.min_size,
+                                max_size=plugin_extra_parameters.max_size,
+                                n_tiles=plugin_star_parameters.n_tiles,
+                                UseProbability=plugin_extra_parameters.prob_map_watershed,
+                                dounet=plugin_extra_parameters.dounet,
                             )
                             for _x in progress(plugin.x_reorder)
                         )
@@ -542,10 +654,10 @@ def plugin_wrapper_vollseg():
             # TODO: possible to run this in a way that it can be canceled?
             if isinstance(plugin.model_star, StarDist3D):
 
-                if plugin.model_den is not None:
+                if model_den is not None:
                     noise_model = plugin.model_den
 
-                if plugin.model_den == None:
+                if model_den == None:
                     noise_model = None
                 pred = VollSeg3D(
                     x,
@@ -555,20 +667,20 @@ def plugin_wrapper_vollseg():
                     noise_model=noise_model,
                     prob_thresh=plugin_star_parameters.prob_thresh,
                     nms_thresh=plugin_star_parameters.nms_thresh,
-                    min_size_mask=min_size_mask,
-                    min_size=min_size,
-                    max_size=max_size,
+                    min_size_mask=plugin_extra_parameters.min_size_mask,
+                    min_size=plugin_extra_parameters.min_size,
+                    max_size=plugin_extra_parameters.max_size,
                     n_tiles=plugin_star_parameters.n_tiles,
-                    UseProbability=prob_map_watershed,
-                    dounet=dounet,
+                    UseProbability=plugin_extra_parameters.prob_map_watershed,
+                    dounet=plugin_extra_parameters.dounet,
                 )
 
             elif isinstance(plugin.model_star, StarDist2D):
 
-                if plugin.model_den is not None:
+                if model_den is not None:
                     noise_model = plugin.model_den
 
-                if plugin.model_den == None:
+                if model_den == None:
                     noise_model = None
                 print("Starting VollSeg")    
                 pred = VollSeg2D(
@@ -579,12 +691,12 @@ def plugin_wrapper_vollseg():
                     noise_model=noise_model,
                     prob_thresh=plugin_star_parameters.prob_thresh,
                     nms_thresh=plugin_star_parameters.nms_thresh,
-                    min_size_mask=min_size_mask,
-                    min_size=min_size,
-                    max_size=max_size,
+                    min_size_mask=plugin_extra_parameters.min_size_mask,
+                    min_size=plugin_extra_parameters.min_size,
+                    max_size=plugin_extra_parameters.max_size,
                     n_tiles=plugin_star_parameters.n_tiles,
-                    UseProbability=prob_map_watershed,
-                    dounet=dounet,
+                    UseProbability=plugin_extra_parameters.prob_map_watershed,
+                    dounet=plugin_extra_parameters.dounet,
                 )
 
         plugin.progress_bar.hide()
@@ -623,7 +735,7 @@ def plugin_wrapper_vollseg():
             )
         )
 
-        if output_type in (Output.Labels.value, Output.All.value):
+        if plugin_extra_parameters.output_type in (Output.Labels.value, Output.All.value):
             layers.append(
                 (
                     labels,
@@ -636,7 +748,7 @@ def plugin_wrapper_vollseg():
                     "labels",
                 )
             )
-        if output_type in (Output.Binary_mask.value, Output.All.value):
+        if plugin_extra_parameters.output_type in (Output.Binary_mask.value, Output.All.value):
             layers.append(
                 (
                     SizedMask,
@@ -650,7 +762,7 @@ def plugin_wrapper_vollseg():
                 )
             )
         if (
-            output_type in (Output.Denoised_image.value, Output.All.value)
+            plugin_extra_parameters.output_type in (Output.Denoised_image.value, Output.All.value)
             and noise_model is not None
         ):
             layers.append(
@@ -665,7 +777,7 @@ def plugin_wrapper_vollseg():
                     "denoised image",
                 )
             )
-        if output_type in (Output.Markers.value, Output.All.value):
+        if plugin_extra_parameters.output_type in (Output.Markers.value, Output.All.value):
             layers.append(
                 (
                     Markers,
@@ -680,139 +792,12 @@ def plugin_wrapper_vollseg():
             )
         return layers
 
-    @magicgui(
-        norm_image=dict(
-            widget_type="CheckBox",
-            text="Normalize Image",
-            value=DEFAULTS_PARAMETERS["norm_image"],
-        ),
-        perc_low=dict(
-            widget_type="FloatSpinBox",
-            label="Percentile low",
-            min=0.0,
-            max=100.0,
-            step=0.1,
-            value=DEFAULTS_PARAMETERS["perc_low"],
-        ),
-        perc_high=dict(
-            widget_type="FloatSpinBox",
-            label="Percentile high",
-            min=0.0,
-            max=100.0,
-            step=0.1,
-            value=DEFAULTS_PARAMETERS["perc_high"],
-        ),
-        prob_thresh=dict(
-            widget_type="FloatSpinBox",
-            label="Probability/Score Threshold",
-            min=0.0,
-            max=1.0,
-            step=0.05,
-            value=DEFAULTS_PARAMETERS["prob_thresh"],
-        ),
-        nms_thresh=dict(
-            widget_type="FloatSpinBox",
-            label="Overlap Threshold",
-            min=0.0,
-            max=1.0,
-            step=0.05,
-            value=DEFAULTS_PARAMETERS["nms_thresh"],
-        ),
-        set_thresholds=dict(
-            widget_type="PushButton",
-            text="Set optimized postprocessing thresholds (for selected model)",
-        ),
-        n_tiles=dict(
-            widget_type="LiteralEvalLineEdit",
-            label="Number of Tiles",
-            value=DEFAULTS_PARAMETERS["n_tiles"],
-        ),
-        defaults_star_parameters_button=dict(
-            widget_type="PushButton", text="Restore StarDist Parameter Defaults"
-        ),
-    )
-
-    def plugin_star_parameters(
-        norm_image,
-        perc_low,
-        perc_high,
-        prob_thresh,
-        nms_thresh,
-        set_thresholds,
-        n_tiles,
-        defaults_star_parameters_button,
-    ) -> List[napari.types.LayerDataTuple]:
-        
-         plugin.norm_image = norm_image
-         plugin.perc_low = perc_low
-         plugin.perc_high = perc_high
-         plugin.prob_thresh = prob_thresh
-         plugin.nms_thresh = nms_thresh
-         plugin.set_thresholds = set_thresholds
-         plugin.n_tiles = n_tiles
-         
-    @magicgui(
-        
-        min_size_mask=dict(
-            widget_type="FloatSpinBox",
-            label="Min Size UNET",
-            min=0.0,
-            max=1000.0,
-            step=1,
-            value=DEFAULTS_PARAMETERS["min_size_mask"],
-        ),
-        min_size=dict(
-            widget_type="FloatSpinBox",
-            label="Min Size Star",
-            min=0.0,
-            max=1000.0,
-            step=1,
-            value=DEFAULTS_PARAMETERS["min_size"],
-        ),
-        max_size=dict(
-            widget_type="FloatSpinBox",
-            label="Max Size Star",
-            min=1000,
-            max=100000.0,
-            step=100,
-            value=DEFAULTS_PARAMETERS["max_size"],
-        ),
-        
-        prob_map_watershed=dict(
-            widget_type="CheckBox",
-            text="Use Probability Map (watershed)",
-            value=DEFAULTS_PARAMETERS["prob_map_watershed"],
-        ),
-        dounet=dict(
-            widget_type="CheckBox",
-            text="Use UNET for binary mask (else denoised)",
-            value=DEFAULTS_PARAMETERS["dounet"],
-        ),
-        defaults_vollseg_parameters_button=dict(
-            widget_type="PushButton", text="Restore VollSeg Parameter Defaults"
-        ),
-    )
-    def plugin_extra_parameters(
-        min_size_mask,
-        min_size,
-        max_size,
-        prob_map_watershed,
-        dounet,
-        output_type,
-        defaults_vollseg_parameters_button,
-    ) -> List[napari.types.LayerDataTuple]:
-
-        plugin.dounet = dounet
-        plugin.min_size_mask = min_size_mask
-        plugin.min_size = min_size
-        plugin.max_size = max_size
-        plugin.prob_map_watershed = prob_map_watershed
-        plugin.output_type = output_type
+    
 
         
 
     plugin.axes.value = ""
-    plugin_star_parameters.n_tiles.value = DEFAULTS_PARAMETERS["n_tiles"]
+    plugin_star_parameters.n_tiles.value = DEFAULTS_STAR_PARAMETERS["n_tiles"]
     plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
     plugin.label_head.native.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
     # -------------------------------------------------------------------------
@@ -1143,13 +1128,13 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # hide percentile selection if normalization turned off
-    @change_handler(plugin.norm_image)
+    @change_handler(plugin_star_parameters.norm_image)
     def _norm_image_change(active: bool):
         widgets_inactive(
             plugin_star_parameters.perc_low,
             plugin_star_parameters.perc_high,
             plugin.norm_axes,
-            active=active,
+            active=active
         )
 
     @change_handler(plugin_extra_parameters.dounet)
