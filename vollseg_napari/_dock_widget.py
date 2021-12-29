@@ -575,10 +575,10 @@ def plugin_wrapper_vollseg():
             progress_bar.show()
             use_app().process_events()
 
-        if "T" in plugin.axes:
-            plugin.x_reorder = np.moveaxis(plugin.x, t, 0)
-            axes_reorder = plugin.axes.replace("T", "")
-            if isinstance(plugin.model_star, StarDist3D):
+        if "T" in axes:
+            x_reorder = np.moveaxis(plugin.x, t, 0)
+            axes_reorder = axes.replace("T", "")
+            if isinstance(model_star, StarDist3D):
 
                 if model_den is not None:
                     noise_model = plugin.model_den
@@ -608,7 +608,7 @@ def plugin_wrapper_vollseg():
                     )
                 )
 
-            elif isinstance(plugin.model_star, StarDist2D):
+            elif isinstance(model_star, StarDist2D):
 
                 if model_den is not None:
                     noise_model = plugin.model_den
@@ -640,7 +640,7 @@ def plugin_wrapper_vollseg():
                     )
                 )
 
-            if plugin.noise_model is not None:
+            if noise_model is not None:
 
                 labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = res
             else:
@@ -675,7 +675,7 @@ def plugin_wrapper_vollseg():
                     dounet=plugin_extra_parameters.dounet,
                 )
 
-            elif isinstance(plugin.model_star, StarDist2D):
+            elif isinstance(model_star, StarDist2D):
 
                 if model_den is not None:
                     noise_model = plugin.model_den
@@ -699,7 +699,7 @@ def plugin_wrapper_vollseg():
                     dounet=plugin_extra_parameters.dounet,
                 )
 
-        plugin.progress_bar.hide()
+        progress_bar.hide()
 
         layers = []
 
@@ -712,13 +712,13 @@ def plugin_wrapper_vollseg():
         # if timeseries, only scale spatial part...
         im_scale = tuple(
             s
-            for i, s in enumerate(plugin.image.scale)
-            if not plugin.axes[i] in ("T", "C")
+            for i, s in enumerate(image.scale)
+            if not axes[i] in ("T", "C")
         )
-        scale = list(s1 * s2 for s1, s2 in zip(im_scale, plugin.model_star.config.grid))
+        scale = list(s1 * s2 for s1, s2 in zip(im_scale, model_star.config.grid))
         # small correction as napari centers object
-        translate = list(0.5 * (s - 1) for s in plugin.model_star.config.grid)
-        if "T" in plugin.axes:
+        translate = list(0.5 * (s - 1) for s in model_star.config.grid)
+        if "T" in axes:
             scale.insert(t, 1)
             translate.insert(t, 0)
 
@@ -741,7 +741,7 @@ def plugin_wrapper_vollseg():
                     labels,
                     dict(
                         name="VollSeg labels",
-                        scale=plugin.image.scale,
+                        scale=image.scale,
                         opacity=0.5,
                         **plugin.lkwargs,
                     ),
@@ -754,7 +754,7 @@ def plugin_wrapper_vollseg():
                     SizedMask,
                     dict(
                         name="VollSeg Binary",
-                        scale=plugin.image.scale,
+                        scale=image.scale,
                         opacity=0.5,
                         **plugin.lkwargs,
                     ),
@@ -770,7 +770,7 @@ def plugin_wrapper_vollseg():
                     denimage,
                     dict(
                         name="Denoised Image",
-                        scale=plugin.image.scale,
+                        scale=image.scale,
                         opacity=0.5,
                         **plugin.lkwargs,
                     ),
@@ -783,7 +783,7 @@ def plugin_wrapper_vollseg():
                     Markers,
                     dict(
                         name="Markers",
-                        scale=plugin.image.scale,
+                        scale=image.scale,
                         opacity=0.5,
                         **plugin.lkwargs,
                     ),
