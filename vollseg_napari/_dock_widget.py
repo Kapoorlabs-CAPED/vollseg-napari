@@ -594,14 +594,14 @@ def plugin_wrapper_vollseg():
                                 model_star,
                                 axes=axes_reorder,
                                 noise_model=noise_model,
-                                prob_thresh=plugin_star_parameters.prob_thresh,
-                                nms_thresh=plugin_star_parameters.nms_thresh,
-                                min_size_mask=plugin_extra_parameters.min_size_mask,
-                                min_size=plugin_extra_parameters.min_size,
-                                max_size=plugin_extra_parameters.max_size,
-                                n_tiles=plugin_star_parameters.n_tiles,
-                                UseProbability=plugin_extra_parameters.prob_map_watershed,
-                                dounet=plugin_extra_parameters.dounet,
+                                prob_thresh=plugin_star_parameters.prob_thresh.value,
+                                nms_thresh=plugin_star_parameters.nms_thresh.value,
+                                min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                                min_size=plugin_extra_parameters.min_size.value,
+                                max_size=plugin_extra_parameters.max_size.value,
+                                n_tiles=plugin_star_parameters.n_tiles.value,
+                                UseProbability=plugin_extra_parameters.prob_map_watershed.Value,
+                                dounet=plugin_extra_parameters.dounet.value,
                             )
                             for _x in progress(plugin.x_reorder)
                         )
@@ -626,14 +626,14 @@ def plugin_wrapper_vollseg():
                                 model_star,
                                 axes=axes_reorder,
                                 noise_model=noise_model,
-                                prob_thresh=plugin_star_parameters.prob_thresh,
-                                nms_thresh=plugin_star_parameters.nms_thresh,
-                                min_size_mask=plugin_extra_parameters.min_size_mask,
-                                min_size=plugin_extra_parameters.min_size,
-                                max_size=plugin_extra_parameters.max_size,
-                                n_tiles=plugin_star_parameters.n_tiles,
-                                UseProbability=plugin_extra_parameters.prob_map_watershed,
-                                dounet=plugin_extra_parameters.dounet,
+                                prob_thresh=plugin_star_parameters.prob_thresh.value,
+                                nms_thresh=plugin_star_parameters.nms_thresh.value,
+                                min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                                min_size=plugin_extra_parameters.min_size.value,
+                                max_size=plugin_extra_parameters.max_size.value,
+                                n_tiles=plugin_star_parameters.n_tiles.value,
+                                UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+                                dounet=plugin_extra_parameters.dounet.value,
                             )
                             for _x in progress(plugin.x_reorder)
                         )
@@ -652,7 +652,7 @@ def plugin_wrapper_vollseg():
 
         else:
             # TODO: possible to run this in a way that it can be canceled?
-            if isinstance(plugin.model_star, StarDist3D):
+            if isinstance(model_star, StarDist3D):
 
                 if model_den is not None:
                     noise_model = plugin.model_den
@@ -665,14 +665,14 @@ def plugin_wrapper_vollseg():
                     model_star,
                     axes=axes_reorder,
                     noise_model=noise_model,
-                    prob_thresh=plugin_star_parameters.prob_thresh,
-                    nms_thresh=plugin_star_parameters.nms_thresh,
-                    min_size_mask=plugin_extra_parameters.min_size_mask,
-                    min_size=plugin_extra_parameters.min_size,
-                    max_size=plugin_extra_parameters.max_size,
-                    n_tiles=plugin_star_parameters.n_tiles,
-                    UseProbability=plugin_extra_parameters.prob_map_watershed,
-                    dounet=plugin_extra_parameters.dounet,
+                    prob_thresh=plugin_star_parameters.prob_thresh.value,
+                    nms_thresh=plugin_star_parameters.nms_thresh.value,
+                    min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                    min_size=plugin_extra_parameters.min_size.value,
+                    max_size=plugin_extra_parameters.max_size.value,
+                    n_tiles=plugin_star_parameters.n_tiles.value,
+                    UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+                    dounet=plugin_extra_parameters.dounet.value,
                 )
 
             elif isinstance(model_star, StarDist2D):
@@ -687,16 +687,16 @@ def plugin_wrapper_vollseg():
                     x,
                     model_unet,
                     model_star,
-                    axes=axes_reorder,
+                    axes=axes,
                     noise_model=noise_model,
-                    prob_thresh=plugin_star_parameters.prob_thresh,
-                    nms_thresh=plugin_star_parameters.nms_thresh,
-                    min_size_mask=plugin_extra_parameters.min_size_mask,
-                    min_size=plugin_extra_parameters.min_size,
-                    max_size=plugin_extra_parameters.max_size,
-                    n_tiles=plugin_star_parameters.n_tiles,
-                    UseProbability=plugin_extra_parameters.prob_map_watershed,
-                    dounet=plugin_extra_parameters.dounet,
+                    prob_thresh=plugin_star_parameters.prob_thresh.value,
+                    nms_thresh=plugin_star_parameters.nms_thresh.value,
+                    min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                    min_size=plugin_extra_parameters.min_size.value,
+                    max_size=plugin_extra_parameters.max_size.value,
+                    n_tiles=plugin_star_parameters.n_tiles.value,
+                    UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+                    dounet=plugin_extra_parameters.dounet.value,
                 )
 
         progress_bar.hide()
@@ -729,7 +729,7 @@ def plugin_wrapper_vollseg():
                     name="Base Watershed Image",
                     scale=scale,
                     translate=translate,
-                    **plugin.lkwargs,
+                    **lkwargs,
                 ),
                 "image",
             )
@@ -743,7 +743,7 @@ def plugin_wrapper_vollseg():
                         name="VollSeg labels",
                         scale=image.scale,
                         opacity=0.5,
-                        **plugin.lkwargs,
+                        **lkwargs,
                     ),
                     "labels",
                 )
@@ -756,7 +756,7 @@ def plugin_wrapper_vollseg():
                         name="VollSeg Binary",
                         scale=image.scale,
                         opacity=0.5,
-                        **plugin.lkwargs,
+                        **lkwargs,
                     ),
                     "binary mask",
                 )
@@ -772,7 +772,7 @@ def plugin_wrapper_vollseg():
                         name="Denoised Image",
                         scale=image.scale,
                         opacity=0.5,
-                        **plugin.lkwargs,
+                        **lkwargs,
                     ),
                     "denoised image",
                 )
@@ -785,7 +785,7 @@ def plugin_wrapper_vollseg():
                         name="Markers",
                         scale=image.scale,
                         opacity=0.5,
-                        **plugin.lkwargs,
+                        **lkwargs,
                     ),
                     "markers",
                 )
