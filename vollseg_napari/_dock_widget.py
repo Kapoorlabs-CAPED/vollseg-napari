@@ -902,7 +902,7 @@ def plugin_wrapper_vollseg():
                 )
                 if valid:
                     print(valid)
-                    config_star = self.args.model_unet
+                    config_unet = self.args.model_unet
                     axes_unet = config_unet.get(
                         "axes", "ZYXC"[-len(config_unet["net_input_shape"]) :]
                     )
