@@ -1,3 +1,3 @@
 [napari.plugin]
-TestVollSeg = vollseg_napari
+VollSeg = vollseg_napari
 
