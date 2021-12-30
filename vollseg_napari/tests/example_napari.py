@@ -3,7 +3,7 @@ import napari
 from tifffile import imread
 
 def show_napari_3d():
-   x = imread("/home/varunkapoor/Downloads/Testdatasets/Nuclei3D-2.tif")
+    x = imread("/home/varunkapoor/Downloads/Testdatasets/Nuclei3D-2.tif")
     viewer =  napari.Viewer()
     viewer.add_image(x)
     viewer.window.add_plugin_dock_widget('VollSeg')
