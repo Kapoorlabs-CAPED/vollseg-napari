@@ -904,7 +904,7 @@ def plugin_wrapper_vollseg():
                     print(valid)
                     config_unet = self.args.model_unet
                     axes_unet = config_unet.get(
-                        "axes", "ZYXC"[-len(config_unet["net_input_shape"]) :]
+                        "axes"
                     )
                     if "T" in axes_unet:
                         raise RuntimeError("model with axis 'T' not supported")
@@ -940,9 +940,7 @@ def plugin_wrapper_vollseg():
                     plugin_extra_parameters.output_type.native.setStyleSheet(
                         "background-color: orange"
                     )
-                    plugin_extra_parameters.output_type.tooltip = (
-                        "Displaying many labels can be very slow."
-                    )
+                    
                 else:
                     plugin_extra_parameters.output_type.native.setStyleSheet("")
                     plugin_extra_parameters.output_type.tooltip = ""
@@ -1071,9 +1069,8 @@ def plugin_wrapper_vollseg():
 
                     widgets_valid(
                         plugin.image,
-                        plugin.model2d_star,
-                        plugin.model3d_star,
-                        plugin.model_folder_star.line_edit,
+                        plugin.model_unet,
+                        plugin.model_folder_unet.line_edit,
                         valid=all_valid,
                     )
                     if all_valid:
@@ -1098,9 +1095,7 @@ def plugin_wrapper_vollseg():
                 )
 
 
-    if plugin.model_unet is not None:
-       
-       update_unet = Unet_updater()
+    update_unet = Unet_updater()
 
 
     class Updater:
