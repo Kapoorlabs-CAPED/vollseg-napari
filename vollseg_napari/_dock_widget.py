@@ -297,9 +297,10 @@ def plugin_wrapper_vollseg():
         set_thresholds,
         n_tiles,
         defaults_star_parameters_button,
-    ) -> List[napari.types.LayerDataTuple]:
-        
-         return locals.values()
+    ):
+         
+         plugin_star_parameters.hide()
+         return plugin_star_parameters
          
     @magicgui(
         
@@ -351,9 +352,10 @@ def plugin_wrapper_vollseg():
         dounet,
         output_type,
         defaults_vollseg_parameters_button,
-    ) -> List[napari.types.LayerDataTuple]:
+    ):
 
-        return locals.values()
+        plugin_extra_parameters.hide() 
+        return plugin_extra_parameters 
     
     
     logo = abspath(__file__, "resources/vollseg_logo_napari.png")
@@ -911,19 +913,11 @@ def plugin_wrapper_vollseg():
                         "C", f"C[{config_star['n_channel_in']}]"
                     )
                     plugin.model_folder_star.line_edit.tooltip = ""
-                    plugin.model_folder_unet.line_edit.tooltip = ""
-                    plugin.model_folder_den.line_edit.tooltip = ""
 
                     return axes_star, config_star
                 else:
                     plugin.model_axes.value = ""
                     plugin.model_folder_star.line_edit.tooltip = (
-                        "Invalid model directory"
-                    )
-                    plugin.model_folder_unet.line_edit.tooltip = (
-                        "Invalid model directory"
-                    )
-                    plugin.model_folder_den.line_edit.tooltip = (
                         "Invalid model directory"
                     )
 
@@ -1578,3 +1572,5 @@ def napari_provide_sample_data():
             "display_name": "Cell (3D)",
         },
     }
+
+   
