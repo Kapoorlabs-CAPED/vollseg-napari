@@ -29,6 +29,6 @@ def show_napari_2d_test():
     viewer.window.add_plugin_dock_widget('TestVollSeg')
 
 if __name__ == '__main__':
-    viewer = show_napari_2d_test()
+    viewer = show_napari_2d()
   
     napari.run()

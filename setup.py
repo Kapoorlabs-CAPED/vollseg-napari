@@ -55,8 +55,9 @@ setup(
 
     install_requires=[
         'vollseg',
-        'tensorflow',
+        'tensorflow-gpu==2.7.0',
         'napari>=0.4.9',
+         'typing-extensions>=3.10.0.0'
         'magicgui>=0.3.0'
     ],
 )

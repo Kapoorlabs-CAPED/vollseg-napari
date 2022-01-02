@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jan  1 16:15:34 2021
+Created on Wed Dec  8 16:15:34 2021
 
 @author: vkapoor
 """
@@ -43,7 +43,7 @@ from qtpy.QtWidgets import (
 
 
 
-def plugin_wrapper_test_vollseg():
+def plugin_wrapper_testvollseg():
 
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
     from vollseg.pretrained import get_registered_models, get_model_folder
@@ -82,7 +82,34 @@ def plugin_wrapper_test_vollseg():
 
         return decorator_change_handler
 
-   
+    # get available models
+    _models2d_star, _aliases2d_star = get_registered_models(StarDist2D)
+
+    _models3d_star, _aliases3d_star = get_registered_models(StarDist3D)
+
+    # use first alias for model selection (if alias exists)
+    models2d_star = [
+        ((_aliases2d_star[m][0] if len(_aliases2d_star[m]) > 0 else m), m)
+        for m in _models2d_star
+    ]
+    models3d_star = [
+        ((_aliases3d_star[m][0] if len(_aliases3d_star[m]) > 0 else m), m)
+        for m in _models3d_star
+    ]
+
+    _models_unet, _aliases_unet = get_registered_models(UNET)
+    # use first alias for model selection (if alias exists)
+    models_unet = [
+        ((_aliases_unet[m][0] if len(_aliases_unet[m]) > 0 else m), m)
+        for m in _models_unet
+    ]
+    _models_den, _aliases_den = get_registered_models(CARE)
+    # use first alias for model selection (if alias exists)
+    models_den = [
+        ((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m), m)
+        for m in _models_den
+    ]
+
     model_star_configs = dict()
     model_unet_configs = dict()
     model_den_configs = dict()
@@ -95,15 +122,18 @@ def plugin_wrapper_test_vollseg():
     CUSTOM_SEG_MODEL_UNET = "CUSTOM_SEG_MODEL_UNET"
     CUSTOM_DEN_MODEL = "CUSTOM_DEN_MODEL"
     star_seg_model_type_choices = [
-        
+        ("2D", StarDist2D),
+        ("3D", StarDist3D),
         ("Custom STAR", CUSTOM_SEG_MODEL_STAR),
     ]
     unet_seg_model_type_choices = [
-       
+        ("PreTrained", UNET),
+        ("NOUNET", "NOUNET"),
         ("Custom UNET", CUSTOM_SEG_MODEL_UNET),
     ]
     den_model_type_choices = [
-        
+        ("DenoiseCARE", CARE),
+        ("NONE", "NONE"),
         ("Custom CARE", CUSTOM_DEN_MODEL),
     ]
 
@@ -139,11 +169,27 @@ def plugin_wrapper_test_vollseg():
         elif unet_seg_model_type == UNET:
             return unet_seg_model_type.from_pretrained(model_unet)
 
+    @functools.lru_cache(maxsize=None)
+    def get_model_den(den_model_type, model_den):
+        if den_model_type == CUSTOM_DEN_MODEL:
+            path_den = Path(model_den)
+            path_den.is_dir() or _raise(
+                FileNotFoundError(f"{path_den} is not a directory")
+            )
+            model_class_den = CARE
+            return model_class_den(
+                None, name=path_den.name, basedir=str(path_den.parent)
+            )
+        elif den_model_type == CARE:
+            return den_model_type.from_pretrained(model_den)
 
+        elif den_model_type == "NONE":
+            return None
 
     class Output(Enum):
         Labels = "Label Image"
         Binary_mask = "Binary Image"
+        Denoised_image = "Denoised Image"
         Prob = "Probability Map"
         Markers = "Markers"
         All = "All"
@@ -151,6 +197,7 @@ def plugin_wrapper_test_vollseg():
     output_choices = [
         Output.Labels.value,
         Output.Binary_mask.value,
+        Output.Denoised_image.value,
         Output.Prob.value,
         Output.Markers.value,
         Output.All.value,
@@ -160,6 +207,12 @@ def plugin_wrapper_test_vollseg():
         star_seg_model_type=StarDist3D,
         unet_seg_model_type=UNET,
         den_model_type=CARE,
+        model2d_star=models2d_star[0][1],
+        model_unet=models_unet[0][1],
+        model3d_star=models3d_star[0][1],
+        model_den=models_den[0][1],
+        model_den_none="NONE",
+        model_unet_none="NOUNET",
         norm_axes="ZYX",
     )
 
@@ -338,7 +391,36 @@ def plugin_wrapper_test_vollseg():
             choices=den_model_type_choices,
             value=DEFAULTS_MODEL["den_model_type"],
         ),
-        
+        model2d_star=dict(
+            widget_type="ComboBox",
+            visible=False,
+            label="Pre-trained StarDist Model",
+            choices=models2d_star,
+            value=DEFAULTS_MODEL["model2d_star"],
+        ),
+        model3d_star=dict(
+            widget_type="ComboBox",
+            visible=False,
+            label="Pre-trained StarDist Model",
+            choices=models3d_star,
+            value=DEFAULTS_MODEL["model3d_star"],
+        ),
+        model_unet=dict(
+            widget_type="ComboBox",
+            visible=False,
+            label="Pre-trained UNET Model",
+            choices=models_unet,
+            value=DEFAULTS_MODEL["model_unet"],
+        ),
+        model_den=dict(
+            widget_type="ComboBox",
+            visible=False,
+            label="Pre-trained CARE Denoising Model",
+            choices=models_den,
+            value=DEFAULTS_MODEL["model_den"],
+        ),
+        model_den_none=dict(widget_type="Label", visible=False, label="No Denoising"),
+        model_unet_none=dict(widget_type="Label", visible=False, label="NOUNET"),
         model_folder_star=dict(
             widget_type="FileEdit",
             visible=False,
@@ -434,7 +516,10 @@ def plugin_wrapper_test_vollseg():
             model_unet = get_model_unet(*model_selected_unet)
         else:
             model_unet = None
-        model_den = None
+        if model_selected_den is not None:
+            model_den = get_model_den(*model_selected_den)
+        else:
+            model_den = None
         lkwargs = {}
 
         if not axes.replace("T", "").startswith(
@@ -1718,7 +1803,7 @@ def napari_get_reader(path: str):
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
-    return plugin_wrapper_test_vollseg, dict(name="TestVollSeg", add_vertical_stretch=True)
+    return plugin_wrapper_testvollseg, dict(name="TestVollSeg", add_vertical_stretch=True)
 
 
 @napari_hook_implementation
