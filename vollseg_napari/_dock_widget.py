@@ -44,10 +44,10 @@ from qtpy.QtWidgets import (
 def plugin_wrapper_vollseg():
 
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
-    from vollseg.pretrained import get_registered_models, get_model_folder
+    from vollseg.pretrained import get_registered_models, get_model_folder, get_model_details, get_model_instance
     from csbdeep.utils import load_json
-
-    from stardist.models import StarDist2D, StarDist3D
+    import sys
+    from vollseg import StarDist2D, StarDist3D
     from vollseg import VollSeg3D, VollSeg2D, VollSeg_unet
     from csbdeep.models import Config, CARE
     from vollseg import UNET
@@ -55,7 +55,7 @@ def plugin_wrapper_vollseg():
     from stardist.utils import abspath
 
     DEBUG = True
-
+                
     def get_data(image):
         image = image.data[0] if image.multiscale else image.data
         # enforce dense numpy array in case we are given a dask array etc
@@ -108,7 +108,6 @@ def plugin_wrapper_vollseg():
         for m in _models_den
     ]
 
-    print(models2d_star)
     model_star_configs = dict()
     model_unet_configs = dict()
     model_den_configs = dict()
@@ -151,8 +150,8 @@ def plugin_wrapper_vollseg():
             )
         elif star_seg_model_type == "NOSTAR":
             return None
-        else:
-            return star_seg_model_type.from_pretrained(model_star)
+        elif star_seg_model_type != CUSTOM_SEG_MODEL_STAR and star_seg_model_type != "NOSTAR":
+            return star_seg_model_type.local_from_pretrained(model_star)
 
     @functools.lru_cache(maxsize=None)
     def get_model_unet(unet_seg_model_type, model_unet):
@@ -169,7 +168,7 @@ def plugin_wrapper_vollseg():
             return None
 
         elif unet_seg_model_type == UNET:
-            return unet_seg_model_type.from_pretrained(model_unet)
+            return unet_seg_model_type.local_from_pretrained(model_unet)
 
     @functools.lru_cache(maxsize=None)
     def get_model_den(den_model_type, model_den):
@@ -183,7 +182,7 @@ def plugin_wrapper_vollseg():
                 None, name=path_den.name, basedir=str(path_den.parent)
             )
         elif den_model_type == CARE:
-            return den_model_type.from_pretrained(model_den)
+            return den_model_type.local_from_pretrained(model_den)
 
         elif den_model_type == "NODEN":
             return None
@@ -213,7 +212,7 @@ def plugin_wrapper_vollseg():
         model_unet=models_unet[0][0],
         model3d_star=models3d_star[0][0],
         model_den=models_den[0][0],
-        model_den_none="NONE",
+        model_den_none="NODEN",
         model_star_none="NOSTAR",
         model_unet_none="NOUNET",
         norm_axes="ZYX",
@@ -232,7 +231,7 @@ def plugin_wrapper_vollseg():
         min_size_mask=100.0,
         min_size=100.0,
         max_size=10000.0,
-        output_type=Output.All.value,
+        isRGB = False,
         dounet=True,
         prob_map_watershed=True,
     )
@@ -336,11 +335,10 @@ def plugin_wrapper_vollseg():
             text="Use UNET for binary mask (else denoised)",
             value=DEFAULTS_VOLL_PARAMETERS["dounet"],
         ),
-        output_type=dict(
-            widget_type="ComboBox",
-            label="Output Type",
-            choices=output_choices,
-            value=DEFAULTS_VOLL_PARAMETERS["output_type"],
+        isRGB=dict(
+            widget_type="CheckBox",
+            text="RGB image",
+            value=DEFAULTS_VOLL_PARAMETERS["isRGB"],
         ),
         defaults_vollseg_parameters_button=dict(
             widget_type="PushButton", text="Restore VollSeg Parameter Defaults"
@@ -352,7 +350,7 @@ def plugin_wrapper_vollseg():
         max_size,
         prob_map_watershed,
         dounet,
-        output_type,
+        isRGB,
         defaults_vollseg_parameters_button,
     ):
 
@@ -475,6 +473,9 @@ def plugin_wrapper_vollseg():
         print("Min Size", plugin_extra_parameters.min_size)
         print("Norm Image", plugin_star_parameters.norm_image)
         axes = axes_check_and_normalize(axes, length=x.ndim)
+        
+        
+            
         progress_bar.label = "Starting VollSeg"
         if plugin_star_parameters.norm_image:
             axes_norm = axes_check_and_normalize(norm_axes)
@@ -486,8 +487,10 @@ def plugin_wrapper_vollseg():
             # always jointly normalize channels for RGB images
             if ("C" in axes and image.rgb == True) and ("C" not in axes_norm):
                 axes_norm = axes_norm + "C"
+                
                 warn("jointly normalizing channels of RGB input image")
             ax = axes_dict(axes)
+            
             _axis = tuple(sorted(ax[a] for a in axes_norm))
             # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
             # #       also needs to be documented somewhere
@@ -512,7 +515,6 @@ def plugin_wrapper_vollseg():
                 axis=_axis,
             )
         model_star = get_model_star(*model_selected_star)
-        print("line edit error?", model_star)
         if model_selected_unet is not None:
             model_unet = get_model_unet(*model_selected_unet)
         else:
@@ -525,7 +527,7 @@ def plugin_wrapper_vollseg():
 
         if not axes.replace("T", "").startswith(model_star._axes_out.replace("C", "")):
             warn(
-                f"output images have different axes ({plugin.model_star._axes_out.replace('C','')}) than input image ({plugin.axes})"
+                f"output images have different axes ({model_star._axes_out.replace('C','')}) than input image ({axes})"
             )
             # TODO: adjust image.scale according to shuffled axes
         # don't want to load persisted values for these widgets
@@ -649,6 +651,7 @@ def plugin_wrapper_vollseg():
                                 n_tiles=plugin_star_parameters.n_tiles.value,
                                 UseProbability=plugin_extra_parameters.prob_map_watershed.value,
                                 dounet=plugin_extra_parameters.dounet.value,
+                                RGB = plugin_extra_parameters.isRGB.value,
                             )
                             for _x in progress(plugin.x_reorder)
                         )
@@ -691,7 +694,7 @@ def plugin_wrapper_vollseg():
                             dounet=plugin_extra_parameters.dounet.value,
                         )
                 elif model_star == None:
-                      pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model)
+                      pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)
 
             elif isinstance(model_star, StarDist2D):
 
@@ -717,9 +720,10 @@ def plugin_wrapper_vollseg():
                             n_tiles=plugin_star_parameters.n_tiles.value,
                             UseProbability=plugin_extra_parameters.prob_map_watershed.value,
                             dounet=plugin_extra_parameters.dounet.value,
+                            RGB = plugin_extra_parameters.isRGB.value,
                         )
                 elif model_star==None:        
-                    pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model)
+                    pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)
 
         progress_bar.hide()
         # determine scale for output axes
@@ -852,7 +856,7 @@ def plugin_wrapper_vollseg():
         StarDist3D: plugin.model3d_star,
         UNET: plugin.model_unet,
         CARE: plugin.model_den,
-        "NONE": plugin.model_den_none,
+        "NODEN": plugin.model_den_none,
         "NOUNET": plugin.model_unet_none,
         "NOSTAR": plugin.model_star_none,
         CUSTOM_SEG_MODEL_STAR: plugin.model_folder_star,
@@ -956,26 +960,7 @@ def plugin_wrapper_vollseg():
                         valid or (image is None and (axes is None or len(axes) == 0))
                     ),
                 )
-                if (
-                    valid
-                    and "T" in axes
-                    and plugin_extra_parameters.output_type.value
-                    in (
-                        Output.Binary_mask.value,
-                        Output.Labels.value,
-                        Output.Markers.value,
-                        Output.Denoised_image.value,
-                        Output.Prob.value,
-                        Output.All.value,
-                    )
-                ):
-                    plugin_extra_parameters.output_type.native.setStyleSheet(
-                        "background-color: orange"
-                    )
-
-                else:
-                    plugin_extra_parameters.output_type.native.setStyleSheet("")
-                    plugin_extra_parameters.output_type.tooltip = ""
+                
 
                 if valid:
                     plugin.axes.tooltip = "\n".join(
@@ -1069,19 +1054,10 @@ def plugin_wrapper_vollseg():
                 elif (
                     "T" in axes_image
                     and config_unet.get("n_dim") == 3
-                    and plugin_extra_parameters.output_type.value
-                    in (
-                        Output.Binary_mask.value,
-                        Output.Labels.value,
-                        Output.Markers.value,
-                        Output.Denoised_image.value,
-                        Output.Prob.value,
-                        Output.All.value,
-                    )
+                    
                 ):
                     # not supported
-                    widgets_valid(plugin_extra_parameters.output_type, valid=False)
-                    plugin_extra_parameters.output_type.tooltip = "3D timelapse data"
+                    
                     _restore()
                 else:
                     # check if image and models are compatible
@@ -1196,26 +1172,7 @@ def plugin_wrapper_vollseg():
                         valid or (image is None and (axes is None or len(axes) == 0))
                     ),
                 )
-                if (
-                    valid
-                    and "T" in axes
-                    and plugin_extra_parameters.output_type.value
-                    in (
-                        Output.Binary_mask.value,
-                        Output.Labels.value,
-                        Output.Markers.value,
-                        Output.Denoised_image.value,
-                        Output.Prob.value,
-                        Output.All.value,
-                    )
-                ):
-                    plugin_extra_parameters.output_type.native.setStyleSheet(
-                        "background-color: orange"
-                    )
-
-                else:
-                    plugin_extra_parameters.output_type.native.setStyleSheet("")
-                    plugin_extra_parameters.output_type.tooltip = ""
+                
 
                 if valid:
                     plugin.axes.tooltip = "\n".join(
@@ -1309,19 +1266,10 @@ def plugin_wrapper_vollseg():
                 elif (
                     "T" in axes_image
                     and config_unet.get("n_dim") == 3
-                    and plugin_extra_parameters.output_type.value
-                    in (
-                        Output.Binary_mask.value,
-                        Output.Labels.value,
-                        Output.Markers.value,
-                        Output.Denoised_image.value,
-                        Output.Prob.value,
-                        Output.All.value,
-                    )
+                    
                 ):
                     # not supported
-                    widgets_valid(plugin_extra_parameters.output_type, valid=False)
-                    plugin_extra_parameters.output_type.tooltip = "3D timelapse data"
+                    
                     _restore()
                 else:
                     # check if image and models are compatible
@@ -1448,28 +1396,7 @@ def plugin_wrapper_vollseg():
                         valid or (image is None and (axes is None or len(axes) == 0))
                     ),
                 )
-                if (
-                    valid
-                    and "T" in axes
-                    and plugin_extra_parameters.output_type.value
-                    in (
-                        Output.Binary_mask.value,
-                        Output.Labels.value,
-                        Output.Markers.value,
-                        Output.Denoised_image.value,
-                        Output.Prob.value,
-                        Output.All.value,
-                    )
-                ):
-                    plugin_extra_parameters.output_type.native.setStyleSheet(
-                        "background-color: orange"
-                    )
-                    plugin_extra_parameters.output_type.tooltip = (
-                        "Displaying many labels can be very slow."
-                    )
-                else:
-                    plugin_extra_parameters.output_type.native.setStyleSheet("")
-                    plugin_extra_parameters.output_type.tooltip = ""
+                
 
                 if valid:
                     plugin.axes.tooltip = "\n".join(
@@ -1563,19 +1490,10 @@ def plugin_wrapper_vollseg():
                 elif (
                     "T" in axes_image
                     and config_star.get("n_dim") == 3
-                    and plugin_extra_parameters.output_type.value
-                    in (
-                        Output.Binary_mask.value,
-                        Output.Labels.value,
-                        Output.Markers.value,
-                        Output.Denoised_image.value,
-                        Output.Prob.value,
-                        Output.All.value,
-                    )
+                    
                 ):
                     # not supported
-                    widgets_valid(plugin_extra_parameters.output_type, valid=False)
-                    plugin_extra_parameters.output_type.tooltip = "3D timelapse data"
+                    
                     _restore()
                 else:
                     # check if image and models are compatible
@@ -1654,6 +1572,10 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_extra_parameters.dounet)
     def _dounet_change(active: bool):
         plugin_extra_parameters.dounet.value = active
+
+    @change_handler(plugin_extra_parameters.isRGB)
+    def _dorgb_change(active: bool):
+        plugin_extra_parameters.isRGB.value = active
 
     @change_handler(plugin_extra_parameters.prob_map_watershed)
     def _prob_map_watershed_change(active: bool):
@@ -1888,6 +1810,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.image, init=False)
     def _image_change(image: napari.layers.Image):
         ndim = get_data(image).ndim
+        
         plugin.image.tooltip = f"Shape: {get_data(image).shape}"
 
         # dimensionality of selected model: 2, 3, or None (unknown)
@@ -1900,18 +1823,20 @@ def plugin_wrapper_vollseg():
             if model_selected_star in model_star_configs:
                 config = model_star_configs[model_selected_star]
                 ndim_model = config.get("n_dim")
-
+        #Force channel axes to be last
+        
         # TODO: guess images axes better...
         axes = None
         if ndim == 2:
             axes = "YX"
         elif ndim == 3:
             axes = "YXC" if image.rgb else ("ZYX" if ndim_model == 3 else "TYX")
+            
         elif ndim == 4:
             axes = ("ZYXC" if ndim_model == 3 else "TYXC") if image.rgb else "TZYX"
         else:
             raise NotImplementedError()
-
+        
         if axes == plugin.axes.value:
             # make sure to trigger a changed event, even if value didn't actually change
             plugin.axes.changed(axes)
@@ -1984,17 +1909,14 @@ def plugin_wrapper_vollseg():
     def _max_size_change(value: float):
         plugin_extra_parameters.max_size.value = value
 
-    # output type changed
-    @change_handler(plugin_extra_parameters.output_type, init=False)
-    def _output_type_change():
-        update._update()
+   
 
     # restore defaults
     @change_handler(plugin_star_parameters.defaults_star_parameters_button, init=False)
     def restore_star_param_defaults():
         for k, v in DEFAULTS_STAR_PARAMETERS.items():
             print(k, v)
-            getattr(plugin, k).value = v
+            getattr(plugin_star_parameters, k).value = v
 
     @change_handler(
         plugin_extra_parameters.defaults_vollseg_parameters_button, init=False
@@ -2002,7 +1924,7 @@ def plugin_wrapper_vollseg():
     def restore_vollseg_param_defaults():
         for k, v in DEFAULTS_VOLL_PARAMETERS.items():
             print(k, v)
-            getattr(plugin, k).value = v
+            getattr(plugin_extra_parameters, k).value = v
 
     @change_handler(plugin.defaults_model_button, init=False)
     def restore_model_defaults():
