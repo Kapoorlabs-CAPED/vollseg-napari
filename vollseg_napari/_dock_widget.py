@@ -286,6 +286,7 @@ def plugin_wrapper_vollseg():
         defaults_star_parameters_button=dict(
             widget_type="PushButton", text="Restore StarDist Parameter Defaults"
         ),
+        call_button=False,
     )
     def plugin_star_parameters(
         norm_image,
@@ -296,6 +297,7 @@ def plugin_wrapper_vollseg():
         set_thresholds,
         n_tiles,
         defaults_star_parameters_button,
+        
     ):
 
         return plugin_star_parameters
@@ -343,6 +345,8 @@ def plugin_wrapper_vollseg():
         defaults_vollseg_parameters_button=dict(
             widget_type="PushButton", text="Restore VollSeg Parameter Defaults"
         ),
+        
+        call_button=False,
     )
     def plugin_extra_parameters(
         min_size_mask,
@@ -352,6 +356,7 @@ def plugin_wrapper_vollseg():
         dounet,
         isRGB,
         defaults_vollseg_parameters_button,
+        
     ):
 
         return plugin_extra_parameters
@@ -514,7 +519,12 @@ def plugin_wrapper_vollseg():
                 plugin_star_parameters.perc_high.value,
                 axis=_axis,
             )
-        model_star = get_model_star(*model_selected_star)
+        #if model_selected_star is None and model_selected_unet is None and model_selected_den is None:
+            #plugin.call_button.enabled = False
+        if model_selected_star is not None:    
+             model_star = get_model_star(*model_selected_star)
+        else:
+            model_star = None
         if model_selected_unet is not None:
             model_unet = get_model_unet(*model_selected_unet)
         else:
@@ -524,7 +534,7 @@ def plugin_wrapper_vollseg():
         else:
             model_den = None
         lkwargs = {}
-
+        print('selected model', model_star, model_unet, model_den)
         if not axes.replace("T", "").startswith(model_star._axes_out.replace("C", "")):
             warn(
                 f"output images have different axes ({model_star._axes_out.replace('C','')}) than input image ({axes})"
@@ -1092,7 +1102,8 @@ def plugin_wrapper_vollseg():
                 _restore()
 
             self.help(help_msg)
-            plugin.call_button.enabled = all_valid
+            if all_valid:
+                plugin.call_button.enabled = True
             # widgets_valid(plugin.call_button, valid=all_valid)
             if self.debug:
                 print(
@@ -1128,6 +1139,8 @@ def plugin_wrapper_vollseg():
 
         def _update(self):
 
+            
+            print('updating unet') 
             # try to get a hold of the viewer (can be None when plugin starts)
             if self.viewer is None:
                 # TODO: when is this not safe to do and will hang forever?
@@ -1154,6 +1167,8 @@ def plugin_wrapper_vollseg():
                     print(valid)
                     config_unet = self.args.model_unet
                     axes_unet = config_unet.get("axes")
+                    
+                    print('unet axes',axes_unet)
                     if "T" in axes_unet:
                         raise RuntimeError("model with axis 'T' not supported")
                     plugin.model_folder_unet.line_edit.tooltip = ""
@@ -1166,6 +1181,8 @@ def plugin_wrapper_vollseg():
 
             def _image_axes(valid):
                 axes, image, err = getattr(self.args, "image_axes", (None, None, None))
+                
+                print('image axes',axes)
                 widgets_valid(
                     plugin.axes,
                     valid=(
@@ -1235,15 +1252,17 @@ def plugin_wrapper_vollseg():
             all_valid = False
             help_msg = ""
 
+            print('unet',self.valid.image_axes
+            and self.valid.n_tiles
+            and self.valid.model_unet
+            ) 
             if (
                 self.valid.image_axes
                 and self.valid.n_tiles
                 and self.valid.model_unet
-                and self.valid.norm_axes
             ):
                 axes_image, image = _image_axes(True)
                 (axes_model_unet, config_unet) = _model(True)
-                axes_norm = _norm_axes(True)
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, "C"):
                     # check if image axes and n_tiles are compatible
@@ -1257,12 +1276,7 @@ def plugin_wrapper_vollseg():
                     err = "number of tiles must be 1 for T axis"
                     plugin_star_parameters.n_tiles.tooltip = err
                     _restore()
-                elif set(axes_norm).isdisjoint(set(axes_image)):
-                    # check if image axes and normalization axes are compatible
-                    widgets_valid(plugin.norm_axes, valid=False)
-                    err = f"Image axes ({axes_image}) must contain at least one of the normalization axes ({', '.join(axes_norm)})"
-                    plugin.norm_axes.tooltip = err
-                    _restore()
+                
                 elif (
                     "T" in axes_image
                     and config_unet.get("n_dim") == 3
@@ -1274,11 +1288,13 @@ def plugin_wrapper_vollseg():
                 else:
                     # check if image and models are compatible
                     ch_model_unet = config_unet["n_channel_in"]
+                    
                     ch_image = (
                         get_data(image).shape[axes_dict(axes_image)["C"]]
                         if "C" in axes_image
                         else 1
                     )
+                    print('Channels',ch_model_unet, ch_image)
                     all_valid = (
                         set(axes_model_unet.replace("C", ""))
                         == set(axes_image.replace("C", "").replace("T", ""))
@@ -1304,14 +1320,14 @@ def plugin_wrapper_vollseg():
                 _restore()
 
             self.help(help_msg)
-            plugin.call_button.enabled = all_valid
+            if all_valid:
+               plugin.call_button.enabled = True
             # widgets_valid(plugin.call_button, valid=all_valid)
             if self.debug:
                 print(
                     f"valid ({all_valid}):",
                     ", ".join([f"{k}={v}" for k, v in vars(self.valid).items()]),
                 )
-
     update_unet = Unet_updater()
     update_den = Unet_den_updater()
 
@@ -1371,9 +1387,11 @@ def plugin_wrapper_vollseg():
                 if valid:
                     print(valid)
                     config_star = self.args.model_star
+                    
                     axes_star = config_star.get(
                         "axes", "ZYXC"[-len(config_star["net_input_shape"]) :]
                     )
+                    print('star axes',axes_star)
                     if "T" in axes_star:
                         raise RuntimeError("model with axis 'T' not supported")
                     plugin.model_axes.value = axes_star.replace(
@@ -1529,14 +1547,14 @@ def plugin_wrapper_vollseg():
                 _restore()
 
             self.help(help_msg)
-            plugin.call_button.enabled = all_valid
+            if all_valid:
+              plugin.call_button.enabled = True
             # widgets_valid(plugin.call_button, valid=all_valid)
             if self.debug:
                 print(
                     f"valid ({all_valid}):",
                     ", ".join([f"{k}={v}" for k, v in vars(self.valid).items()]),
                 )
-
     update = Updater()
 
     def select_model_star(key_star):
@@ -1658,79 +1676,87 @@ def plugin_wrapper_vollseg():
     # show/hide model folder picker
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
-    @change_handler(plugin.model2d_star, plugin.model3d_star, init=False)
+    @change_handler(plugin.model2d_star, plugin.model3d_star,plugin.model_star_none, init=False)
     def _model_change_star(model_name_star: str):
 
         print(plugin.model2d_star, plugin.model3d_star)
         model_class_star = (
-            StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D
+            StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D if Signal.sender() is plugin.model3d_star else None
         )
+        
+        if model_class_star is not None:
+                key_star = model_class_star, model_name_star
+                if key_star not in model_star_configs:
+        
+                    @thread_worker
+                    def _get_model_folder():
+                        return get_model_folder(*key_star)
+        
+                    def _process_model_folder(path):
+                        try:
+                            model_star_configs[key_star] = load_json(str(path / "config.json"))
+                            try:
+                                # not all models have associated thresholds
+                                model_star_threshs[key_star] = load_json(
+                                    str(path / "thresholds.json")
+                                )
+                            except FileNotFoundError:
+                                pass
+                        finally:
+                            select_model_star(key_star)
+                            plugin.progress_bar.hide()
+        
+                    worker = _get_model_folder()
+                    worker.returned.connect(_process_model_folder)
+                    worker.start()
+        
+                    # delay showing progress bar -> won't show up if model already downloaded
+                    # TODO: hacky -> better way to do this?
+                    time.sleep(0.1)
+                    plugin.call_button.enabled = False
+                    plugin.progress_bar.label = "Downloading StarDist model"
+                    plugin.progress_bar.show()
 
-        key_star = model_class_star, model_name_star
-        if key_star not in model_star_configs:
-
-            @thread_worker
-            def _get_model_folder():
-                return get_model_folder(*key_star)
-
-            def _process_model_folder(path):
-                try:
-                    model_star_configs[key_star] = load_json(str(path / "config.json"))
-                    try:
-                        # not all models have associated thresholds
-                        model_star_threshs[key_star] = load_json(
-                            str(path / "thresholds.json")
-                        )
-                    except FileNotFoundError:
-                        pass
-                finally:
+                else:
                     select_model_star(key_star)
-                    plugin.progress_bar.hide()
-
-            worker = _get_model_folder()
-            worker.returned.connect(_process_model_folder)
-            worker.start()
-
-            # delay showing progress bar -> won't show up if model already downloaded
-            # TODO: hacky -> better way to do this?
-            time.sleep(0.1)
-            plugin.call_button.enabled = False
-            plugin.progress_bar.label = "Downloading StarDist model"
-            plugin.progress_bar.show()
-
         else:
-            select_model_star(key_star)
-
-    @change_handler(plugin.model_unet, init=False)
+             plugin.call_button.enabled = False
+             key_star = None, None
+             select_model_star(key_star)
+             
+    @change_handler(plugin.model_unet, plugin.model_unet_none, init=False) 
     def _model_change_unet(model_name_unet: str):
-        model_class_unet = UNET
-
-        key_unet = model_class_unet, model_name_unet
-        if key_unet not in model_unet_configs:
-
-            @thread_worker
-            def _get_model_folder():
-                return get_model_folder(*key_unet)
-
-            def _process_model_folder(path):
-
-                select_model_unet(key_unet)
-                plugin.progress_bar.hide()
-
-            worker = _get_model_folder()
-            worker.returned.connect(_process_model_folder)
-            worker.start()
-
-            # delay showing progress bar -> won't show up if model already downloaded
-            # TODO: hacky -> better way to do this?
-            time.sleep(0.1)
-            plugin.call_button.enabled = False
-            plugin.progress_bar.label = "Downloading UNET model"
-            plugin.progress_bar.show()
-
+        model_class_unet = None if Signal.sender() is plugin.model_unet_none else UNET
+        if model_class_unet is not None:
+                key_unet = model_class_unet, model_name_unet
+                if key_unet not in model_unet_configs:
+        
+                    @thread_worker
+                    def _get_model_folder():
+                        return get_model_folder(*key_unet)
+        
+                    def _process_model_folder(path):
+        
+                        select_model_unet(key_unet)
+                        plugin.progress_bar.hide()
+        
+                    worker = _get_model_folder()
+                    worker.returned.connect(_process_model_folder)
+                    worker.start()
+        
+                    # delay showing progress bar -> won't show up if model already downloaded
+                    # TODO: hacky -> better way to do this?
+                    time.sleep(0.1)
+                    plugin.call_button.enabled = False
+                    plugin.progress_bar.label = "Downloading UNET model"
+                    plugin.progress_bar.show()
+        
+                else:
+                    select_model_unet(key_unet)
         else:
-            select_model_unet(key_unet)
-
+                 plugin.call_button.enabled = False
+                 key_unet = None, None 
+                 select_model_unet(key_unet)
     @change_handler(plugin.model_den, init=False)
     def _model_change_den(model_name_den: str):
         model_class_den = CARE
@@ -1915,7 +1941,6 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_star_parameters.defaults_star_parameters_button, init=False)
     def restore_star_param_defaults():
         for k, v in DEFAULTS_STAR_PARAMETERS.items():
-            print(k, v)
             getattr(plugin_star_parameters, k).value = v
 
     @change_handler(
@@ -1923,7 +1948,6 @@ def plugin_wrapper_vollseg():
     )
     def restore_vollseg_param_defaults():
         for k, v in DEFAULTS_VOLL_PARAMETERS.items():
-            print(k, v)
             getattr(plugin_extra_parameters, k).value = v
 
     @change_handler(plugin.defaults_model_button, init=False)
