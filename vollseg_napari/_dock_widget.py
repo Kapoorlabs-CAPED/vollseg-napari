@@ -138,6 +138,7 @@ def plugin_wrapper_vollseg():
 
     @functools.lru_cache(maxsize=None)
     def get_model_star(star_seg_model_type, model_star):
+        print(star_seg_model_type)
         if star_seg_model_type == CUSTOM_SEG_MODEL_STAR:
             path_star = Path(model_star)
             path_star.is_dir() or _raise(
@@ -148,10 +149,12 @@ def plugin_wrapper_vollseg():
             return model_class_star(
                 None, name=path_star.name, basedir=str(path_star.parent)
             )
-        elif star_seg_model_type == "NOSTAR":
-            return None
-        elif star_seg_model_type != CUSTOM_SEG_MODEL_STAR and star_seg_model_type != "NOSTAR":
+       
+        elif star_seg_model_type is not None:
             return star_seg_model_type.local_from_pretrained(model_star)
+        else:
+            
+            return None
 
     @functools.lru_cache(maxsize=None)
     def get_model_unet(unet_seg_model_type, model_unet):
@@ -160,15 +163,18 @@ def plugin_wrapper_vollseg():
             path_unet.is_dir() or _raise(
                 FileNotFoundError(f"{path_unet} is not a directory")
             )
+            config_unet = model_unet_configs[(unet_seg_model_type, model_unet)]
             model_class_unet = UNET
             return model_class_unet(
                 None, name=path_unet.name, basedir=str(path_unet.parent)
             )
-        elif unet_seg_model_type == "NOUNET":
-            return None
+        
 
-        elif unet_seg_model_type == UNET:
+        elif unet_seg_model_type is not None:
             return unet_seg_model_type.local_from_pretrained(model_unet)
+        else:
+            
+            return None
 
     @functools.lru_cache(maxsize=None)
     def get_model_den(den_model_type, model_den):
@@ -535,10 +541,18 @@ def plugin_wrapper_vollseg():
             model_den = None
         lkwargs = {}
         print('selected model', model_star, model_unet, model_den)
-        if not axes.replace("T", "").startswith(model_star._axes_out.replace("C", "")):
-            warn(
-                f"output images have different axes ({model_star._axes_out.replace('C','')}) than input image ({axes})"
-            )
+        
+        if model_star is not None:
+                if not axes.replace("T", "").startswith(model_star._axes_out.replace("C", "")):
+                    warn(
+                        f"output images have different axes ({model_star._axes_out.replace('C','')}) than input image ({axes})"
+                    )
+                    
+        if model_unet is not None:
+                if not axes.replace("T", "").startswith(model_unet._axes_out.replace("C", "")):
+                    warn(
+                        f"output images have different axes ({model_unet._axes_out.replace('C','')}) than input image ({axes})"
+                    )            
             # TODO: adjust image.scale according to shuffled axes
         # don't want to load persisted values for these widgets
 
@@ -597,10 +611,14 @@ def plugin_wrapper_vollseg():
             progress_bar.range = (0, 0)
             progress_bar.show()
             use_app().process_events()
-
-        # semantic output axes of predictions
-        assert model_star._axes_out[-1] == "C"
-        axes_out = list(model_star._axes_out[:-1])
+        if model_star is not None:
+                # semantic output axes of predictions
+                assert model_star._axes_out[-1] == "C"
+                axes_out = list(model_star._axes_out[:-1])
+        if model_unet is not None:
+                # semantic output axes of predictions
+                assert model_unet._axes_out[-1] == "C"
+                axes_out = list(model_unet._axes_out[:-1])        
         if "T" in axes:
             x_reorder = np.moveaxis(x, t, 0)
             axes_reorder = axes.replace("T", "")
@@ -679,14 +697,16 @@ def plugin_wrapper_vollseg():
             labels = np.moveaxis(labels, 0, t)
 
         else:
+            
+            if model_den is not None:
+                noise_model = plugin.model_den
+
+            if model_den == None:
+                noise_model = None
             # TODO: possible to run this in a way that it can be canceled?
             if isinstance(model_star, StarDist3D):
 
-                if model_den is not None:
-                    noise_model = plugin.model_den
-
-                if model_den == None:
-                    noise_model = None
+                
                 if model_star is not None:    
                         pred = VollSeg3D(
                             x,
@@ -703,16 +723,10 @@ def plugin_wrapper_vollseg():
                             UseProbability=plugin_extra_parameters.prob_map_watershed.value,
                             dounet=plugin_extra_parameters.dounet.value,
                         )
-                elif model_star == None:
-                      pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)
-
+            
             elif isinstance(model_star, StarDist2D):
 
-                if model_den is not None:
-                    noise_model = plugin.model_den
-
-                if model_den == None:
-                    noise_model = None
+                
                 print("Starting VollSeg")
                 
                 if model_star is not None:
@@ -732,24 +746,25 @@ def plugin_wrapper_vollseg():
                             dounet=plugin_extra_parameters.dounet.value,
                             RGB = plugin_extra_parameters.isRGB.value,
                         )
-                elif model_star==None:        
-                    pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)
+            if model_star is None and model_unet is not None:
+                pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)
 
         progress_bar.hide()
         # determine scale for output axes
         scale_in_dict = dict(zip(axes, image.scale))
         scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]
+            
         layers = []
 
-        if noise_model is not None:
+        if model_den is not None:
 
             labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
-        elif noise_model is None and model_star is not None:
+        elif model_den is None and model_star is not None:
             labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
             
         if model_star is None:
             
-            if noise_model is None:
+            if model_den is None:
                 
                  SizedMask = pred
             else:
@@ -946,7 +961,7 @@ def plugin_wrapper_vollseg():
 
             def _model(valid):
                 widgets_valid(
-                    plugin.model_unet, plugin.model_folder_unet.line_edit, valid=valid,
+                    plugin.model_den, plugin.model_folder_den.line_edit, valid=valid,
                 )
                 if valid:
                     print(valid)
@@ -954,11 +969,11 @@ def plugin_wrapper_vollseg():
                     axes_unet = config_unet.get("axes")
                     if "T" in axes_unet:
                         raise RuntimeError("model with axis 'T' not supported")
-                    plugin.model_folder_unet.line_edit.tooltip = ""
+                    plugin.model_folder_den.line_edit.tooltip = ""
 
                     return axes_unet, config_unet
                 else:
-                    plugin.model_folder_unet.line_edit.tooltip = (
+                    plugin.model_folder_den.line_edit.tooltip = (
                         "Invalid model directory"
                     )
 
@@ -1040,7 +1055,7 @@ def plugin_wrapper_vollseg():
                 and self.valid.norm_axes
             ):
                 axes_image, image = _image_axes(True)
-                (axes_model_unet, config_unet) = _model(True)
+                (axes_model_den, config_den) = _model(True)
                 axes_norm = _norm_axes(True)
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, "C"):
@@ -1063,7 +1078,7 @@ def plugin_wrapper_vollseg():
                     _restore()
                 elif (
                     "T" in axes_image
-                    and config_unet.get("n_dim") == 3
+                    and config_den.get("n_dim") == 3
                     
                 ):
                     # not supported
@@ -1071,28 +1086,28 @@ def plugin_wrapper_vollseg():
                     _restore()
                 else:
                     # check if image and models are compatible
-                    ch_model_unet = config_unet["n_channel_in"]
+                    ch_model_den = config_den["n_channel_in"]
                     ch_image = (
                         get_data(image).shape[axes_dict(axes_image)["C"]]
                         if "C" in axes_image
                         else 1
                     )
                     all_valid = (
-                        set(axes_model_unet.replace("C", ""))
+                        set(axes_model_den.replace("C", ""))
                         == set(axes_image.replace("C", "").replace("T", ""))
-                        and ch_model_unet == ch_image
+                        and ch_model_den == ch_image
                     )
 
                     widgets_valid(
                         plugin.image,
-                        plugin.model_unet,
-                        plugin.model_folder_unet.line_edit,
+                        plugin.model_den,
+                        plugin.model_folder_den.line_edit,
                         valid=all_valid,
                     )
                     if all_valid:
                         help_msg = ""
                     else:
-                        help_msg = f'Model with axes {axes_model_unet.replace("C", f"C[{ch_model_unet}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
+                        help_msg = f'Model with axes {axes_model_den.replace("C", f"C[{ch_model_den}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
             else:
                 _image_axes(self.valid.image_axes)
                 _norm_axes(self.valid.norm_axes)
@@ -1129,6 +1144,7 @@ def plugin_wrapper_vollseg():
             assert k in vars(self.valid)
             setattr(self.valid, k, bool(valid))
             setattr(self.args, k, args)
+            print('unet again',self.valid, self.args)
             self._update()
 
         def help(self, msg):
@@ -1136,11 +1152,10 @@ def plugin_wrapper_vollseg():
                 self.viewer.help = msg
             elif len(str(msg)) > 0:
                 print(f"HELP: {msg}")
-
+        
         def _update(self):
 
-            
-            print('updating unet') 
+            print('what is unet',plugin.model_unet)
             # try to get a hold of the viewer (can be None when plugin starts)
             if self.viewer is None:
                 # TODO: when is this not safe to do and will hang forever?
@@ -1163,11 +1178,13 @@ def plugin_wrapper_vollseg():
                 widgets_valid(
                     plugin.model_unet, plugin.model_folder_unet.line_edit, valid=valid,
                 )
+                print('unet',plugin.model_unet, plugin.model_folder_unet.line_edit, valid)
                 if valid:
                     print(valid)
                     config_unet = self.args.model_unet
-                    axes_unet = config_unet.get("axes")
-                    
+                    axes_unet = config_unet.get(
+                        "axes", "ZYXC"[-len(config_unet["unet_input_shape"]) :]
+                    )
                     print('unet axes',axes_unet)
                     if "T" in axes_unet:
                         raise RuntimeError("model with axis 'T' not supported")
@@ -1253,8 +1270,8 @@ def plugin_wrapper_vollseg():
             help_msg = ""
 
             print('unet',self.valid.image_axes
-            and self.valid.n_tiles
-            and self.valid.model_unet
+            ,self.valid.n_tiles
+            , self.valid.model_unet
             ) 
             if (
                 self.valid.image_axes
@@ -1312,6 +1329,8 @@ def plugin_wrapper_vollseg():
                     else:
                         help_msg = f'Model with axes {axes_model_unet.replace("C", f"C[{ch_model_unet}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
             else:
+                
+                print('Invalid unet',self.valid.model_unet)
                 _image_axes(self.valid.image_axes)
                 _norm_axes(self.valid.norm_axes)
                 _n_tiles(self.valid.n_tiles)
@@ -1349,6 +1368,7 @@ def plugin_wrapper_vollseg():
             assert k in vars(self.valid)
             setattr(self.valid, k, bool(valid))
             setattr(self.args, k, args)
+            print('star again',self.valid, self.args)
             self._update()
 
         def help(self, msg):
@@ -1358,7 +1378,6 @@ def plugin_wrapper_vollseg():
                 print(f"HELP: {msg}")
 
         def _update(self):
-
             # try to get a hold of the viewer (can be None when plugin starts)
             if self.viewer is None:
                 # TODO: when is this not safe to do and will hang forever?
@@ -1384,6 +1403,8 @@ def plugin_wrapper_vollseg():
                     plugin.model_folder_star.line_edit,
                     valid=valid,
                 )
+                
+                print('star',plugin.model2d_star,plugin.model3d_star, plugin.model_folder_star.line_edit, valid)
                 if valid:
                     print(valid)
                     config_star = self.args.model_star
@@ -1408,6 +1429,7 @@ def plugin_wrapper_vollseg():
 
             def _image_axes(valid):
                 axes, image, err = getattr(self.args, "image_axes", (None, None, None))
+                print('image star axes',axes)
                 widgets_valid(
                     plugin.axes,
                     valid=(
@@ -1476,7 +1498,10 @@ def plugin_wrapper_vollseg():
 
             all_valid = False
             help_msg = ""
-
+            print('star',self.valid.image_axes
+            ,self.valid.n_tiles
+            ,self.valid.model_star
+            ) 
             if (
                 self.valid.image_axes
                 and self.valid.n_tiles
@@ -1539,11 +1564,13 @@ def plugin_wrapper_vollseg():
                     else:
                         help_msg = f'Model with axes {axes_model_star.replace("C", f"C[{ch_model_star}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
             else:
+                
+                print('valid star',self.valid.model_star)
                 _image_axes(self.valid.image_axes)
                 _norm_axes(self.valid.norm_axes)
                 _n_tiles(self.valid.n_tiles)
                 _model(self.valid.model_star)
-
+ 
                 _restore()
 
             self.help(help_msg)
@@ -1623,11 +1650,16 @@ def plugin_wrapper_vollseg():
             axes = axes_check_and_normalize(value, disallowed="S")
             if len(axes) >= 1:
                 update("norm_axes", True, (axes, None))
+                update_unet("norm_axes", True, (axes, None))
+                update_den("norm_axes", True, (axes, None))
             else:
                 update("norm_axes", False, (axes, "Cannot be empty"))
+                update_unet("norm_axes", False, (axes, "Cannot be empty"))
+                update_den("norm_axes", False, (axes, "Cannot be empty"))
         except ValueError as err:
             update("norm_axes", False, (value, err))
-
+            update_unet("norm_axes", False, (value, err))
+            update_den("norm_axes", False, (value, err))
     # -------------------------------------------------------------------------
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
@@ -1687,7 +1719,7 @@ def plugin_wrapper_vollseg():
         if model_class_star is not None:
                 key_star = model_class_star, model_name_star
                 if key_star not in model_star_configs:
-        
+                    print('key stars',key_star, model_star_configs)
                     @thread_worker
                     def _get_model_folder():
                         return get_model_folder(*key_star)
@@ -1726,9 +1758,11 @@ def plugin_wrapper_vollseg():
              
     @change_handler(plugin.model_unet, plugin.model_unet_none, init=False) 
     def _model_change_unet(model_name_unet: str):
-        model_class_unet = None if Signal.sender() is plugin.model_unet_none else UNET
+        model_class_unet = ( UNET if Signal.sender() is plugin.model_unet else None ) 
+        print('class unet',model_class_unet)
         if model_class_unet is not None:
                 key_unet = model_class_unet, model_name_unet
+                print('key unets',key_unet, model_unet_configs)
                 if key_unet not in model_unet_configs:
         
                     @thread_worker
@@ -1737,8 +1771,13 @@ def plugin_wrapper_vollseg():
         
                     def _process_model_folder(path):
         
-                        select_model_unet(key_unet)
-                        plugin.progress_bar.hide()
+                        try:
+                            model_unet_configs[key_unet] = load_json(str(path / "config.json"))
+                            
+                        finally:
+        
+                                select_model_unet(key_unet)
+                                plugin.progress_bar.hide()
         
                     worker = _get_model_folder()
                     worker.returned.connect(_process_model_folder)
@@ -1849,6 +1888,10 @@ def plugin_wrapper_vollseg():
             if model_selected_star in model_star_configs:
                 config = model_star_configs[model_selected_star]
                 ndim_model = config.get("n_dim")
+                
+            if model_selected_unet in model_unet_configs:
+                config = model_unet_configs[model_selected_unet]
+                ndim_model = config.get("n_dim")    
         #Force channel axes to be last
         
         # TODO: guess images axes better...
@@ -1885,8 +1928,12 @@ def plugin_wrapper_vollseg():
                 value, length=get_data(image).ndim, disallowed="S"
             )
             update("image_axes", True, (axes, image, None))
+            update_unet("image_axes", True, (axes, image, None))
+            update_den("image_axes", True, (axes, image, None))
         except ValueError as err:
             update("image_axes", False, (value, image, err))
+            update_unet("image_axes", False, (value, image, err))
+            update_den("image_axes", False, (value, image, err))
         # finally:
         # widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
@@ -1899,6 +1946,8 @@ def plugin_wrapper_vollseg():
             value = plugin_star_parameters.n_tiles.get_value()
             if value is None:
                 update("n_tiles", True, (None, image, None))
+                update_unet("n_tiles", True, (None, image, None))
+                update_den("n_tiles", True, (None, image, None))
                 return
             shape = get_data(image).shape
             try:
@@ -1909,9 +1958,12 @@ def plugin_wrapper_vollseg():
             if not all(isinstance(t, int) and t >= 1 for t in value):
                 raise ValueError(f"each value must be an integer >= 1")
             update("n_tiles", True, (value, image, None))
+            update_unet("n_tiles", True, (value, image, None))
+            update_den("n_tiles", True, (value, image, None))
         except (ValueError, SyntaxError) as err:
             update("n_tiles", False, (None, image, err))
-
+            update_unet("n_tiles", False, (None, image, err))
+            update_den("n_tiles", False, (None, image, err))
     # -------------------------------------------------------------------------
 
     # set thresholds to optimized values for chosen model
