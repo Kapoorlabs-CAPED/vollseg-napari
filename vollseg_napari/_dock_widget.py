@@ -717,10 +717,10 @@ def plugin_wrapper_vollseg():
                 
                 
             elif model_star is None and model_unet is not None:
-                   SizedMask = pred > 0
+                   SizedMask = pred
                    
                    SizedMask = np.asarray(SizedMask)
-                   
+                   SizedMask = SizedMask > 0
                    SizedMask = np.moveaxis(SizedMask, 0, t)
                    SizedMask = np.reshape(SizedMask, x.shape)
             if model_star is not None: 
