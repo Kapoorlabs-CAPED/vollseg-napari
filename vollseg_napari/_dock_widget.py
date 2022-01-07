@@ -618,7 +618,7 @@ def plugin_wrapper_vollseg():
                 axes_out = list(model_unet._axes_out[:-1])        
         if 'T' in axes:
             x_reorder = np.moveaxis(x, t, 0)
-           
+            
             axes_reorder = axes.replace('T', '')
             axes_out.insert(t, 'T')
             
@@ -712,6 +712,9 @@ def plugin_wrapper_vollseg():
     
                 denimage = np.moveaxis(denimage, 0, t)
                 
+                denimage = np.reshape(denimage, x.shape)
+                
+                
             elif model_star is not None:
                 
                 labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
@@ -721,28 +724,29 @@ def plugin_wrapper_vollseg():
                    SizedMask = pred
                    
                    SizedMask = np.asarray(SizedMask)
-                   print(SizedMask.shape, t)
+                   
                    SizedMask = np.moveaxis(SizedMask, 0, t)
-                   print(SizedMask.shape)
+                   SizedMask = np.reshape(SizedMask, x.shape)
             if model_star is not None: 
                     labels = np.asarray(labels)
         
                     labels = np.moveaxis(labels, 0, t)
                     
+                    labels = np.reshape(labels, x.shape)
                     
                     StarImage = np.asarray(StarImage)
         
                     StarImage = np.moveaxis(StarImage, 0, t)
                     
-                    
+                    StarImage = np.reshape(StarImage, x.shape)
                     ProbabilityMap = np.asarray(ProbabilityMap)
         
                     ProbabilityMap = np.moveaxis(ProbabilityMap, 0, t)
-                    
+                    ProbabilityMap = np.reshape(ProbabilityMap, x.shape)
                     Markers = np.asarray(Markers)
         
                     Markers = np.moveaxis(Markers, 0, t)
-
+                    Markers = np.reshape(Markers, x.shape)
         else:
             
             if model_den is not None:
