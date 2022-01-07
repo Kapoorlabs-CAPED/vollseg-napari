@@ -631,7 +631,7 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1,1)
-                res = tuple(
+                pred = tuple(
                     zip(
                         *tuple(
                             VollSeg3D(
@@ -664,7 +664,7 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1)
-                res = tuple(
+                pred = tuple(
                     zip(
                         *tuple(
                             VollSeg2D(
@@ -694,7 +694,7 @@ def plugin_wrapper_vollseg():
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                    res = tuple(
+                    pred = tuple(
                         zip(
                             *tuple(VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)for _x in progress(x_reorder)
                         )
@@ -704,15 +704,42 @@ def plugin_wrapper_vollseg():
 
             if noise_model is not None:
 
-                labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = res
+                labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
+                
+                denimage = np.asarray(denimage)
+    
+                denimage = np.moveaxis(denimage, 0, t)
+                
             elif model_star is not None:
-                labels, SizedMask, StarImage, ProbabilityMap, Markers = res
+                
+                labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
+                
+                
             elif model_star is None and model_unet is not None:
-                   SizedMask = res
+                   SizedMask = pred
+                   
+                   SizedMask = np.asarray(SizedMask)
+       
+                   SizedMask = np.moveaxis(SizedMask, 0, t)
+                   
             if model_star is not None: 
                     labels = np.asarray(labels)
         
                     labels = np.moveaxis(labels, 0, t)
+                    
+                    
+                    StarImage = np.asarray(StarImage)
+        
+                    StarImage = np.moveaxis(StarImage, 0, t)
+                    
+                    
+                    ProbabilityMap = np.asarray(ProbabilityMap)
+        
+                    ProbabilityMap = np.moveaxis(ProbabilityMap, 0, t)
+                    
+                    Markers = np.asarray(Markers)
+        
+                    Markers = np.moveaxis(Markers, 0, t)
 
         else:
             
@@ -776,6 +803,22 @@ def plugin_wrapper_vollseg():
                          plugin_star_parameters.n_tiles.value = plugin_star_parameters.n_tiles.value + (1,)
                 pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)
 
+
+            if model_den is not None:
+
+                labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
+            elif model_den is None and model_star is not None:
+                labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
+                
+            if model_star is None:
+                
+                if model_den is None:
+                    
+                     SizedMask = pred
+                else:
+                    
+                    denimage, SizedMask = pred
+
         progress_bar.hide()
         # determine scale for output axes
         scale_in_dict = dict(zip(axes, image.scale))
@@ -783,20 +826,7 @@ def plugin_wrapper_vollseg():
             
         layers = []
 
-        if model_den is not None:
-
-            labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
-        elif model_den is None and model_star is not None:
-            labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
-            
-        if model_star is None:
-            
-            if model_den is None:
-                
-                 SizedMask = pred
-            else:
-                
-                denimage, SizedMask = pred
+        
             
         if model_star is not None:
             layers.append(
