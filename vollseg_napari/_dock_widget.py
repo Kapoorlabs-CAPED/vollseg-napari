@@ -717,7 +717,7 @@ def plugin_wrapper_vollseg():
                 
                 
             elif model_star is None and model_unet is not None:
-                   SizedMask = pred
+                   SizedMask = pred > 0
                    
                    SizedMask = np.asarray(SizedMask)
                    
