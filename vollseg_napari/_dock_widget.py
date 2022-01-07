@@ -709,10 +709,10 @@ def plugin_wrapper_vollseg():
                 labels, SizedMask, StarImage, ProbabilityMap, Markers = res
             elif model_star is None and model_unet is not None:
                    SizedMask = res
-
-            labels = np.asarray(labels)
-
-            labels = np.moveaxis(labels, 0, t)
+            if model_star is not None: 
+                    labels = np.asarray(labels)
+        
+                    labels = np.moveaxis(labels, 0, t)
 
         else:
             
