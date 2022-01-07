@@ -230,7 +230,7 @@ def plugin_wrapper_vollseg():
         perc_high=99.8,
         prob_thresh=0.5,
         nms_thresh=0.4,
-        n_tiles='None',
+        n_tiles=(1,1,1),
     )
 
     DEFAULTS_VOLL_PARAMETERS = dict(
@@ -1959,14 +1959,18 @@ def plugin_wrapper_vollseg():
         axes = None
         if ndim == 2:
             axes = 'YX'
+            plugin_star_parameters.n_tiles.value = (1,1)
         elif ndim == 3:
             axes = 'YXC' if image.rgb else ('ZYX' if ndim_model == 3 else 'TYX')
-            
+            plugin_star_parameters.n_tiles.value = (1,1,1)
         elif ndim == 4:
             axes = ('ZYXC' if ndim_model == 3 else 'TYXC') if image.rgb else 'TZYX'
+            plugin_star_parameters.n_tiles.value = (1,1,1,1)
         else:
             raise NotImplementedError()
         
+               
+        print(plugin_star_parameters.n_tiles.value)
         if axes == plugin.axes.value:
             # make sure to trigger a changed event, even if value didn't actually change
             plugin.axes.changed(axes)
