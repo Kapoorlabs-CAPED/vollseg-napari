@@ -696,12 +696,8 @@ def plugin_wrapper_vollseg():
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                    pred = tuple(
-                        zip(
-                            *tuple(VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)for _x in progress(x_reorder)
-                        )
-                            )
-                        )
+                    pred = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)for _x in progress(x_reorder)]
+                        
 
 
             if noise_model is not None:
