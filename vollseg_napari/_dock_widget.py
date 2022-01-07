@@ -581,13 +581,8 @@ def plugin_wrapper_vollseg():
                     app.process_events()
                 app.process_events()
 
-        elif (
-            plugin_star_parameters.n_tiles.value is not None
-            and np.prod(plugin_star_parameters.n_tiles.value) > 1
-        ):
-            plugin_star_parameters.n_tiles.value = tuple(
-                plugin_star_parameters.n_tiles.value
-            )
+        elif plugin_star_parameters.n_tiles is not None and np.prod(plugin_star_parameters.n_tiles) > 1:
+            plugin_star_parameters.n_tiles = tuple(plugin_star_parameters.n_tiles)
             app = use_app()
 
             def progress(it, **kwargs):
@@ -648,12 +643,14 @@ def plugin_wrapper_vollseg():
                                 UseProbability=plugin_extra_parameters.prob_map_watershed.Value,
                                 dounet=plugin_extra_parameters.dounet.value,
                             )
-                            for _x in progress(plugin.x_reorder)
+                            for _x in progress(x_reorder)
                         )
                     )
                 )
+                
+            
 
-            elif isinstance(model_star, StarDist2D):
+            if isinstance(model_star, StarDist2D):
 
                 if model_den is not None:
                     noise_model = plugin.model_den
@@ -681,16 +678,28 @@ def plugin_wrapper_vollseg():
                                 dounet=plugin_extra_parameters.dounet.value,
                                 RGB = plugin_extra_parameters.isRGB.value,
                             )
-                            for _x in progress(plugin.x_reorder)
+                            for _x in progress(x_reorder)
                         )
                     )
                 )
+                
+                
+            if model_star is None and model_unet is not None:
+                    res = tuple(
+                        zip(
+                            *tuple(VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)for _x in progress(x_reorder)
+                        )
+                            )
+                        )
+
 
             if noise_model is not None:
 
                 labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = res
-            else:
+            elif model_star is not None:
                 labels, SizedMask, StarImage, ProbabilityMap, Markers = res
+            elif model_star is None and model_unet is not None:
+                   SizedMask = res
 
             labels = np.asarray(labels)
 
@@ -724,7 +733,7 @@ def plugin_wrapper_vollseg():
                             dounet=plugin_extra_parameters.dounet.value,
                         )
             
-            elif isinstance(model_star, StarDist2D):
+            if isinstance(model_star, StarDist2D):
 
                 
                 print("Starting VollSeg")
