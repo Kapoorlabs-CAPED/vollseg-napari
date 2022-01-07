@@ -720,7 +720,6 @@ def plugin_wrapper_vollseg():
                    
                    SizedMask = np.asarray(SizedMask)
        
-                   SizedMask = np.moveaxis(SizedMask, 0, t)
                    
             if model_star is not None: 
                     labels = np.asarray(labels)
