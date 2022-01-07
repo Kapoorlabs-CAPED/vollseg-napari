@@ -617,6 +617,7 @@ def plugin_wrapper_vollseg():
                 axes_out = list(model_unet._axes_out[:-1])        
         if 'T' in axes:
             x_reorder = np.moveaxis(x, t, 0)
+            print(x_reorder)
             axes_reorder = axes.replace('T', '')
             axes_out.insert(t, 'T')
             
@@ -719,8 +720,9 @@ def plugin_wrapper_vollseg():
                    SizedMask = pred
                    
                    SizedMask = np.asarray(SizedMask)
-       
-                   
+                   print(SizedMask.shape)
+                   SizedMask = np.moveaxis(SizedMask, 0, t)
+                   print(SizedMask.shape)
             if model_star is not None: 
                     labels = np.asarray(labels)
         
