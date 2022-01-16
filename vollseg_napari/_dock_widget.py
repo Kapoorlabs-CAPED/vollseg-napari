@@ -196,6 +196,7 @@ def plugin_wrapper_vollseg():
     class Output(Enum):
         Labels = 'Label Image'
         Binary_mask = 'Binary Image'
+        Skeleton_mask = 'Skeleton Image'
         Denoised_image = 'Denoised Image'
         Prob = 'Probability Map'
         Markers = 'Markers'
@@ -204,6 +205,7 @@ def plugin_wrapper_vollseg():
     output_choices = [
         Output.Labels.value,
         Output.Binary_mask.value,
+        Output.Skeleton_mask.value,
         Output.Denoised_image.value,
         Output.Prob.value,
         Output.Markers.value,
@@ -480,17 +482,10 @@ def plugin_wrapper_vollseg():
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
         x = get_data(image)
-        print('Image shape', x.shape)
-        print('Min Size', plugin_extra_parameters.min_size)
-        print('Norm Image', plugin_star_parameters.norm_image)
         axes = axes_check_and_normalize(axes, length=x.ndim)
-        
-        
-            
         progress_bar.label = 'Starting VollSeg'
         if plugin_star_parameters.norm_image:
             axes_norm = axes_check_and_normalize(norm_axes)
-            print(axes_norm)
             axes_norm = ''.join(
                 set(axes_norm).intersection(set(axes))
             )  # relevant axes present in input image
@@ -559,9 +554,7 @@ def plugin_wrapper_vollseg():
         # TODO: progress bar (labels) often don't show up. events not processed?
         if 'T' in axes:
             app = use_app()
-            print('terst test', axes)
             t = axes_dict(axes)['T']
-            print('where is t', t)
             n_frames = x.shape[t]
             if plugin_star_parameters.n_tiles.value is not None:
                 # remove tiling value for time axis
@@ -702,27 +695,27 @@ def plugin_wrapper_vollseg():
 
             if noise_model is not None:
 
-                labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
+                labels, unet_mask, star_labels, probability_map, Markers, denoised_image = pred
                 
-                denimage = np.asarray(denimage)
+                denoised_image = np.asarray(denoised_image)
     
-                denimage = np.moveaxis(denimage, 0, t)
+                denoised_image = np.moveaxis(denoised_image, 0, t)
                 
-                denimage = np.reshape(denimage, x.shape)
+                denoised_image = np.reshape(denoised_image, x.shape)
                 
                 
             elif model_star is not None:
                 
-                labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
+                labels, unet_mask, star_labels, probability_map, Markers = pred
                 
                 
             elif model_star is None and model_unet is not None:
-                   SizedMask = pred
+                   unet_mask = pred
                    
-                   SizedMask = np.asarray(SizedMask)
-                   SizedMask = SizedMask > 0
-                   SizedMask = np.moveaxis(SizedMask, 0, t)
-                   SizedMask = np.reshape(SizedMask, x.shape)
+                   unet_mask = np.asarray(unet_mask)
+                   unet_mask = unet_mask > 0
+                   unet_mask = np.moveaxis(unet_mask, 0, t)
+                   unet_mask = np.reshape(unet_mask, x.shape)
             if model_star is not None: 
                     labels = np.asarray(labels)
         
@@ -730,15 +723,15 @@ def plugin_wrapper_vollseg():
                     
                     labels = np.reshape(labels, x.shape)
                     
-                    StarImage = np.asarray(StarImage)
+                    star_labels = np.asarray(star_labels)
         
-                    StarImage = np.moveaxis(StarImage, 0, t)
+                    star_labels = np.moveaxis(star_labels, 0, t)
                     
-                    StarImage = np.reshape(StarImage, x.shape)
-                    ProbabilityMap = np.asarray(ProbabilityMap)
+                    star_labels = np.reshape(star_labels, x.shape)
+                    probability_map = np.asarray(probability_map)
         
-                    ProbabilityMap = np.moveaxis(ProbabilityMap, 0, t)
-                    ProbabilityMap = np.reshape(ProbabilityMap, x.shape)
+                    probability_map = np.moveaxis(probability_map, 0, t)
+                    probability_map = np.reshape(probability_map, x.shape)
                     Markers = np.asarray(Markers)
         
                     Markers = np.moveaxis(Markers, 0, t)
@@ -808,18 +801,18 @@ def plugin_wrapper_vollseg():
 
             if model_den is not None:
 
-                labels, SizedMask, StarImage, ProbabilityMap, Markers, denimage = pred
+                labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = pred
             elif model_den is None and model_star is not None:
-                labels, SizedMask, StarImage, ProbabilityMap, Markers = pred
+                labels, unet_mask, star_labels, probability_map, Markers, Skeleton = pred
                 
             if model_star is None:
                 
                 if model_den is None:
                     
-                     SizedMask = pred
+                     unet_mask = pred
                 else:
                     
-                    denimage, SizedMask = pred
+                    denoised_image, unet_mask = pred
 
         progress_bar.hide()
         # determine scale for output axes
@@ -833,7 +826,7 @@ def plugin_wrapper_vollseg():
         if model_star is not None:
             layers.append(
                 (
-                    ProbabilityMap,
+                    probability_map,
                     dict(
                         name='Base Watershed Image',
                         scale=scale_out,
@@ -856,7 +849,7 @@ def plugin_wrapper_vollseg():
 
             layers.append(
                 (
-                    StarImage,
+                    star_labels,
                     dict(
                         name='StarDist',
                         scale=scale_out,
@@ -869,7 +862,7 @@ def plugin_wrapper_vollseg():
             )
             layers.append(
                 (
-                    SizedMask,
+                    unet_mask,
                     dict(
                         name='VollSeg Binary',
                         scale=scale_out,
@@ -891,13 +884,26 @@ def plugin_wrapper_vollseg():
                         visible=False,
                         **lkwargs,
                     ),
-                    'image',
+                    'labels',
+                )
+            )
+            layers.append(
+                (
+                    Skeleton,
+                    dict(
+                        name='Skeleton',
+                        scale=scale_out,
+                        opacity=0.5,
+                        visible=False,
+                        **lkwargs,
+                    ),
+                    'labels',
                 )
             )
         if noise_model is not None:
             layers.append(
                 (
-                    denimage,
+                    denoised_image,
                     dict(
                         name='Denoised Image',
                         scale=scale_out,
@@ -911,7 +917,7 @@ def plugin_wrapper_vollseg():
         if model_unet is not None:
             layers.append(
                 (
-                    SizedMask,
+                    unet_mask,
                     dict(
                         name='VollSeg Binary',
                         scale=scale_out,
@@ -1559,10 +1565,7 @@ def plugin_wrapper_vollseg():
 
             all_valid = False
             help_msg = ''
-            print('star',self.valid.image_axes
-            ,self.valid.n_tiles
-            ,self.valid.model_star
-            ) 
+            
             if (
                 self.valid.image_axes
                 and self.valid.n_tiles
@@ -1626,7 +1629,6 @@ def plugin_wrapper_vollseg():
                         help_msg = f'Model with axes {axes_model_star.replace("C", f"C[{ch_model_star}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
             else:
                 
-                print('valid star',self.valid.model_star)
                 _image_axes(self.valid.image_axes)
                 _norm_axes(self.valid.norm_axes)
                 _n_tiles(self.valid.n_tiles)
