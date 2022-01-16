@@ -1970,7 +1970,7 @@ def plugin_wrapper_vollseg():
             raise NotImplementedError()
         
                
-        print(plugin_star_parameters.n_tiles.value)
+        
         if axes == plugin.axes.value:
             # make sure to trigger a changed event, even if value didn't actually change
             plugin.axes.changed(axes)
