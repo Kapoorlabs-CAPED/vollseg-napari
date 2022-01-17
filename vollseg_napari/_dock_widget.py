@@ -242,7 +242,7 @@ def plugin_wrapper_vollseg():
         isRGB = False,
         dounet=True,
         slicemerge = False,
-        iouthresh = 3,
+        iouthresh = 0.5,
         prob_map_watershed=True,
     )
 
@@ -362,8 +362,8 @@ def plugin_wrapper_vollseg():
             widget_type='FloatSpinBox',
             label='Threshold linkining',
             min=0,
-            max=1000,
-            step=1,
+            max=10,
+            step=0.1,
             value=DEFAULTS_VOLL_PARAMETERS['iouthresh'],
         ),
         defaults_vollseg_parameters_button=dict(
