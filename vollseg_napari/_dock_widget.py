@@ -241,6 +241,7 @@ def plugin_wrapper_vollseg():
         max_size=10000.0,
         isRGB = False,
         dounet=True,
+        slicemerge = False,
         prob_map_watershed=True,
     )
 
@@ -350,6 +351,11 @@ def plugin_wrapper_vollseg():
             text='RGB image',
             value=DEFAULTS_VOLL_PARAMETERS['isRGB'],
         ),
+        slicemerge=dict(
+            widget_type='CheckBox',
+            text='Merge slices (UNET)',
+            value=DEFAULTS_VOLL_PARAMETERS['slicemerge'],
+        ),
         defaults_vollseg_parameters_button=dict(
             widget_type='PushButton', text='Restore VollSeg Parameter Defaults'
         ),
@@ -363,6 +369,7 @@ def plugin_wrapper_vollseg():
         prob_map_watershed,
         dounet,
         isRGB,
+        slicemerge,
         defaults_vollseg_parameters_button,
         
     ):
@@ -643,6 +650,7 @@ def plugin_wrapper_vollseg():
                                 n_tiles=plugin_star_parameters.n_tiles.value,
                                 UseProbability=plugin_extra_parameters.prob_map_watershed.Value,
                                 dounet=plugin_extra_parameters.dounet.value,
+                                slice_merge = plugin_extra_parameters.slicemerge.value
                             )
                             for _x in progress(x_reorder)
                         )
@@ -689,7 +697,7 @@ def plugin_wrapper_vollseg():
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                    pred = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)for _x in progress(x_reorder)]
+                    pred = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value, slice_merge = plugin_extra_parameters.slicemerge.value)for _x in progress(x_reorder)]
                         
 
 
@@ -764,7 +772,8 @@ def plugin_wrapper_vollseg():
                             n_tiles=plugin_star_parameters.n_tiles.value,
                             UseProbability=plugin_extra_parameters.prob_map_watershed.value,
                             dounet=plugin_extra_parameters.dounet.value,
-                        )
+                            slice_merge = plugin_extra_parameters.slicemerge.value
+                            )
             
             if isinstance(model_star, StarDist2D):
 
@@ -796,7 +805,8 @@ def plugin_wrapper_vollseg():
                     plugin_star_parameters.n_tiles.value = 1
                     for i in range(len(x.shape)):
                          plugin_star_parameters.n_tiles.value = plugin_star_parameters.n_tiles.value + (1,)
-                pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value)
+                pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value,
+                                    slice_merge = plugin_extra_parameters.slicemerge.value)
 
 
             if model_den is not None:
@@ -1680,7 +1690,13 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_extra_parameters.dounet)
     def _dounet_change(active: bool):
         plugin_extra_parameters.dounet.value = active
-
+        
+        
+    @change_handler(plugin_extra_parameters.slicemerge)
+    def _slicemerge_change(active: bool):
+        plugin_extra_parameters.slicemerge.value = active
+        
+        
     @change_handler(plugin_extra_parameters.isRGB)
     def _dorgb_change(active: bool):
         plugin_extra_parameters.isRGB.value = active
