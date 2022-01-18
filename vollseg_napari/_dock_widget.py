@@ -1828,7 +1828,7 @@ def plugin_wrapper_vollseg():
               unet_mask, scale_out, t, x = pred
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
-              unet_mask = np.moveaxis(unet_mask, 0, t.value)
+              unet_mask = np.moveaxis(unet_mask, 0, t)
               unet_mask = np.reshape(unet_mask, x.shape)
               for layer in list(plugin.viewer.value.layers):
                   
@@ -1841,6 +1841,9 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
+              
+              
+              
     def return_segment_unet(pred):
             
               unet_mask, scale_out = pred
@@ -1859,7 +1862,7 @@ def plugin_wrapper_vollseg():
                 
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
     def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
-    
+        print(t)
         res = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                              iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in plugin.progress(x_reorder)]
             
