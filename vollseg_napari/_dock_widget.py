@@ -1824,7 +1824,7 @@ def plugin_wrapper_vollseg():
                           name='VollSeg Binary',
                           scale= scale_out,
                           opacity=0.5,
-                          visible=False,
+                          visible=True,
                       )
                   )
               )
@@ -1832,17 +1832,17 @@ def plugin_wrapper_vollseg():
     @thread_worker(connect = {"returned": return_segment_unet } )         
     def _Unet3D( model_unet, x, axes, noise_model, scale_out):
     
-        pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value,
+        res = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value,
                             iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
 
-   
-        return pred, scale_out            
+        pred = res, scale_out
+        return pred           
              
     @thread_worker         
     def _Segment3D(model_star, model_unet, x, axes, noise_model, scale_out):
     
         
-        pred = VollSeg3D(
+        res = VollSeg3D(
             x,
             model_unet,
             model_star,
@@ -1859,8 +1859,9 @@ def plugin_wrapper_vollseg():
             slice_merge = plugin_extra_parameters.slicemerge.value,
             iou_threshold = plugin_extra_parameters.iouthresh.value
             )   
-                         
-        return pred, scale_out  
+               
+        pred = res, scale_out   
+        return pred  
 
 
           
