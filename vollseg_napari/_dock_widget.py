@@ -476,7 +476,6 @@ def plugin_wrapper_vollseg():
         persist=True,
         call_button=True,
     )
-    @thread_worker
     def plugin(
         viewer: napari.Viewer,
         label_head,
@@ -777,7 +776,7 @@ def plugin_wrapper_vollseg():
                        worker = _Segment3D(model_star, model_unet, x, axes, noise_model)
                        worker.returned.connect(return_segment)
                        worker.start()
-                       
+                       pred = return_segment
             
             if isinstance(model_star, StarDist2D):
 
@@ -813,7 +812,7 @@ def plugin_wrapper_vollseg():
                 worker = _Unet3D(model_unet, x, axes, noise_model)
                 worker.returned.connect(return_segment)
                 worker.start()         
-                
+                pred = return_segment
             if model_den is not None:
 
                 labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = pred
