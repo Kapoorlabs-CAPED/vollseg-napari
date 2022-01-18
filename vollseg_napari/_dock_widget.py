@@ -775,9 +775,8 @@ def plugin_wrapper_vollseg():
                 if model_star is not None: 
                     
                     
-                       worker = _Segment3D(model_star, model_unet, x, axes, noise_model)
+                       worker = _Segment3D(model_star, model_unet, x, axes, noise_model,scale_out)
                        worker.returned.connect(return_segment)
-                       worker.start()
             
             if isinstance(model_star, StarDist2D):
 
@@ -810,9 +809,8 @@ def plugin_wrapper_vollseg():
                     for i in range(len(x.shape)):
                          plugin_star_parameters.n_tiles.value = plugin_star_parameters.n_tiles.value + (1,)
                          
-                worker = _Unet3D(model_unet, x, axes, noise_model)
+                worker = _Unet3D(model_unet, x, axes, noise_model,scale_out)
                 worker.returned.connect(return_segment_unet)
-                worker.start()         
                 
 
         progress_bar.hide()
@@ -1724,25 +1722,25 @@ def plugin_wrapper_vollseg():
         
           if plugin.model_den is not None:
 
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = pred
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, scale_out = pred
           elif plugin.model_den is None and plugin.model_star is not None:
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton = pred
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton,scale_out = pred
               
           if plugin.model_star is None:
               
               if plugin.model_den is None:
                   
-                   unet_mask = pred
+                   unet_mask,scale_out = pred
               else:
                   
-                  denoised_image, unet_mask = pred
+                  denoised_image, unet_mask, scale_out = pred
           if plugin.model_star is not None:
               plugin.viewer.value.add_image(
                   (
                       probability_map,
                       dict(
                           name='Base Watershed Image',
-                          scale=plugin.scale_out,
+                          scale=scale_out,
                           visible=False,
                       )
                       
@@ -1753,7 +1751,7 @@ def plugin_wrapper_vollseg():
                   (
                       labels,
                       dict(
-                          name='VollSeg labels', scale= plugin.scale_out, opacity=0.5, 
+                          name='VollSeg labels', scale= scale_out, opacity=0.5, 
                       )
                   )
               )
@@ -1763,7 +1761,7 @@ def plugin_wrapper_vollseg():
                       star_labels,
                       dict(
                           name='StarDist',
-                          scale=plugin.scale_out,
+                          scale=scale_out,
                           opacity=0.5,
                           visible=False,
                       )
@@ -1774,7 +1772,7 @@ def plugin_wrapper_vollseg():
                       unet_mask,
                       dict(
                           name='VollSeg Binary',
-                          scale=plugin.scale_out,
+                          scale=scale_out,
                           opacity=0.5,
                           visible=False,
                       )
@@ -1786,7 +1784,7 @@ def plugin_wrapper_vollseg():
                       Markers,
                       dict(
                           name='Markers',
-                          scale=plugin.scale_out,
+                          scale=scale_out,
                           opacity=0.5,
                           visible=False,
                       )
@@ -1797,7 +1795,7 @@ def plugin_wrapper_vollseg():
                       Skeleton,
                       dict(
                           name='Skeleton',
-                          scale=plugin.scale_out,
+                          scale=scale_out,
                           opacity=0.5,
                           visible=False,
                       )
@@ -1809,7 +1807,7 @@ def plugin_wrapper_vollseg():
                       denoised_image,
                       dict(
                           name='Denoised Image',
-                          scale=plugin.scale_out,
+                          scale=scale_out,
                           visible=False,
                       )
                   )
@@ -1818,13 +1816,13 @@ def plugin_wrapper_vollseg():
     
     def return_segment_unet(pred):
             
-              unet_mask = pred
+              unet_mask, scale_out = pred
               plugin.viewer.value.add_labels(
                   (
                       unet_mask,
                       dict(
                           name='VollSeg Binary',
-                          scale= plugin.scale_out,
+                          scale= scale_out,
                           opacity=0.5,
                           visible=False,
                       )
@@ -1832,16 +1830,16 @@ def plugin_wrapper_vollseg():
               )
              
     @thread_worker(connect = {"returned": return_segment_unet } )         
-    def _Unet3D( model_unet, x, axes, noise_model):
+    def _Unet3D( model_unet, x, axes, noise_model, scale_out):
     
         pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value,
                             iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
 
    
-        return pred            
+        return pred, scale_out            
              
     @thread_worker         
-    def _Segment3D(model_star, model_unet, x, axes, noise_model):
+    def _Segment3D(model_star, model_unet, x, axes, noise_model, scale_out):
     
         
         pred = VollSeg3D(
@@ -1862,7 +1860,7 @@ def plugin_wrapper_vollseg():
             iou_threshold = plugin_extra_parameters.iouthresh.value
             )   
                          
-        return pred  
+        return pred, scale_out  
 
 
           
