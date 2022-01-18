@@ -708,7 +708,6 @@ def plugin_wrapper_vollseg():
                     )
                 )
                 
-            print('Before Here', model_star, model_unet)    
             if model_star is None and model_unet is not None:
                     if plugin_star_parameters.n_tiles.value is None:
                         
@@ -1878,7 +1877,7 @@ def plugin_wrapper_vollseg():
                 app.process_events()
             app.process_events()
         res = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                             iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in progress(x_reorder)]
+                             iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in (x_reorder)]
             
         pred = res, scale_out, t, x
         return pred           
