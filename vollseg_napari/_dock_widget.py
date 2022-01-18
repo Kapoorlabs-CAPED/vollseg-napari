@@ -1737,7 +1737,7 @@ def plugin_wrapper_vollseg():
                   
                   denoised_image, unet_mask = pred
           if plugin.model_star is not None:
-              plugin.viewer.layers.add_image(
+              plugin.viewer.value.layers.add_image(
                   (
                       probability_map,
                       dict(
@@ -1749,7 +1749,7 @@ def plugin_wrapper_vollseg():
                   )
               )
 
-              plugin.viewer.layers.add_labels(
+              plugin.viewer.value.layers.add_labels(
                   (
                       labels,
                       dict(
@@ -1758,7 +1758,7 @@ def plugin_wrapper_vollseg():
                   )
               )
 
-              plugin.viewer.layers.add_labels(
+              plugin.viewer.value.layers.add_labels(
                   (
                       star_labels,
                       dict(
@@ -1769,7 +1769,7 @@ def plugin_wrapper_vollseg():
                       )
                   )
               )
-              plugin.viewer.layers.add_labels(
+              plugin.viewer.value.layers.add_labels(
                   (
                       unet_mask,
                       dict(
@@ -1781,7 +1781,7 @@ def plugin_wrapper_vollseg():
                   )
               )
 
-              plugin.viewer.layers.add_labels(
+              plugin.viewer.value.layers.add_labels(
                   (
                       Markers,
                       dict(
@@ -1792,7 +1792,7 @@ def plugin_wrapper_vollseg():
                       )
                   )
               )
-              plugin.viewer.layers.add_labels(
+              plugin.viewer.value.layers.add_labels(
                   (
                       Skeleton,
                       dict(
@@ -1804,7 +1804,7 @@ def plugin_wrapper_vollseg():
                   )
               )
           if plugin.noise_model is not None:
-              plugin.viewer.layers.add_image(
+              plugin.viewer.value.layers.add_image(
                   (
                       denoised_image,
                       dict(
@@ -1819,7 +1819,7 @@ def plugin_wrapper_vollseg():
     def return_segment_unet(pred):
             
               unet_mask = pred
-              plugin.viewer.layers.add_labels(
+              plugin.viewer.value.layers.add_labels(
                   (
                       unet_mask,
                       dict(
