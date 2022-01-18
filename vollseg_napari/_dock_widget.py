@@ -1997,12 +1997,12 @@ def plugin_wrapper_vollseg():
               
               
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
-    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, progress):
+    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
         
         
         res = []
         
-        for  count, _x in enumerate(progress(x_reorder)):
+        for  count, _x in enumerate(x_reorder):
              
             yield count
             res.append(VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
