@@ -714,10 +714,8 @@ def plugin_wrapper_vollseg():
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                    pred = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                         iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in progress(x_reorder)]
-                        
-
+                        worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out)
+                        worker.returned.connect(return_segment_unet)
 
             if noise_model is not None:
 
@@ -1844,6 +1842,16 @@ def plugin_wrapper_vollseg():
                           opacity=0.5,
                           visible=True)
              
+                
+    @thread_worker(connect = {"returned": return_segment_unet } )         
+    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out):
+    
+        res = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                             iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in plugin.progress(x_reorder)]
+            
+        pred = res, scale_out
+        return pred           
+              
     @thread_worker(connect = {"returned": return_segment_unet } )         
     def _Unet3D( model_unet, x, axes, noise_model, scale_out):
     
