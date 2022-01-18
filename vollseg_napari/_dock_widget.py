@@ -1738,22 +1738,22 @@ def plugin_wrapper_vollseg():
                   
                   denoised_image, unet_mask, scale_out = pred
                   
-          for layer in list(plugin.viewer.layers):
+          for layer in list(plugin.viewer.value.layers):
               
               if 'VollSeg Binary' in layer.name:
-                       plugin.viewer.layers.remove(layer)
+                       plugin.viewer.value.layers.remove(layer)
               if 'Base Watershed Image' in layer.name:
-                       plugin.viewer.layers.remove(layer)         
+                       plugin.viewer.value.layers.remove(layer)         
               if 'VollSeg labels' in layer.name:
-                       plugin.viewer.layers.remove(layer)
+                       plugin.viewer.value.layers.remove(layer)
               if 'StarDist' in layer.name:
-                       plugin.viewer.layers.remove(layer)
+                       plugin.viewer.value.layers.remove(layer)
               if 'Markers' in layer.name:
-                       plugin.viewer.layers.remove(layer)         
+                       plugin.viewer.value.layers.remove(layer)         
               if 'Skeleton' in layer.name:
-                       plugin.viewer.layers.remove(layer)
+                       plugin.viewer.value.layers.remove(layer)
               if 'Denoised Image' in layer.name:
-                       plugin.viewer.layers.remove(layer)         
+                       plugin.viewer.layers.value.remove(layer)         
                        
           if plugin.model_star is not None:
               plugin.viewer.value.add_image(
@@ -1832,10 +1832,10 @@ def plugin_wrapper_vollseg():
     def return_segment_unet(pred):
             
               unet_mask, scale_out = pred
-              for layer in list(plugin.viewer.layers):
+              for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
-                           plugin.viewer.layers.remove(layer)
+                           plugin.viewer.value.layers.remove(layer)
                            
               plugin.viewer.value.add_labels(
                   
