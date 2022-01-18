@@ -1739,98 +1739,86 @@ def plugin_wrapper_vollseg():
                   denoised_image, unet_mask, scale_out = pred
           if plugin.model_star is not None:
               plugin.viewer.value.add_image(
-                  (
+                  
                       probability_map,
-                      dict(
+                      
                           name='Base Watershed Image',
                           scale=scale_out,
                           visible=False,
-                      )
-                      
-                  )
+                     
               )
 
               plugin.viewer.value.add_labels(
-                  (
+                  
                       labels,
-                      dict(
+                    
                           name='VollSeg labels', scale= scale_out, opacity=0.5, 
-                      )
-                  )
+                  
               )
 
               plugin.viewer.value.add_labels(
-                  (
+                  
                       star_labels,
-                      dict(
+                      
                           name='StarDist',
                           scale=scale_out,
                           opacity=0.5,
                           visible=False,
-                      )
-                  )
+                     
               )
               plugin.viewer.value.add_labels(
-                  (
+                  
                       unet_mask,
-                      dict(
+                     
                           name='VollSeg Binary',
                           scale=scale_out,
                           opacity=0.5,
                           visible=False,
-                      )
-                  )
+                    
               )
 
               plugin.viewer.value.add_labels(
-                  (
+                  
                       Markers,
-                      dict(
+                      
                           name='Markers',
                           scale=scale_out,
                           opacity=0.5,
                           visible=False,
-                      )
-                  )
+                    
               )
               plugin.viewer.value.add_labels(
-                  (
+                  
                       Skeleton,
-                      dict(
+                      
                           name='Skeleton',
                           scale=scale_out,
                           opacity=0.5,
                           visible=False,
-                      )
-                  )
+                      
               )
           if plugin.noise_model is not None:
               plugin.viewer.value.add_image(
-                  (
+                  
                       denoised_image,
-                      dict(
+                   
                           name='Denoised Image',
                           scale=scale_out,
                           visible=False,
-                      )
+                      
                   )
-              ) 
+              
     
     
     def return_segment_unet(pred):
             
               unet_mask, scale_out = pred
               plugin.viewer.value.add_labels(
-                  (
-                      unet_mask,
-                      dict(
-                          name='VollSeg Binary',
+                  
+                      unet_mask, name ='VollSeg Binary',
                           scale= scale_out,
                           opacity=0.5,
-                          visible=True,
-                      )
-                  )
-              )
+                          visible=True)
              
     @thread_worker(connect = {"returned": return_segment_unet } )         
     def _Unet3D( model_unet, x, axes, noise_model, scale_out):
