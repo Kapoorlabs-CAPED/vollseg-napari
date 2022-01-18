@@ -582,6 +582,14 @@ def plugin_wrapper_vollseg():
                     if i != t
                 )
 
+
+            def progress_thread(current_time):
+                
+                progress_bar.label = 'VollSeg Prediction (frames)'
+                progress_bar.range = (0, n_frames)
+                progress_bar.value = current_time
+                progress_bar.show()
+                
             def progress(it, **kwargs):
                 progress_bar.label = 'VollSeg Prediction (frames)'
                 progress_bar.range = (0, n_frames)
@@ -649,7 +657,7 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1,1)
-                worker = _VollSeg3D_time(model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar)
+                worker = _VollSeg3D_time(model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x)
                 worker.returned.connect(return_segment)
             
 
@@ -662,7 +670,7 @@ def plugin_wrapper_vollseg():
                     
                     plugin_star_parameters.n_tiles.value = (1,1)
                 
-                worker = _VollSeg2D_time(model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar)
+                worker = _VollSeg2D_time(model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x)
                 worker.returned.connect(return_segment)
 
             if model_star is None and model_unet is not None:
@@ -670,9 +678,9 @@ def plugin_wrapper_vollseg():
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, progress)
+                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x)
                     worker.returned.connect(return_segment_unet_time)
-                    worker.yielded.connect(progress)
+                    worker.yielded.connect(progress_thread)
 
             
         else:
@@ -1914,20 +1922,9 @@ def plugin_wrapper_vollseg():
              
       
     @thread_worker(connect = {"returned": return_segment_time } )         
-    def _VollSeg3D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar):
+    def _VollSeg3D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
        
-       app = use_app()
-       def progress(it, **kwargs):
-           progress_bar.label = 'VollSeg Prediction (frames)'
-           progress_bar.range = (0, n_frames)
-           progress_bar.value = 0
-           progress_bar.show()
-           app.process_events()
-           for item in it:
-               yield item
-               plugin.progress_bar.increment()
-               app.process_events()
-           app.process_events()
+       
        res = tuple(
            zip(
                *tuple(
@@ -1947,7 +1944,7 @@ def plugin_wrapper_vollseg():
                        dounet=plugin_extra_parameters.dounet.value,
                        RGB = plugin_extra_parameters.isRGB.value,
                    )
-                   for _x in progress(x_reorder)
+                   for _x in (x_reorder)
                )
            )
        )
@@ -1955,20 +1952,9 @@ def plugin_wrapper_vollseg():
        return pred                
         
     @thread_worker(connect = {"returned": return_segment_time } )         
-    def _VollSeg2D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar):
+    def _VollSeg2D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
        
-       app = use_app()
-       def progress(it, **kwargs):
-           progress_bar.label = 'VollSeg Prediction (frames)'
-           progress_bar.range = (0, n_frames)
-           progress_bar.value = 0
-           progress_bar.show()
-           app.process_events()
-           for item in it:
-               yield item
-               plugin.progress_bar.increment()
-               app.process_events()
-           app.process_events()
+      
        res = tuple(
            zip(
                *tuple(
@@ -1988,7 +1974,7 @@ def plugin_wrapper_vollseg():
                        dounet=plugin_extra_parameters.dounet.value,
                        RGB = plugin_extra_parameters.isRGB.value,
                    )
-                   for _x in progress(x_reorder)
+                   for _x in (x_reorder)
                )
            )
        )
