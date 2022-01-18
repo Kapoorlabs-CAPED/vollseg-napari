@@ -306,7 +306,7 @@ def plugin_wrapper_vollseg():
         nms_thresh,
         set_thresholds,
         n_tiles,
-        defaults_star_parameters_button,
+        defaults_star_parameters_button
         
     ):
 
@@ -476,6 +476,7 @@ def plugin_wrapper_vollseg():
         persist=True,
         call_button=True,
     )
+    @thread_worker
     def plugin(
         viewer: napari.Viewer,
         label_head,
@@ -770,24 +771,13 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1,1)
-                if model_star is not None:    
-                        pred = VollSeg3D(
-                            x,
-                            model_unet,
-                            model_star,
-                            axes=axes,
-                            noise_model=noise_model,
-                            prob_thresh=plugin_star_parameters.prob_thresh.value,
-                            nms_thresh=plugin_star_parameters.nms_thresh.value,
-                            min_size_mask=plugin_extra_parameters.min_size_mask.value,
-                            min_size=plugin_extra_parameters.min_size.value,
-                            max_size=plugin_extra_parameters.max_size.value,
-                            n_tiles=plugin_star_parameters.n_tiles.value,
-                            UseProbability=plugin_extra_parameters.prob_map_watershed.value,
-                            dounet=plugin_extra_parameters.dounet.value,
-                            slice_merge = plugin_extra_parameters.slicemerge.value,
-                            iou_threshold = plugin_extra_parameters.iouthresh.value
-                            )
+                if model_star is not None: 
+                    
+                    
+                       worker = _Segment3D(model_star, model_unet, x, axes, noise_model)
+                       worker.returned.connect(return_segment)
+                       worker.start()
+                       
             
             if isinstance(model_star, StarDist2D):
 
@@ -819,10 +809,11 @@ def plugin_wrapper_vollseg():
                     plugin_star_parameters.n_tiles.value = 1
                     for i in range(len(x.shape)):
                          plugin_star_parameters.n_tiles.value = plugin_star_parameters.n_tiles.value + (1,)
-                pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value,
-                                    iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
-
-
+                         
+                worker = _Unet3D(model_unet, x, axes, noise_model)
+                worker.returned.connect(return_segment)
+                worker.start()         
+                
             if model_den is not None:
 
                 labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = pred
@@ -1851,6 +1842,48 @@ def plugin_wrapper_vollseg():
              plugin.call_button.enabled = False
              key_star = None, None
              select_model_star(key_star)
+             
+    @thread_worker         
+    def _Unet3D( model_unet, x, axes, noise_model):
+    
+        print('INside')
+        pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value,
+                            iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
+
+   
+        print('UNET pred', pred)                 
+        return pred            
+             
+    @thread_worker         
+    def _Segment3D(model_star, model_unet, x, axes, noise_model):
+    
+        
+        pred = VollSeg3D(
+            x,
+            model_unet,
+            model_star,
+            axes=axes,
+            noise_model=noise_model,
+            prob_thresh=plugin_star_parameters.prob_thresh.value,
+            nms_thresh=plugin_star_parameters.nms_thresh.value,
+            min_size_mask=plugin_extra_parameters.min_size_mask.value,
+            min_size=plugin_extra_parameters.min_size.value,
+            max_size=plugin_extra_parameters.max_size.value,
+            n_tiles=plugin_star_parameters.n_tiles.value,
+            UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+            dounet=plugin_extra_parameters.dounet.value,
+            slice_merge = plugin_extra_parameters.slicemerge.value,
+            iou_threshold = plugin_extra_parameters.iouthresh.value
+            )   
+                         
+        return pred  
+
+    def return_segment(pred):
+        
+          print('Prediction',pred)
+          
+
+                                 
              
     @change_handler(plugin.model_unet, plugin.model_unet_none, init=False) 
     def _model_change_unet(model_name_unet: str):
