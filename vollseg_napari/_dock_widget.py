@@ -813,7 +813,7 @@ def plugin_wrapper_vollseg():
                 worker = _Unet3D(model_unet, x, axes, noise_model)
                 worker.returned.connect(return_segment_unet)
                 worker.start()         
-            
+                
 
         progress_bar.hide()
         
@@ -1737,29 +1737,28 @@ def plugin_wrapper_vollseg():
                   
                   denoised_image, unet_mask = pred
           if plugin.model_star is not None:
-              plugin.viewer.layers.append(
+              plugin.viewer.layers.add_image(
                   (
                       probability_map,
                       dict(
                           name='Base Watershed Image',
                           scale=plugin.scale_out,
                           visible=False,
-                      ),
-                      'image',
+                      )
+                      
                   )
               )
 
-              plugin.viewer.layers.append(
+              plugin.viewer.layers.add_labels(
                   (
                       labels,
                       dict(
                           name='VollSeg labels', scale= plugin.scale_out, opacity=0.5, 
-                      ),
-                      'labels',
+                      )
                   )
               )
 
-              plugin.viewer.layers.append(
+              plugin.viewer.layers.add_labels(
                   (
                       star_labels,
                       dict(
@@ -1767,11 +1766,10 @@ def plugin_wrapper_vollseg():
                           scale=plugin.scale_out,
                           opacity=0.5,
                           visible=False,
-                      ),
-                      'labels',
+                      )
                   )
               )
-              plugin.viewer.layers.append(
+              plugin.viewer.layers.add_labels(
                   (
                       unet_mask,
                       dict(
@@ -1779,12 +1777,11 @@ def plugin_wrapper_vollseg():
                           scale=plugin.scale_out,
                           opacity=0.5,
                           visible=False,
-                      ),
-                      'labels',
+                      )
                   )
               )
 
-              plugin.viewer.layers.append(
+              plugin.viewer.layers.add_labels(
                   (
                       Markers,
                       dict(
@@ -1792,11 +1789,10 @@ def plugin_wrapper_vollseg():
                           scale=plugin.scale_out,
                           opacity=0.5,
                           visible=False,
-                      ),
-                      'labels',
+                      )
                   )
               )
-              plugin.viewer.layers.append(
+              plugin.viewer.layers.add_labels(
                   (
                       Skeleton,
                       dict(
@@ -1804,20 +1800,18 @@ def plugin_wrapper_vollseg():
                           scale=plugin.scale_out,
                           opacity=0.5,
                           visible=False,
-                      ),
-                      'labels',
+                      )
                   )
               )
           if plugin.noise_model is not None:
-              plugin.viewer.layers.append(
+              plugin.viewer.layers.add_image(
                   (
                       denoised_image,
                       dict(
                           name='Denoised Image',
                           scale=plugin.scale_out,
                           visible=False,
-                      ),
-                      'image',
+                      )
                   )
               ) 
     
@@ -1825,7 +1819,7 @@ def plugin_wrapper_vollseg():
     def return_segment_unet(pred):
             
               unet_mask = pred
-              plugin.viewer.layers.append(
+              plugin.viewer.layers.add_labels(
                   (
                       unet_mask,
                       dict(
@@ -1833,20 +1827,17 @@ def plugin_wrapper_vollseg():
                           scale= plugin.scale_out,
                           opacity=0.5,
                           visible=False,
-                      ),
-                      'labels',
+                      )
                   )
               )
              
     @thread_worker(connect = {"returned": return_segment_unet } )         
     def _Unet3D( model_unet, x, axes, noise_model):
     
-        print('INside')
         pred = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value,
                             iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
 
    
-        print('UNET pred', pred)                 
         return pred            
              
     @thread_worker         
