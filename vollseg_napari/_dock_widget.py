@@ -714,8 +714,8 @@ def plugin_wrapper_vollseg():
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                        worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out)
-                        worker.returned.connect(return_segment_unet)
+                        worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x)
+                        worker.returned.connect(return_segment_unet_time)
 
             if noise_model is not None:
 
@@ -733,13 +733,7 @@ def plugin_wrapper_vollseg():
                 labels, unet_mask, star_labels, probability_map, Markers = pred
                 
                 
-            elif model_star is None and model_unet is not None:
-                   unet_mask = pred
-                   
-                   unet_mask = np.asarray(unet_mask)
-                   unet_mask = unet_mask > 0
-                   unet_mask = np.moveaxis(unet_mask, 0, t)
-                   unet_mask = np.reshape(unet_mask, x.shape)
+            
             if model_star is not None: 
                     labels = np.asarray(labels)
         
@@ -1826,7 +1820,27 @@ def plugin_wrapper_vollseg():
                   )
               
     
-    
+    def return_segment_unet_time(pred):
+        
+        
+                     
+                     
+              unet_mask, scale_out, t, x = pred
+              unet_mask = np.asarray(unet_mask)
+              unet_mask = unet_mask > 0
+              unet_mask = np.moveaxis(unet_mask, 0, t.value)
+              unet_mask = np.reshape(unet_mask, x.shape)
+              for layer in list(plugin.viewer.value.layers):
+                  
+                  if 'VollSeg Binary' in layer.name:
+                           plugin.viewer.value.layers.remove(layer)
+                           
+              plugin.viewer.value.add_labels(
+                  
+                      unet_mask, name ='VollSeg Binary',
+                          scale= scale_out,
+                          opacity=0.5,
+                          visible=True)
     def return_segment_unet(pred):
             
               unet_mask, scale_out = pred
@@ -1843,13 +1857,13 @@ def plugin_wrapper_vollseg():
                           visible=True)
              
                 
-    @thread_worker(connect = {"returned": return_segment_unet } )         
-    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out):
+    @thread_worker(connect = {"returned": return_segment_unet_time } )         
+    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
     
         res = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                              iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in plugin.progress(x_reorder)]
             
-        pred = res, scale_out
+        pred = res, scale_out, t, x
         return pred           
               
     @thread_worker(connect = {"returned": return_segment_unet } )         
