@@ -649,31 +649,8 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1,1)
-                pred = tuple(
-                    zip(
-                        *tuple(
-                            VollSeg3D(
-                                _x,
-                                model_unet,
-                                model_star,
-                                axes=axes_reorder,
-                                noise_model=noise_model,
-                                prob_thresh=plugin_star_parameters.prob_thresh.value,
-                                nms_thresh=plugin_star_parameters.nms_thresh.value,
-                                min_size_mask=plugin_extra_parameters.min_size_mask.value,
-                                min_size=plugin_extra_parameters.min_size.value,
-                                max_size=plugin_extra_parameters.max_size.value,
-                                n_tiles=plugin_star_parameters.n_tiles.value,
-                                UseProbability=plugin_extra_parameters.prob_map_watershed.Value,
-                                dounet=plugin_extra_parameters.dounet.value,
-                                slice_merge = plugin_extra_parameters.slicemerge.value,
-                                iou_threshold = plugin_extra_parameters.iouthresh.value
-                            )
-                            for _x in progress(x_reorder)
-                        )
-                    )
-                )
-                
+                worker = _VollSeg3D_time(model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar)
+                worker.returned.connect(return_segment)
             
 
             if isinstance(model_star, StarDist2D):
@@ -684,76 +661,20 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1)
-                pred = tuple(
-                    zip(
-                        *tuple(
-                            VollSeg2D(
-                                _x,
-                                model_unet,
-                                model_star,
-                                axes=axes_reorder,
-                                noise_model=noise_model,
-                                prob_thresh=plugin_star_parameters.prob_thresh.value,
-                                nms_thresh=plugin_star_parameters.nms_thresh.value,
-                                min_size_mask=plugin_extra_parameters.min_size_mask.value,
-                                min_size=plugin_extra_parameters.min_size.value,
-                                max_size=plugin_extra_parameters.max_size.value,
-                                n_tiles=plugin_star_parameters.n_tiles.value,
-                                UseProbability=plugin_extra_parameters.prob_map_watershed.value,
-                                dounet=plugin_extra_parameters.dounet.value,
-                                RGB = plugin_extra_parameters.isRGB.value,
-                            )
-                            for _x in progress(x_reorder)
-                        )
-                    )
-                )
                 
+                worker = _VollSeg2D_time(model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar)
+                worker.returned.connect(return_segment)
+
             if model_star is None and model_unet is not None:
                     if plugin_star_parameters.n_tiles.value is None:
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar)
+                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, progress)
                     worker.returned.connect(return_segment_unet_time)
-                    worker.start()
+                    worker.yielded.connect(progress)
 
-            if noise_model is not None:
-
-                labels, unet_mask, star_labels, probability_map, Markers, denoised_image = pred
-                
-                denoised_image = np.asarray(denoised_image)
-    
-                denoised_image = np.moveaxis(denoised_image, 0, t)
-                
-                denoised_image = np.reshape(denoised_image, x.shape)
-                
-                
-            elif model_star is not None:
-                
-                labels, unet_mask, star_labels, probability_map, Markers = pred
-                
-                
             
-            if model_star is not None: 
-                    labels = np.asarray(labels)
-        
-                    labels = np.moveaxis(labels, 0, t)
-                    
-                    labels = np.reshape(labels, x.shape)
-                    
-                    star_labels = np.asarray(star_labels)
-        
-                    star_labels = np.moveaxis(star_labels, 0, t)
-                    
-                    star_labels = np.reshape(star_labels, x.shape)
-                    probability_map = np.asarray(probability_map)
-        
-                    probability_map = np.moveaxis(probability_map, 0, t)
-                    probability_map = np.reshape(probability_map, x.shape)
-                    Markers = np.asarray(Markers)
-        
-                    Markers = np.moveaxis(Markers, 0, t)
-                    Markers = np.reshape(Markers, x.shape)
         else:
             
             if model_den is not None:
@@ -1711,6 +1632,137 @@ def plugin_wrapper_vollseg():
              
              
              
+    def return_segment_time(pred):
+
+        res, scale_out, t, x = pred
+        if plugin.noise_model is not None:
+
+            labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
+            
+            denoised_image = np.asarray(denoised_image)
+
+            denoised_image = np.moveaxis(denoised_image, 0, t)
+            
+            denoised_image = np.reshape(denoised_image, x.shape)
+            
+            
+        elif plugin.model_star is not None:
+            
+            labels, unet_mask, star_labels, probability_map, Markers, Skeleton = res
+            
+            
+        
+        if plugin.model_star is not None: 
+                labels = np.asarray(labels)
+    
+                labels = np.moveaxis(labels, 0, t)
+                
+                labels = np.reshape(labels, x.shape)
+                
+                star_labels = np.asarray(star_labels)
+    
+                star_labels = np.moveaxis(star_labels, 0, t)
+                
+                star_labels = np.reshape(star_labels, x.shape)
+                probability_map = np.asarray(probability_map)
+    
+                probability_map = np.moveaxis(probability_map, 0, t)
+                probability_map = np.reshape(probability_map, x.shape)
+                Markers = np.asarray(Markers)
+    
+                Markers = np.moveaxis(Markers, 0, t)
+                Markers = np.reshape(Markers, x.shape)     
+                
+                for layer in list(plugin.viewer.value.layers):
+                    
+                    if 'VollSeg Binary' in layer.name:
+                             plugin.viewer.value.layers.remove(layer)
+                    if 'Base Watershed Image' in layer.name:
+                             plugin.viewer.value.layers.remove(layer)         
+                    if 'VollSeg labels' in layer.name:
+                             plugin.viewer.value.layers.remove(layer)
+                    if 'StarDist' in layer.name:
+                             plugin.viewer.value.layers.remove(layer)
+                    if 'Markers' in layer.name:
+                             plugin.viewer.value.layers.remove(layer)         
+                    if 'Skeleton' in layer.name:
+                             plugin.viewer.value.layers.remove(layer)
+                    if 'Denoised Image' in layer.name:
+                             plugin.viewer.layers.value.remove(layer)         
+                             
+                if plugin.model_star is not None:
+                    plugin.viewer.value.add_image(
+                        
+                            probability_map,
+                            
+                                name='Base Watershed Image',
+                                scale=scale_out,
+                                visible=False,
+                           
+                    )
+
+                    plugin.viewer.value.add_labels(
+                        
+                            labels,
+                          
+                                name='VollSeg labels', scale= scale_out, opacity=0.5, 
+                        
+                    )
+
+                    plugin.viewer.value.add_labels(
+                        
+                            star_labels,
+                            
+                                name='StarDist',
+                                scale=scale_out,
+                                opacity=0.5,
+                                visible=False,
+                           
+                    )
+                    
+                    plugin.viewer.value.add_labels(
+                        
+                            unet_mask,
+                           
+                                name='VollSeg Binary',
+                                scale=scale_out,
+                                opacity=0.5,
+                                visible=False,
+                          
+                    )
+
+                    plugin.viewer.value.add_labels(
+                        
+                            Markers,
+                            
+                                name='Markers',
+                                scale=scale_out,
+                                opacity=0.5,
+                                visible=False,
+                          
+                    )
+                    plugin.viewer.value.add_labels(
+                        
+                            Skeleton,
+                            
+                                name='Skeleton',
+                                scale=scale_out,
+                                opacity=0.5,
+                                visible=False,
+                            
+                    )
+                if plugin.noise_model is not None:
+                    plugin.viewer.value.add_image(
+                        
+                            denoised_image,
+                         
+                                name='Denoised Image',
+                                scale=scale_out,
+                                visible=False,
+                            
+                        )
+                
+                
     
     def return_segment(pred):
               
@@ -1860,24 +1912,101 @@ def plugin_wrapper_vollseg():
                           opacity=0.5,
                           visible=True)
              
-                
-    @thread_worker(connect = {"returned": return_segment_unet_time } )         
-    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar):
+      
+    @thread_worker(connect = {"returned": return_segment_time } )         
+    def _VollSeg3D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar):
+       
+       app = use_app()
+       def progress(it, **kwargs):
+           progress_bar.label = 'VollSeg Prediction (frames)'
+           progress_bar.range = (0, n_frames)
+           progress_bar.value = 0
+           progress_bar.show()
+           app.process_events()
+           for item in it:
+               yield item
+               plugin.progress_bar.increment()
+               app.process_events()
+           app.process_events()
+       res = tuple(
+           zip(
+               *tuple(
+                   VollSeg2D(
+                       _x,
+                       model_unet,
+                       model_star,
+                       axes=axes_reorder,
+                       noise_model=noise_model,
+                       prob_thresh=plugin_star_parameters.prob_thresh.value,
+                       nms_thresh=plugin_star_parameters.nms_thresh.value,
+                       min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                       min_size=plugin_extra_parameters.min_size.value,
+                       max_size=plugin_extra_parameters.max_size.value,
+                       n_tiles=plugin_star_parameters.n_tiles.value,
+                       UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+                       dounet=plugin_extra_parameters.dounet.value,
+                       RGB = plugin_extra_parameters.isRGB.value,
+                   )
+                   for _x in progress(x_reorder)
+               )
+           )
+       )
+       pred = res, scale_out, t, x
+       return pred                
         
-        app = use_app()
-        def progress(it, **kwargs):
-            progress_bar.label = 'VollSeg Prediction (frames)'
-            progress_bar.range = (0, n_frames)
-            progress_bar.value = 0
-            progress_bar.show()
-            app.process_events()
-            for item in it:
-                yield item
-                plugin.progress_bar.increment()
-                app.process_events()
-            app.process_events()
-        res = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                             iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in (x_reorder)]
+    @thread_worker(connect = {"returned": return_segment_time } )         
+    def _VollSeg2D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar):
+       
+       app = use_app()
+       def progress(it, **kwargs):
+           progress_bar.label = 'VollSeg Prediction (frames)'
+           progress_bar.range = (0, n_frames)
+           progress_bar.value = 0
+           progress_bar.show()
+           app.process_events()
+           for item in it:
+               yield item
+               plugin.progress_bar.increment()
+               app.process_events()
+           app.process_events()
+       res = tuple(
+           zip(
+               *tuple(
+                   VollSeg2D(
+                       _x,
+                       model_unet,
+                       model_star,
+                       axes=axes_reorder,
+                       noise_model=noise_model,
+                       prob_thresh=plugin_star_parameters.prob_thresh.value,
+                       nms_thresh=plugin_star_parameters.nms_thresh.value,
+                       min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                       min_size=plugin_extra_parameters.min_size.value,
+                       max_size=plugin_extra_parameters.max_size.value,
+                       n_tiles=plugin_star_parameters.n_tiles.value,
+                       UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+                       dounet=plugin_extra_parameters.dounet.value,
+                       RGB = plugin_extra_parameters.isRGB.value,
+                   )
+                   for _x in progress(x_reorder)
+               )
+           )
+       )
+       pred = res, scale_out, t, x
+       return pred            
+              
+              
+    @thread_worker(connect = {"returned": return_segment_unet_time } )         
+    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, progress):
+        
+        
+        res = []
+        
+        for  count, _x in enumerate(progress(x_reorder)):
+             
+            yield count
+            res.append(VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
             
         pred = res, scale_out, t, x
         return pred           
