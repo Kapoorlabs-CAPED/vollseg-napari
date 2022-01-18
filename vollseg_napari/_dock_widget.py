@@ -714,7 +714,7 @@ def plugin_wrapper_vollseg():
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, progress)
+                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar)
                     worker.returned.connect(return_segment_unet_time)
                     worker.start()
 
@@ -1863,8 +1863,20 @@ def plugin_wrapper_vollseg():
              
                 
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
-    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, progress):
-        print("not here")
+    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x, n_frames, progress_bar):
+        
+        app = use_app()
+        def progress(it, **kwargs):
+            progress_bar.label = 'VollSeg Prediction (frames)'
+            progress_bar.range = (0, n_frames)
+            progress_bar.value = 0
+            progress_bar.show()
+            app.process_events()
+            for item in it:
+                yield item
+                plugin.progress_bar.increment()
+                app.process_events()
+            app.process_events()
         res = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                              iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in progress(x_reorder)]
             
