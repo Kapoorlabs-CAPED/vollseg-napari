@@ -708,14 +708,15 @@ def plugin_wrapper_vollseg():
                     )
                 )
                 
-                
+            print('Before Here', model_star, model_unet)    
             if model_star is None and model_unet is not None:
                     if plugin_star_parameters.n_tiles.value is None:
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
                         
-                        worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x)
-                        worker.returned.connect(return_segment_unet_time)
+                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x)
+                    worker.returned.connect(return_segment_unet_time)
+                    worker.start()
 
             if noise_model is not None:
 
@@ -1830,6 +1831,7 @@ def plugin_wrapper_vollseg():
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
               unet_mask = np.reshape(unet_mask, x.shape)
+              print(t, x.shape)
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
@@ -1862,7 +1864,7 @@ def plugin_wrapper_vollseg():
                 
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
     def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
-        print(t)
+        print("not here")
         res = [VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                              iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for _x in plugin.progress(x_reorder)]
             
