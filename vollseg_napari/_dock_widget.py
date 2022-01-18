@@ -587,7 +587,7 @@ def plugin_wrapper_vollseg():
                 
                 progress_bar.label = 'VollSeg Prediction (frames)'
                 progress_bar.range = (0, n_frames)
-                progress_bar.value = current_time
+                progress_bar.value = current_time + 1
                 progress_bar.show()
                 
             def progress(it, **kwargs):
