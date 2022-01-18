@@ -626,7 +626,10 @@ def plugin_wrapper_vollseg():
         if model_unet is not None:
                 # semantic output axes of predictions
                 assert model_unet._axes_out[-1] == 'C'
-                axes_out = list(model_unet._axes_out[:-1])        
+                axes_out = list(model_unet._axes_out[:-1])   
+                
+        scale_in_dict = dict(zip(axes, image.scale))
+        scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]        
         if 'T' in axes:
             x_reorder = np.moveaxis(x, t, 0)
             
@@ -634,7 +637,7 @@ def plugin_wrapper_vollseg():
             axes_out.insert(t, 'T')
             # determine scale for output axes
             scale_in_dict = dict(zip(axes, image.scale))
-            scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]
+            scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]     
             if model_den is not None:
                 noise_model = plugin.model_den
 
