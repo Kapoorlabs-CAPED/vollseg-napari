@@ -632,7 +632,9 @@ def plugin_wrapper_vollseg():
             
             axes_reorder = axes.replace('T', '')
             axes_out.insert(t, 'T')
-            
+            # determine scale for output axes
+            scale_in_dict = dict(zip(axes, image.scale))
+            scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]
             if model_den is not None:
                 noise_model = plugin.model_den
 
@@ -776,7 +778,6 @@ def plugin_wrapper_vollseg():
                        worker = _Segment3D(model_star, model_unet, x, axes, noise_model)
                        worker.returned.connect(return_segment)
                        worker.start()
-                       pred = return_segment
             
             if isinstance(model_star, StarDist2D):
 
@@ -810,140 +811,13 @@ def plugin_wrapper_vollseg():
                          plugin_star_parameters.n_tiles.value = plugin_star_parameters.n_tiles.value + (1,)
                          
                 worker = _Unet3D(model_unet, x, axes, noise_model)
-                worker.returned.connect(return_segment)
+                worker.returned.connect(return_segment_unet)
                 worker.start()         
-                pred = return_segment
-            if model_den is not None:
-
-                labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = pred
-            elif model_den is None and model_star is not None:
-                labels, unet_mask, star_labels, probability_map, Markers, Skeleton = pred
-                
-            if model_star is None:
-                
-                if model_den is None:
-                    
-                     unet_mask = pred
-                else:
-                    
-                    denoised_image, unet_mask = pred
+            
 
         progress_bar.hide()
-        # determine scale for output axes
-        scale_in_dict = dict(zip(axes, image.scale))
-        scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]
-            
-        layers = []
-
         
             
-        if model_star is not None:
-            layers.append(
-                (
-                    probability_map,
-                    dict(
-                        name='Base Watershed Image',
-                        scale=scale_out,
-                        visible=False,
-                        **lkwargs,
-                    ),
-                    'image',
-                )
-            )
-
-            layers.append(
-                (
-                    labels,
-                    dict(
-                        name='VollSeg labels', scale=scale_out, opacity=0.5, **lkwargs,
-                    ),
-                    'labels',
-                )
-            )
-
-            layers.append(
-                (
-                    star_labels,
-                    dict(
-                        name='StarDist',
-                        scale=scale_out,
-                        opacity=0.5,
-                        visible=False,
-                        **lkwargs,
-                    ),
-                    'labels',
-                )
-            )
-            layers.append(
-                (
-                    unet_mask,
-                    dict(
-                        name='VollSeg Binary',
-                        scale=scale_out,
-                        opacity=0.5,
-                        visible=False,
-                        **lkwargs,
-                    ),
-                    'labels',
-                )
-            )
-
-            layers.append(
-                (
-                    Markers,
-                    dict(
-                        name='Markers',
-                        scale=scale_out,
-                        opacity=0.5,
-                        visible=False,
-                        **lkwargs,
-                    ),
-                    'labels',
-                )
-            )
-            layers.append(
-                (
-                    Skeleton,
-                    dict(
-                        name='Skeleton',
-                        scale=scale_out,
-                        opacity=0.5,
-                        visible=False,
-                        **lkwargs,
-                    ),
-                    'labels',
-                )
-            )
-        if noise_model is not None:
-            layers.append(
-                (
-                    denoised_image,
-                    dict(
-                        name='Denoised Image',
-                        scale=scale_out,
-                        visible=False,
-                        **lkwargs,
-                    ),
-                    'image',
-                )
-            )
-
-        if model_unet is not None:
-            layers.append(
-                (
-                    unet_mask,
-                    dict(
-                        name='VollSeg Binary',
-                        scale=scale_out,
-                        opacity=0.5,
-                        visible=False,
-                        **lkwargs,
-                    ),
-                    'labels',
-                )
-            )
-
-        return layers
 
     plugin.axes.value = ''
     plugin_star_parameters.n_tiles.value = DEFAULTS_STAR_PARAMETERS['n_tiles']
@@ -1842,7 +1716,129 @@ def plugin_wrapper_vollseg():
              key_star = None, None
              select_model_star(key_star)
              
-    @thread_worker         
+             
+             
+    
+    def return_segment(pred):
+              
+        
+          if plugin.model_den is not None:
+
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = pred
+          elif plugin.model_den is None and plugin.model_star is not None:
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton = pred
+              
+          if plugin.model_star is None:
+              
+              if plugin.model_den is None:
+                  
+                   unet_mask = pred
+              else:
+                  
+                  denoised_image, unet_mask = pred
+          if plugin.model_star is not None:
+              plugin.viewer.layers.append(
+                  (
+                      probability_map,
+                      dict(
+                          name='Base Watershed Image',
+                          scale=plugin.scale_out,
+                          visible=False,
+                      ),
+                      'image',
+                  )
+              )
+
+              plugin.viewer.layers.append(
+                  (
+                      labels,
+                      dict(
+                          name='VollSeg labels', scale= plugin.scale_out, opacity=0.5, 
+                      ),
+                      'labels',
+                  )
+              )
+
+              plugin.viewer.layers.append(
+                  (
+                      star_labels,
+                      dict(
+                          name='StarDist',
+                          scale=plugin.scale_out,
+                          opacity=0.5,
+                          visible=False,
+                      ),
+                      'labels',
+                  )
+              )
+              plugin.viewer.layers.append(
+                  (
+                      unet_mask,
+                      dict(
+                          name='VollSeg Binary',
+                          scale=plugin.scale_out,
+                          opacity=0.5,
+                          visible=False,
+                      ),
+                      'labels',
+                  )
+              )
+
+              plugin.viewer.layers.append(
+                  (
+                      Markers,
+                      dict(
+                          name='Markers',
+                          scale=plugin.scale_out,
+                          opacity=0.5,
+                          visible=False,
+                      ),
+                      'labels',
+                  )
+              )
+              plugin.viewer.layers.append(
+                  (
+                      Skeleton,
+                      dict(
+                          name='Skeleton',
+                          scale=plugin.scale_out,
+                          opacity=0.5,
+                          visible=False,
+                      ),
+                      'labels',
+                  )
+              )
+          if plugin.noise_model is not None:
+              plugin.viewer.layers.append(
+                  (
+                      denoised_image,
+                      dict(
+                          name='Denoised Image',
+                          scale=plugin.scale_out,
+                          visible=False,
+                      ),
+                      'image',
+                  )
+              ) 
+    
+    
+    def return_segment_unet(pred):
+            
+              unet_mask = pred
+              plugin.viewer.layers.append(
+                  (
+                      unet_mask,
+                      dict(
+                          name='VollSeg Binary',
+                          scale= plugin.scale_out,
+                          opacity=0.5,
+                          visible=False,
+                      ),
+                      'labels',
+                  )
+              )
+             
+    @thread_worker(connect = {"returned": return_segment_unet } )         
     def _Unet3D( model_unet, x, axes, noise_model):
     
         print('INside')
@@ -1877,9 +1873,7 @@ def plugin_wrapper_vollseg():
                          
         return pred  
 
-    def return_segment(pred):
-        
-          print('Prediction',pred)
+
           
 
                                  
