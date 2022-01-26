@@ -1643,9 +1643,9 @@ def plugin_wrapper_vollseg():
     def return_segment_time(pred):
 
         res, scale_out, t, x = pred
-        if plugin.noise_model is not None:
+        if plugin.model_den.value is not None:
 
-            labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
+            labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = zip(*res)
             
             denoised_image = np.asarray(denoised_image)
 
@@ -1654,13 +1654,13 @@ def plugin_wrapper_vollseg():
             denoised_image = np.reshape(denoised_image, x.shape)
             
             
-        elif plugin.model_star is not None:
+        elif plugin.model_star.value is not None:
             
-            labels, unet_mask, star_labels, probability_map, Markers, Skeleton = res
+            labels, unet_mask, star_labels, probability_map, Markers, Skeleton = zip(*res)
             
             
         
-        if plugin.model_star is not None: 
+        if plugin.model_star.value is not None: 
                 labels = np.asarray(labels)
     
                 labels = np.moveaxis(labels, 0, t)
@@ -1698,7 +1698,7 @@ def plugin_wrapper_vollseg():
                     if 'Denoised Image' in layer.name:
                              plugin.viewer.layers.value.remove(layer)         
                              
-                if plugin.model_star is not None:
+                if plugin.model_star.value is not None:
                     plugin.viewer.value.add_image(
                         
                             probability_map,
@@ -1759,7 +1759,7 @@ def plugin_wrapper_vollseg():
                                 visible=False,
                             
                     )
-                if plugin.noise_model is not None:
+                if plugin.model_den.value is not None:
                     plugin.viewer.value.add_image(
                         
                             denoised_image,
@@ -1777,13 +1777,13 @@ def plugin_wrapper_vollseg():
         
           if plugin.model_den is not None:
 
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, scale_out = pred
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, scale_out = zip(*pred)
           elif plugin.model_den is None and plugin.model_star is not None:
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton,scale_out = pred
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton,scale_out = zip(*pred)
               
           if plugin.model_star is None:
               
-              unet_mask, denoised_image, scale_out = pred
+              unet_mask, denoised_image, scale_out = zip(*pred)
                   
           for layer in list(plugin.viewer.value.layers):
               
@@ -1802,7 +1802,7 @@ def plugin_wrapper_vollseg():
               if 'Denoised Image' in layer.name:
                        plugin.viewer.layers.value.remove(layer)         
                        
-          if plugin.model_star is not None:
+          if plugin.model_star.value is not None:
               plugin.viewer.value.add_image(
                   
                       probability_map,
@@ -1863,7 +1863,7 @@ def plugin_wrapper_vollseg():
                           visible=False,
                       
               )
-          if plugin.noise_model is not None:
+          if plugin.model_den.value is not None:
               plugin.viewer.value.add_image(
                   
                       denoised_image,
@@ -1880,8 +1880,8 @@ def plugin_wrapper_vollseg():
         
                      
                      
-              unet_mask, denoised_image, scale_out, t, x = pred
-              
+              res, scale_out, t, x = pred
+              unet_mask, denoised_image = zip(*res)
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
@@ -1904,7 +1904,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              if plugin.noise_model is not None:
+              if plugin.model_den.value is not None:
                   plugin.viewer.value.add_image(
                       
                           denoised_image,
@@ -1918,7 +1918,8 @@ def plugin_wrapper_vollseg():
               
     def return_segment_unet(pred):
             
-              unet_mask, denoised_image, scale_out = pred
+              res, scale_out = pred
+              unet_mask, denoised_image = zip(*res)
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
@@ -1933,7 +1934,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              if plugin.noise_model is not None:
+              if plugin.model_den.value is not None:
                  plugin.viewer.value.add_image(
                      
                          denoised_image,
@@ -1978,10 +1979,12 @@ def plugin_wrapper_vollseg():
     def _VollSeg2D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
        
       
-       res = tuple(
-           zip(
-               *tuple(
-                   VollSeg2D(
+       pre_res = []
+       for  count, _x in enumerate(x_reorder):
+            
+           yield count
+           
+           pre_res.append(VollSeg2D(
                        _x,
                        model_unet,
                        model_star,
@@ -1996,12 +1999,9 @@ def plugin_wrapper_vollseg():
                        UseProbability=plugin_extra_parameters.prob_map_watershed.value,
                        dounet=plugin_extra_parameters.dounet.value,
                        RGB = plugin_extra_parameters.isRGB.value,
-                   )
-                   for _x in (x_reorder)
-               )
-           )
-       )
-       pred = res, scale_out, t, x
+                   ))
+                   
+       pred = pre_res, scale_out, t, x
        return pred            
               
               
@@ -2016,8 +2016,7 @@ def plugin_wrapper_vollseg():
             pre_res.append(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                                  iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
         
-        unet_mask, denoised_image = zip(*pre_res)    
-        pred = unet_mask, denoised_image, scale_out, t, x
+        pred = pre_res, scale_out, t, x
         return pred           
               
     @thread_worker(connect = {"returned": return_segment_unet } )         
