@@ -2018,10 +2018,10 @@ def plugin_wrapper_vollseg():
              
             yield count
             pre_res.append(
-                zip(
-                    *tuple(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))))
-        res = tuple(pre_res)    
+                tuple(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)))
+        res = tuple(zip(
+            *pre_res))    
         pred = res, scale_out, t, x
         return pred           
               
