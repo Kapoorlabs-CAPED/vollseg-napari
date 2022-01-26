@@ -361,8 +361,8 @@ def plugin_wrapper_vollseg():
         iouthresh=dict(
             widget_type='FloatSpinBox',
             label='Threshold linkining',
-            min=0,
-            max=10,
+            min=0.0,
+            max=10.0,
             step=0.1,
             value=DEFAULTS_VOLL_PARAMETERS['iouthresh'],
         ),
@@ -1881,8 +1881,9 @@ def plugin_wrapper_vollseg():
                      
                      
               res, scale_out, t, x = pred
-              print(res)
+              
               unet_mask, denoised_image = res 
+              print(unet_mask.shape, denoised_image.shape)
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
@@ -2011,16 +2012,16 @@ def plugin_wrapper_vollseg():
     def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
         
         
-        res = []
+        pre_res = []
         
         for  count, _x in enumerate(x_reorder):
              
             yield count
-            res = tuple(
+            pre_res.append(
                 zip(
                     *tuple(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                                  iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))))
-            
+        res = tuple(pre_res)    
         pred = res, scale_out, t, x
         return pred           
               
