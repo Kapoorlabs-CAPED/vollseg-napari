@@ -2011,16 +2011,14 @@ def plugin_wrapper_vollseg():
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
     def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
         
-        
-        pre_res = []
+    
         
         for  count, _x in enumerate(x_reorder):
              
             yield count
-            pre_res.append(
-                VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
-        res = tuple(zip(*tuple(pre_res)))    
+            res = VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
+            res = tuple(zip(*tuple(res)))    
         pred = res, scale_out, t, x
         return pred           
               
