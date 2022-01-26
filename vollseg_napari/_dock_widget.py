@@ -1881,6 +1881,7 @@ def plugin_wrapper_vollseg():
                      
                      
               res, scale_out, t, x = pred
+              print(res)
               unet_mask, denoised_image = res 
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
@@ -2026,8 +2027,8 @@ def plugin_wrapper_vollseg():
     @thread_worker(connect = {"returned": return_segment_unet } )         
     def _Unet3D( model_unet, x, axes, noise_model, scale_out):
     
-        res = VollSeg_unet(x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, RGB = plugin_extra_parameters.isRGB.value,
-                            iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
+        res = VollSeg(x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                     iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
 
         pred = res, scale_out
         return pred           
