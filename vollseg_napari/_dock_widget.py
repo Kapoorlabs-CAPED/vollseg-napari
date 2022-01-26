@@ -1880,10 +1880,8 @@ def plugin_wrapper_vollseg():
         
                      
                      
-              res, scale_out, t, x = pred
+              unet_mask, denoised_image, scale_out, t, x = pred
               
-              unet_mask, denoised_image = res 
-              print(unet_mask.shape, denoised_image.shape)
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
@@ -1920,8 +1918,7 @@ def plugin_wrapper_vollseg():
               
     def return_segment_unet(pred):
             
-              res, scale_out = pred
-              unet_mask, denoised_image = res 
+              unet_mask, denoised_image, scale_out = pred
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
@@ -2012,17 +2009,15 @@ def plugin_wrapper_vollseg():
     def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
         
     
+        pre_res = []
+        for  count, _x in enumerate(x_reorder):
+             
+            yield count
+            pre_res.append(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
         
-       
-        res = tuple(
-                zip(
-                    *tuple(
-                        (VollSeg_unet(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value) for  _x in x_reorder))))
-        
-            
-     
-        pred = res, scale_out, t, x
+        unet_mask, denoised_image = zip(*pre_res)    
+        pred = unet_mask, denoised_image, scale_out, t, x
         return pred           
               
     @thread_worker(connect = {"returned": return_segment_unet } )         
