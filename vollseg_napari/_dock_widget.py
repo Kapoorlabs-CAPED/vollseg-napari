@@ -1643,7 +1643,7 @@ def plugin_wrapper_vollseg():
     def return_segment_time(pred):
 
         res, scale_out, t, x = pred
-        if plugin.model_den.value is not None:
+        if plugin.model_den is not None:
 
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = zip(*res)
             
@@ -1654,13 +1654,13 @@ def plugin_wrapper_vollseg():
             denoised_image = np.reshape(denoised_image, x.shape)
             
             
-        elif plugin.model_star.value is not None:
+        elif plugin.model_star is not None:
             
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton = zip(*res)
             
             
         
-        if plugin.model_star.value is not None: 
+        if plugin.model_star is not None: 
                 labels = np.asarray(labels)
     
                 labels = np.moveaxis(labels, 0, t)
@@ -1698,7 +1698,7 @@ def plugin_wrapper_vollseg():
                     if 'Denoised Image' in layer.name:
                              plugin.viewer.layers.value.remove(layer)         
                              
-                if plugin.model_star.value is not None:
+                if plugin.model_star is not None:
                     plugin.viewer.value.add_image(
                         
                             probability_map,
@@ -1759,7 +1759,7 @@ def plugin_wrapper_vollseg():
                                 visible=False,
                             
                     )
-                if plugin.model_den.value is not None:
+                if plugin.model_den is not None:
                     plugin.viewer.value.add_image(
                         
                             denoised_image,
@@ -1802,7 +1802,7 @@ def plugin_wrapper_vollseg():
               if 'Denoised Image' in layer.name:
                        plugin.viewer.layers.value.remove(layer)         
                        
-          if plugin.model_star.value is not None:
+          if plugin.model_star is not None:
               plugin.viewer.value.add_image(
                   
                       probability_map,
@@ -1863,7 +1863,7 @@ def plugin_wrapper_vollseg():
                           visible=False,
                       
               )
-          if plugin.model_den.value is not None:
+          if plugin.model_den is not None:
               plugin.viewer.value.add_image(
                   
                       denoised_image,
@@ -1896,7 +1896,7 @@ def plugin_wrapper_vollseg():
                   if 'VollSeg Binary' in layer.name:
                            plugin.viewer.value.layers.remove(layer)
                   if 'Denoised Image' in layer.name:
-                           plugin.viewer.layers.value.remove(layer)     
+                           plugin.viewer.value.layers.remove(layer)     
                            
               plugin.viewer.value.add_labels(
                   
@@ -1904,7 +1904,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              if plugin.model_den.value is not None:
+              if plugin.model_den is not None:
                   plugin.viewer.value.add_image(
                       
                           denoised_image,
@@ -1934,7 +1934,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              if plugin.model_den.value is not None:
+              if plugin.model_den is not None:
                  plugin.viewer.value.add_image(
                      
                          denoised_image,
