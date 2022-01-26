@@ -1904,7 +1904,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              print(plugin.model_den)
+              print('i am den', plugin.model_den)
               if plugin.model_den is not None:
                   plugin.viewer.value.add_image(
                       
