@@ -2017,7 +2017,7 @@ def plugin_wrapper_vollseg():
         res = tuple(
                 zip(
                     *tuple(
-                        (VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                        (VollSeg_unet(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                                  iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value) for  _x in x_reorder))))
         
             
