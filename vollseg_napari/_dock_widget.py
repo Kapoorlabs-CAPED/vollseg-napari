@@ -48,7 +48,7 @@ def plugin_wrapper_vollseg():
     from csbdeep.utils import load_json
     import sys
     from vollseg import StarDist2D, StarDist3D
-    from vollseg import VollSeg3D, VollSeg2D, VollSeg_unet
+    from vollseg import VollSeg, VollSeg3D, VollSeg2D, VollSeg_unet
     from csbdeep.models import Config, CARE
     from vollseg import UNET
 
@@ -1783,12 +1783,7 @@ def plugin_wrapper_vollseg():
               
           if plugin.model_star is None:
               
-              if plugin.model_den is None:
-                  
-                   unet_mask,scale_out = pred
-              else:
-                  
-                  denoised_image, unet_mask, scale_out = pred
+              unet_mask, denoised_image, scale_out = pred
                   
           for layer in list(plugin.viewer.value.layers):
               
@@ -1885,16 +1880,23 @@ def plugin_wrapper_vollseg():
         
                      
                      
-              unet_mask, scale_out, t, x = pred
+              unet_mask, denoised_image, scale_out, t, x = pred
+              
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
               unet_mask = np.reshape(unet_mask, x.shape)
-              print(t, x.shape)
+              
+              denoised_image = np.asarray(denoised_image)
+              denoised_image = np.moveaxis(denoised_image, 0, t)
+              denoised_image = np.reshape(denoised_image, x.shape)
+              
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
                            plugin.viewer.value.layers.remove(layer)
+                  if 'Denoised Image' in layer.name:
+                           plugin.viewer.layers.value.remove(layer)     
                            
               plugin.viewer.value.add_labels(
                   
@@ -1902,16 +1904,28 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              
+              if plugin.noise_model is not None:
+                  plugin.viewer.value.add_image(
+                      
+                          denoised_image,
+                       
+                              name='Denoised Image',
+                              scale=scale_out,
+                              visible=False,
+                          
+                      )
               
               
     def return_segment_unet(pred):
             
-              unet_mask, scale_out = pred
+              unet_mask, denoised_image, scale_out = pred
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
                            plugin.viewer.value.layers.remove(layer)
+                  if 'Denoised Image' in layer.name:
+                           plugin.viewer.layers.value.remove(layer)
+                           
                            
               plugin.viewer.value.add_labels(
                   
@@ -1919,7 +1933,16 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-             
+              if plugin.noise_model is not None:
+                 plugin.viewer.value.add_image(
+                     
+                         denoised_image,
+                      
+                             name='Denoised Image',
+                             scale=scale_out,
+                             visible=False,
+                         
+                     )
       
     @thread_worker(connect = {"returned": return_segment_time } )         
     def _VollSeg3D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
@@ -1991,8 +2014,10 @@ def plugin_wrapper_vollseg():
         for  count, _x in enumerate(x_reorder):
              
             yield count
-            res.append(VollSeg_unet(_x, model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
+            res = tuple(
+                zip(
+                    *tuple(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))))
             
         pred = res, scale_out, t, x
         return pred           
