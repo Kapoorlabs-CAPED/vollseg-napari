@@ -1880,8 +1880,8 @@ def plugin_wrapper_vollseg():
         
                      
                      
-              unet_mask, denoised_image, scale_out, t, x = pred
-              
+              res, scale_out, t, x = pred
+              unet_mask, denoised_image = res 
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
@@ -1918,7 +1918,8 @@ def plugin_wrapper_vollseg():
               
     def return_segment_unet(pred):
             
-              unet_mask, denoised_image, scale_out = pred
+              res, scale_out = pred
+              unet_mask, denoised_image = res 
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
