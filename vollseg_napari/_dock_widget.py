@@ -1643,7 +1643,7 @@ def plugin_wrapper_vollseg():
     def return_segment_time(pred):
 
         res, scale_out, t, x = pred
-        if plugin.den_model_type != 'NODEN' and plugin.star_seg_model_type != 'NOSTAR':
+        if plugin.den_model_type.value != 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
 
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = zip(*res)
             
@@ -1654,13 +1654,13 @@ def plugin_wrapper_vollseg():
             denoised_image = np.reshape(denoised_image, x.shape)
             
             
-        elif plugin.den_model_type == 'NODEN' and plugin.star_seg_model_type != 'NOSTAR':
+        elif plugin.den_model_type.value == 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
             
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton = zip(*res)
             
             
         
-        if plugin.star_seg_model_type != 'NOSTAR': 
+        if plugin.star_seg_model_type.value != 'NOSTAR': 
                 labels = np.asarray(labels)
     
                 labels = np.moveaxis(labels, 0, t)
@@ -1698,7 +1698,7 @@ def plugin_wrapper_vollseg():
                     if 'Denoised Image' in layer.name:
                              plugin.viewer.layers.value.remove(layer)         
                              
-                if plugin.star_seg_model_type != 'NOSTAR':
+                if plugin.star_seg_model_type.value != 'NOSTAR':
                     plugin.viewer.value.add_image(
                         
                             probability_map,
@@ -1759,7 +1759,7 @@ def plugin_wrapper_vollseg():
                                 visible=False,
                             
                     )
-                if plugin.den_model_type != 'NODEN':
+                if plugin.den_model_type.value != 'NODEN':
                     plugin.viewer.value.add_image(
                         
                             denoised_image,
@@ -1775,13 +1775,13 @@ def plugin_wrapper_vollseg():
     def return_segment(pred):
               
         
-          if plugin.den_model_type != 'NODEN' and plugin.star_seg_model_type != 'NOSTAR':
+          if plugin.den_model_type.value != 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
 
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, scale_out = zip(*pred)
-          elif plugin.den_model_type == 'NODEN' and plugin.star_seg_model_type != 'NOSTAR':
+          elif plugin.den_model_type.value == 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton,scale_out = zip(*pred)
               
-          if plugin.star_seg_model_type == 'NOSTAR':
+          if plugin.star_seg_model_type.value == 'NOSTAR':
               
               unet_mask, denoised_image, scale_out = zip(*pred)
                   
@@ -1802,7 +1802,7 @@ def plugin_wrapper_vollseg():
               if 'Denoised Image' in layer.name:
                        plugin.viewer.layers.value.remove(layer)         
                        
-          if plugin.star_seg_model_type != 'NOSTAR':
+          if plugin.star_seg_model_type.value != 'NOSTAR':
               plugin.viewer.value.add_image(
                   
                       probability_map,
@@ -1863,7 +1863,7 @@ def plugin_wrapper_vollseg():
                           visible=False,
                       
               )
-          if plugin.den_model_type != 'NODEN':
+          if plugin.den_model_type.value != 'NODEN':
               plugin.viewer.value.add_image(
                   
                       denoised_image,
@@ -1904,7 +1904,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              if plugin.den_model_type != 'NODEN':
+              if plugin.den_model_type.value != 'NODEN':
                   plugin.viewer.value.add_image(
                       
                           denoised_image,
@@ -1934,7 +1934,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              if plugin.den_model_type != 'NODEN':
+              if plugin.den_model_type.value != 'NODEN':
                  plugin.viewer.value.add_image(
                      
                          denoised_image,
