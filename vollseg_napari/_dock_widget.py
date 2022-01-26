@@ -2014,12 +2014,11 @@ def plugin_wrapper_vollseg():
     
         
        
-       
         res = tuple(
                 zip(
                     *tuple(
                         (VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)for  count, _x in enumerate(x_reorder)))))
+                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value) and (yield count) for  count, _x in enumerate(x_reorder)))))
         
             
      
