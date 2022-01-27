@@ -216,9 +216,9 @@ def plugin_wrapper_vollseg():
     )
 
     DEFAULTS_VOLL_PARAMETERS = dict(
-        min_size_mask=100.0,
-        min_size=100.0,
-        max_size=10000.0,
+        min_size_mask=10.0,
+        min_size=10.0,
+        max_size=100000.0,
         isRGB = False,
         dounet=True,
         slicemerge = False,
@@ -710,7 +710,6 @@ def plugin_wrapper_vollseg():
                          
                 worker = _Unet(model_unet, x, axes, model_den,scale_out)
                 worker.returned.connect(return_segment_unet)
-                worker.yielded.connect(progress_thread)
  
         progress_bar.hide()
         
