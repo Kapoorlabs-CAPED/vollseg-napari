@@ -692,7 +692,6 @@ def plugin_wrapper_vollseg():
                     plugin_star_parameters.n_tiles.value = (1,1,1)
                     worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
                     worker.returned.connect(return_segment)
-                    worker.yielded.connect(progress_thread)
             if isinstance(model_star, StarDist2D):
 
                 
@@ -702,7 +701,6 @@ def plugin_wrapper_vollseg():
                     plugin_star_parameters.n_tiles.value = (1,1)
                     worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
                     worker.returned.connect(return_segment)
-                    worker.yielded.connect(progress_thread)
             if model_star is None:
                 if plugin_star_parameters.n_tiles.value is None:
                     
@@ -1753,17 +1751,17 @@ def plugin_wrapper_vollseg():
     
     def return_segment(pred):
               
-        
+          res, scale_out = pred
           if plugin.den_model_type.value != 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
 
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, scale_out = zip(*pred)
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, scale_out = res
               
           elif plugin.den_model_type.value == 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, scale_out = zip(*pred)
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, scale_out = res
               
           if plugin.star_seg_model_type.value == 'NOSTAR':
               
-              unet_mask, denoised_image, scale_out = zip(*pred)
+              unet_mask, denoised_image, scale_out = res
                   
           for layer in list(plugin.viewer.value.layers):
               
@@ -1901,7 +1899,7 @@ def plugin_wrapper_vollseg():
     def return_segment_unet(pred):
             
               res, scale_out = pred
-              unet_mask, denoised_image = zip(*res)
+              unet_mask, denoised_image = res
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
