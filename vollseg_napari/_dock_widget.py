@@ -1627,7 +1627,7 @@ def plugin_wrapper_vollseg():
             denoised_image = np.moveaxis(denoised_image, 0, t)
             
             denoised_image = np.reshape(denoised_image, x.shape)
-            
+            print(denoised_image.shape)
             
         elif plugin.den_model_type.value == 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
             
@@ -1637,22 +1637,26 @@ def plugin_wrapper_vollseg():
         
         if plugin.star_seg_model_type.value != 'NOSTAR': 
                 labels = np.asarray(labels)
-    
                 labels = np.moveaxis(labels, 0, t)
-                
                 labels = np.reshape(labels, x.shape)
                 
                 star_labels = np.asarray(star_labels)
-    
                 star_labels = np.moveaxis(star_labels, 0, t)
-                
                 star_labels = np.reshape(star_labels, x.shape)
+                
+                unet_mask = np.asarray(unet_mask)
+                unet_mask = np.moveaxis(unet_mask, 0, t)
+                unet_mask = np.reshape(unet_mask, x.shape)
+                
                 probability_map = np.asarray(probability_map)
-    
                 probability_map = np.moveaxis(probability_map, 0, t)
                 probability_map = np.reshape(probability_map, x.shape)
+                
+                Skeleton = np.asarray(Skeleton)
+                Skeleton = np.moveaxis(Skeleton, 0, t)
+                Skeleton = np.reshape(Skeleton, x.shape)
+                
                 Markers = np.asarray(Markers)
-    
                 Markers = np.moveaxis(Markers, 0, t)
                 Markers = np.reshape(Markers, x.shape)     
                 
@@ -1753,8 +1757,9 @@ def plugin_wrapper_vollseg():
           if plugin.den_model_type.value != 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
 
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, scale_out = zip(*pred)
+              
           elif plugin.den_model_type.value == 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton,scale_out = zip(*pred)
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, scale_out = zip(*pred)
               
           if plugin.star_seg_model_type.value == 'NOSTAR':
               
@@ -1857,6 +1862,7 @@ def plugin_wrapper_vollseg():
                      
               res, scale_out, t, x = pred
               unet_mask, denoised_image = zip(*res)
+              
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
@@ -1865,7 +1871,8 @@ def plugin_wrapper_vollseg():
               denoised_image = np.asarray(denoised_image)
               denoised_image = np.moveaxis(denoised_image, 0, t)
               denoised_image = np.reshape(denoised_image, x.shape)
-              
+              print(unet_mask.shape)
+              print(denoised_image.shape)
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
@@ -1975,7 +1982,7 @@ def plugin_wrapper_vollseg():
         pred = res, scale_out
         return pred           
              
-    @thread_worker         
+    @thread_worker (connect = {"returned": return_segment } )        
     def _Segment(model_star, model_unet, x, axes, noise_model, scale_out):
     
         
@@ -2002,31 +2009,7 @@ def plugin_wrapper_vollseg():
 
 
           
-    @thread_worker         
-    def _Segment2D(model_star, model_unet, x, axes, noise_model, scale_out):
-    
-        
-        res = VollSeg3D(
-            x,
-            model_unet,
-            model_star,
-            axes=axes,
-            noise_model=noise_model,
-            prob_thresh=plugin_star_parameters.prob_thresh.value,
-            nms_thresh=plugin_star_parameters.nms_thresh.value,
-            min_size_mask=plugin_extra_parameters.min_size_mask.value,
-            min_size=plugin_extra_parameters.min_size.value,
-            max_size=plugin_extra_parameters.max_size.value,
-            n_tiles=plugin_star_parameters.n_tiles.value,
-            UseProbability=plugin_extra_parameters.prob_map_watershed.value,
-            dounet=plugin_extra_parameters.dounet.value,
-            slice_merge = plugin_extra_parameters.slicemerge.value,
-            iou_threshold = plugin_extra_parameters.iouthresh.value
-            )   
-               
-        pred = res, scale_out   
-        return pred
-                                 
+              
              
     @change_handler(plugin.model_unet, plugin.model_unet_none, init=False) 
     def _model_change_unet(model_name_unet: str):
