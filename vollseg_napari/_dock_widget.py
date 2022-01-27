@@ -273,6 +273,8 @@ def plugin_wrapper_vollseg():
             label='Number of Tiles',
             value=DEFAULTS_STAR_PARAMETERS['n_tiles'],
         ),
+        star_model_axes=dict(widget_type='LineEdit', label='Star Model Axes', value=''),
+        
         defaults_star_parameters_button=dict(
             widget_type='PushButton', text='Restore StarDist Parameter Defaults'
         ),
@@ -286,6 +288,8 @@ def plugin_wrapper_vollseg():
         nms_thresh,
         set_thresholds,
         n_tiles,
+        star_model_axes,
+       
         defaults_star_parameters_button
         
     ):
@@ -346,6 +350,8 @@ def plugin_wrapper_vollseg():
             step=0.1,
             value=DEFAULTS_VOLL_PARAMETERS['iouthresh'],
         ),
+        unet_model_axes=dict(widget_type='LineEdit', label='Unet Model Axes', value=''),
+        den_model_axes=dict(widget_type='LineEdit', label='Denoising Model Axes', value=''),
         defaults_vollseg_parameters_button=dict(
             widget_type='PushButton', text='Restore VollSeg Parameter Defaults'
         ),
@@ -361,6 +367,8 @@ def plugin_wrapper_vollseg():
         isRGB,
         slicemerge,
         iouthresh,
+        unet_model_axes,
+        den_model_axes,
         defaults_vollseg_parameters_button,
         
     ):
@@ -442,9 +450,7 @@ def plugin_wrapper_vollseg():
             label='Custom Denoising Model',
             mode='d',
         ),
-        star_model_axes=dict(widget_type='LineEdit', label='Star Model Axes', value=''),
-        unet_model_axes=dict(widget_type='LineEdit', label='Unet Model Axes', value=''),
-        den_model_axes=dict(widget_type='LineEdit', label='Denoising Model Axes', value=''),
+       
         norm_axes=dict(
             widget_type='LineEdit',
             label='Normalization Axes',
@@ -476,9 +482,6 @@ def plugin_wrapper_vollseg():
         model_folder_star,
         model_folder_unet,
         model_folder_den,
-        star_model_axes,
-        unet_model_axes,
-        den_model_axes,
         norm_axes,
         defaults_model_button,
         progress_bar: mw.ProgressBar,
@@ -595,6 +598,12 @@ def plugin_wrapper_vollseg():
             plugin_star_parameters.n_tiles.value = tuple(plugin_star_parameters.n_tiles.value)
             app = use_app()
 
+            def progress_thread(current_time, **kwargs):
+                
+                progress_bar.label = 'CNN Prediction (tiles)'
+                progress_bar.range = (0, kwargs.get('total', 0))
+                progress_bar.value = current_time + 1
+                progress_bar.show()
             def progress(it, **kwargs):
                 progress_bar.label = 'CNN Prediction (tiles)'
                 progress_bar.range = (0, kwargs.get('total', 0))
@@ -647,23 +656,22 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1,1)
-                worker = _VollSeg3D_time(model_star, model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
-                worker.returned.connect(return_segment)
-            
+                worker = _VollSeg_time(model_star, model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
+                worker.returned.connect(return_segment_time)
+                worker.yielded.connect(progress_thread)
 
             if isinstance(model_star, StarDist2D):
 
                 
 
-                print('Starting VollSeg')
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1)
                 
-                worker = _VollSeg2D_time(model_star, model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
-                worker.returned.connect(return_segment)
-
-            if model_star is None and model_unet is not None or model_den is not None:
+                worker = _VollSeg_time(model_star, model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
+                worker.returned.connect(return_segment_time)
+                worker.yielded.connect(progress_thread)
+            if model_star is None:
                     if plugin_star_parameters.n_tiles.value is None:
                         
                         plugin_star_parameters.n_tiles.value = (1,1)
@@ -682,12 +690,9 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1,1)
-                if model_star is not None: 
-                    
-                    
-                       worker = _Segment3D(model_star, model_unet, x, axes, model_den,scale_out)
-                       worker.returned.connect(return_segment)
-            
+                    worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
+                    worker.returned.connect(return_segment)
+                    worker.yielded.connect(progress_thread)
             if isinstance(model_star, StarDist2D):
 
                 
@@ -695,34 +700,20 @@ def plugin_wrapper_vollseg():
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = (1,1)
-                if model_star is not None:
-                        pred = VollSeg2D(
-                            x,
-                            model_unet,
-                            model_star,
-                            axes=axes,
-                            noise_model=model_den,
-                            prob_thresh=plugin_star_parameters.prob_thresh.value,
-                            nms_thresh=plugin_star_parameters.nms_thresh.value,
-                            min_size_mask=plugin_extra_parameters.min_size_mask.value,
-                            min_size=plugin_extra_parameters.min_size.value,
-                            max_size=plugin_extra_parameters.max_size.value,
-                            n_tiles=plugin_star_parameters.n_tiles.value,
-                            UseProbability=plugin_extra_parameters.prob_map_watershed.value,
-                            dounet=plugin_extra_parameters.dounet.value,
-                            RGB = plugin_extra_parameters.isRGB.value,
-                        )
-            if model_star is None and model_unet is not None or model_den is not None:
+                    worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
+                    worker.returned.connect(return_segment)
+                    worker.yielded.connect(progress_thread)
+            if model_star is None:
                 if plugin_star_parameters.n_tiles.value is None:
                     
                     plugin_star_parameters.n_tiles.value = 1
                     for i in range(len(x.shape)):
                          plugin_star_parameters.n_tiles.value = plugin_star_parameters.n_tiles.value + (1,)
                          
-                worker = _Unet3D(model_unet, x, axes, model_den,scale_out)
+                worker = _Unet(model_unet, x, axes, model_den,scale_out)
                 worker.returned.connect(return_segment_unet)
-                
-
+                worker.yielded.connect(progress_thread)
+ 
         progress_bar.hide()
         
             
@@ -836,12 +827,12 @@ def plugin_wrapper_vollseg():
                     print('den axes',axes_den)
                     if 'T' in axes_den:
                         raise RuntimeError('model with axis "T" not supported')
-                    plugin.den_model_axes.value = axes_den.replace('C', f'C[{config_den["n_channel_in"]}]')    
+                    plugin_extra_parameters.den_model_axes.value = axes_den.replace('C', f'C[{config_den["n_channel_in"]}]')    
                     plugin.model_folder_den.line_edit.tooltip = ''
                     return axes_den, config_den
                 else:
                     
-                    plugin.den_model_axes.value = ''
+                    plugin_extra_parameters.den_model_axes.value = ''
                     plugin.model_folder_den.line_edit.tooltip = (
                         'Invalid model directory'
                     )
@@ -919,7 +910,9 @@ def plugin_wrapper_vollseg():
             all_valid = False
             help_msg = ''
 
-           
+            print(self.valid.image_axes
+            , self.valid.n_tiles
+            , self.valid.model_den)
             if (
                 self.valid.image_axes
                 and self.valid.n_tiles
@@ -929,26 +922,21 @@ def plugin_wrapper_vollseg():
                 (axes_model_den, config_den) = _model(True)
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
+                    print('in no tiling with C')
                     # check if image axes and n_tiles are compatible
                     widgets_valid(plugin_star_parameters.n_tiles, valid=False)
                     err = 'number of tiles must be 1 for C axis'
                     plugin_star_parameters.n_tiles.tooltip = err
                     _restore()
                 elif not _no_tiling_for_axis(axes_image, n_tiles, 'T'):
+                    print('in no tiling with T')
                     # check if image axes and n_tiles are compatible
                     widgets_valid(plugin_star_parameters.n_tiles, valid=False)
                     err = 'number of tiles must be 1 for T axis'
                     plugin_star_parameters.n_tiles.tooltip = err
                     _restore()
                 
-                elif (
-                    'T' in axes_image
-                    and config_den.get('n_dim') == 3
-                    
-                ):
-                    # not supported
-                    
-                    _restore()
+                
                 else:
                     # check if image and models are compatible
                     ch_model_den = config_den['n_channel_in']
@@ -989,7 +977,6 @@ def plugin_wrapper_vollseg():
             if all_valid:
                print('den_all_valid', all_valid) 
                plugin.call_button.enabled = True
-            plugin.call_button.enabled = True   
             if self.debug:
                 print(
                     f'valid ({all_valid}):',
@@ -1059,11 +1046,11 @@ def plugin_wrapper_vollseg():
                     print('unet axes',axes_unet)
                     if 'T' in axes_unet:
                         raise RuntimeError('model with axis "T" not supported')
-                    plugin.unet_model_axes.value = axes_unet.replace('C', f'C[{config_unet["n_channel_in"]}]')    
+                    plugin_extra_parameters.unet_model_axes.value = axes_unet.replace('C', f'C[{config_unet["n_channel_in"]}]')    
                     plugin.model_folder_unet.line_edit.tooltip = ''
                     return axes_unet, config_unet
                 else:
-                    plugin.unet_model_axes.value = '' 
+                    plugin_extra_parameters.unet_model_axes.value = '' 
                     plugin.model_folder_unet.line_edit.tooltip = (
                         'Invalid model directory'
                     )
@@ -1166,14 +1153,7 @@ def plugin_wrapper_vollseg():
                     plugin_star_parameters.n_tiles.tooltip = err
                     _restore()
                 
-                elif (
-                    'T' in axes_image
-                    and config_unet.get('n_dim') == 3
-                    
-                ):
-                    # not supported
-                    
-                    _restore()
+               
                 else:
                     # check if image and models are compatible
                     ch_model_unet = config_unet['n_channel_in']
@@ -1289,7 +1269,7 @@ def plugin_wrapper_vollseg():
                     print('star axes',axes_star)
                     if 'T' in axes_star:
                         raise RuntimeError('model with axis "T" not supported')
-                    plugin.star_model_axes.value = axes_star.replace(
+                    plugin_star_parameters.star_model_axes.value = axes_star.replace(
                         'C', f'C[{config_star["n_channel_in"]}]'
                     )
                     
@@ -1297,7 +1277,7 @@ def plugin_wrapper_vollseg():
 
                     return axes_star, config_star
                 else:
-                    plugin.star_model_axes.value = ''
+                    plugin_star_parameters.star_model_axes.value = ''
                     plugin.model_folder_star.line_edit.tooltip = (
                         'Invalid model directory'
                     )
@@ -1402,14 +1382,7 @@ def plugin_wrapper_vollseg():
                     err = f'Image axes ({axes_image}) must contain at least one of the normalization axes ({", ".join(axes_norm)})'
                     plugin.norm_axes.tooltip = err
                     _restore()
-                elif (
-                    'T' in axes_image
-                    and config_star.get('n_dim') == 3
-                    
-                ):
-                    # not supported
-                    
-                    _restore()
+                
                 else:
                     # check if image and models are compatible
                     ch_model_star = config_star['n_channel_in']
@@ -1947,38 +1920,10 @@ def plugin_wrapper_vollseg():
                          
                      )
       
-    @thread_worker(connect = {"returned": return_segment_time } )         
-    def _VollSeg3D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
-       
-       
-       res = tuple(
-           zip(
-               *tuple(
-                   VollSeg2D(
-                       _x,
-                       model_unet,
-                       model_star,
-                       axes=axes_reorder,
-                       noise_model=noise_model,
-                       prob_thresh=plugin_star_parameters.prob_thresh.value,
-                       nms_thresh=plugin_star_parameters.nms_thresh.value,
-                       min_size_mask=plugin_extra_parameters.min_size_mask.value,
-                       min_size=plugin_extra_parameters.min_size.value,
-                       max_size=plugin_extra_parameters.max_size.value,
-                       n_tiles=plugin_star_parameters.n_tiles.value,
-                       UseProbability=plugin_extra_parameters.prob_map_watershed.value,
-                       dounet=plugin_extra_parameters.dounet.value,
-                       RGB = plugin_extra_parameters.isRGB.value,
-                   )
-                   for _x in (x_reorder)
-               )
-           )
-       )
-       pred = res, scale_out, t, x
-       return pred                
+          
         
     @thread_worker(connect = {"returned": return_segment_time } )         
-    def _VollSeg2D_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
+    def _VollSeg_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
        
       
        pre_res = []
@@ -1986,7 +1931,7 @@ def plugin_wrapper_vollseg():
             
            yield count
            
-           pre_res.append(VollSeg2D(
+           pre_res.append(VollSeg(
                        _x,
                        model_unet,
                        model_star,
@@ -2022,7 +1967,7 @@ def plugin_wrapper_vollseg():
         return pred           
               
     @thread_worker(connect = {"returned": return_segment_unet } )         
-    def _Unet3D( model_unet, x, axes, noise_model, scale_out):
+    def _Unet( model_unet, x, axes, noise_model, scale_out):
     
         res = VollSeg(x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                      iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
@@ -2031,10 +1976,10 @@ def plugin_wrapper_vollseg():
         return pred           
              
     @thread_worker         
-    def _Segment3D(model_star, model_unet, x, axes, noise_model, scale_out):
+    def _Segment(model_star, model_unet, x, axes, noise_model, scale_out):
     
         
-        res = VollSeg3D(
+        res = VollSeg(
             x,
             model_unet,
             model_star,
@@ -2057,7 +2002,30 @@ def plugin_wrapper_vollseg():
 
 
           
-
+    @thread_worker         
+    def _Segment2D(model_star, model_unet, x, axes, noise_model, scale_out):
+    
+        
+        res = VollSeg3D(
+            x,
+            model_unet,
+            model_star,
+            axes=axes,
+            noise_model=noise_model,
+            prob_thresh=plugin_star_parameters.prob_thresh.value,
+            nms_thresh=plugin_star_parameters.nms_thresh.value,
+            min_size_mask=plugin_extra_parameters.min_size_mask.value,
+            min_size=plugin_extra_parameters.min_size.value,
+            max_size=plugin_extra_parameters.max_size.value,
+            n_tiles=plugin_star_parameters.n_tiles.value,
+            UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+            dounet=plugin_extra_parameters.dounet.value,
+            slice_merge = plugin_extra_parameters.slicemerge.value,
+            iou_threshold = plugin_extra_parameters.iouthresh.value
+            )   
+               
+        pred = res, scale_out   
+        return pred
                                  
              
     @change_handler(plugin.model_unet, plugin.model_unet_none, init=False) 
@@ -2348,9 +2316,9 @@ def plugin_wrapper_vollseg():
     # plugin.defaults_button.native.setMaximumWidth(150)
 
     # plugin.model_axes.native.setReadOnly(True)
-    plugin.star_model_axes.enabled = False
-    plugin.unet_model_axes.enabled = False
-    plugin.den_model_axes.enabled = False
+    plugin_star_parameters.star_model_axes.enabled = False
+    plugin_extra_parameters.unet_model_axes.enabled = False
+    plugin_extra_parameters.den_model_axes.enabled = False
     return plugin
 
 
