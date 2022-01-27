@@ -1609,7 +1609,7 @@ def plugin_wrapper_vollseg():
                 else:
                     select_model_star(key_star)
         else:
-             plugin.call_button.enabled = False
+             plugin.call_button.enabled = True
              key_star = None, None
              select_model_star(key_star)
              
@@ -1675,7 +1675,7 @@ def plugin_wrapper_vollseg():
                     if 'Skeleton' in layer.name:
                              plugin.viewer.value.layers.remove(layer)
                     if 'Denoised Image' in layer.name:
-                             plugin.viewer.layers.value.remove(layer)         
+                             plugin.viewer.value.layers.remove(layer)         
                              
                 if plugin.star_seg_model_type.value != 'NOSTAR':
                     plugin.viewer.value.add_image(
@@ -2048,7 +2048,7 @@ def plugin_wrapper_vollseg():
                 else:
                     select_model_unet(key_unet)
         else:
-                 plugin.call_button.enabled = False
+                 plugin.call_button.enabled = True
                  key_unet = None, None 
                  select_model_unet(key_unet)
     @change_handler(plugin.model_den, plugin.model_den_none, init=False) 
@@ -2088,7 +2088,7 @@ def plugin_wrapper_vollseg():
                     else:
                         select_model_den(key_den)
             else:
-                     plugin.call_button.enabled = False
+                     plugin.call_button.enabled = True
                      key_den = None, None 
                      select_model_den(key_den)
 
