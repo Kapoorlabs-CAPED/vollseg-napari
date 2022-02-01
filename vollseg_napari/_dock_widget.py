@@ -867,6 +867,8 @@ def plugin_wrapper_vollseg():
                     plugin.model_folder_star.line_edit.tooltip = (
                         'Invalid model directory'
                     )
+                    axes_star  = None
+                    config_star = None
                 if valid_den:            
                     config_den = self.args.model_den
                     axes_den = config_den.get(
@@ -877,7 +879,9 @@ def plugin_wrapper_vollseg():
                     plugin_extra_parameters.den_model_axes.value = ''
                     plugin.model_folder_den.line_edit.tooltip = (
                         'Invalid model directory'
-                    )           
+                    )     
+                    axes_den = None 
+                    config_den = None     
                 if valid_unet:
                     config_unet = self.args.model_unet
                     axes_unet = config_unet.get(
@@ -888,7 +892,9 @@ def plugin_wrapper_vollseg():
                     plugin_extra_parameters.unet_model_axes.value = '' 
                     plugin.model_folder_unet.line_edit.tooltip = (
                         'Invalid model directory'
-                    ) 
+                    )
+                    axes_unet = None 
+                    config_unet = None
                 if axes_star is not None:
                         if 'T' in axes_star:
                             raise RuntimeError('model with axis "T" not supported')
@@ -917,16 +923,16 @@ def plugin_wrapper_vollseg():
 
 
             def _image_axes(valid_star, valid_unet, valid_den):
-                axes, image, err = getattr(self.args, 'image_axes', (None, None, None))
+                axes, image, err = getattr(self.args_star, 'image_axes', (None, None, None))
                 widgets_valid(
                     plugin.axes,
                     valid=(
-                        valid or (image is None and (axes is None or len(axes) == 0))
+                        valid_star or (image is None and (axes is None or len(axes) == 0))
                     ),
                 )
                 
 
-                if valid:
+                if valid_star:
                     plugin.axes.tooltip = '\n'.join(
                         [f'{a} = {s}' for a, s in zip(axes, get_data(image).shape)]
                     )
@@ -941,9 +947,9 @@ def plugin_wrapper_vollseg():
                         plugin.axes.tooltip = ''
 
             def _norm_axes(valid_star, valid_unet, valid_den):
-                norm_axes, err = getattr(self.args, 'norm_axes', (None, None))
-                widgets_valid(plugin.norm_axes, valid=valid)
-                if valid:
+                norm_axes, err = getattr(self.args_star, 'norm_axes', (None, None))
+                widgets_valid(plugin.norm_axes, valid=valid_star)
+                if valid_star:
                     plugin.norm_axes.tooltip = f'Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together.'
                     return norm_axes
                 else:
@@ -956,11 +962,11 @@ def plugin_wrapper_vollseg():
                         plugin.norm_axes.tooltip = ''
 
             def _n_tiles(valid_star, valid_unet, valid_den):
-                n_tiles, image, err = getattr(self.args, 'n_tiles', (None, None, None))
+                n_tiles, image, err = getattr(self.args_star, 'n_tiles', (None, None, None))
                 widgets_valid(
-                    plugin_star_parameters.n_tiles, valid=(valid or image is None)
+                    plugin_star_parameters.n_tiles, valid=(valid_star or image is None)
                 )
-                if valid:
+                if valid_star:
                     plugin_star_parameters.n_tiles.tooltip = (
                         'no tiling'
                         if n_tiles is None
@@ -988,17 +994,17 @@ def plugin_wrapper_vollseg():
             help_msg = ''
             
             if (
-                self.valid.image_axes
-                and self.valid.n_tiles
-                and self.valid.model_star
-                or self.valid.model_den
-                or self.valid.model_unet
-                and self.valid.norm_axes
+                self.valid_star.image_axes
+                and self.valid_star.n_tiles
+                and self.valid_star.model_star
+                or self.valid_den.model_den
+                or self.valid_unet.model_unet
+                and self.valid_star.norm_axes
             ):
-                axes_image, image = _image_axes(True)
+                axes_image, image = _image_axes(True, True, True)
                 (axes_model_star, config_star, axes_model_unet, config_unet, axes_model_den, config_den) = _model(True, True, True)
-                axes_norm = _norm_axes(True)
-                n_tiles = _n_tiles(True)
+                axes_norm = _norm_axes(True, True, True)
+                n_tiles = _n_tiles(True, True, True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
                     # check if image axes and n_tiles are compatible
                     widgets_valid(plugin_star_parameters.n_tiles, valid=False)
@@ -1077,10 +1083,10 @@ def plugin_wrapper_vollseg():
 
             else:
                 
-                _image_axes(self.valid.image_axes)
-                _norm_axes(self.valid.norm_axes)
-                _n_tiles(self.valid.n_tiles)
-                _model(self.valid.model_star, self.valid.model_unet, self.valid.model_den)
+                _image_axes(self.valid_star.image_axes,self.valid_unet.image_axes,self.valid_den.image_axes)
+                _norm_axes(self.valid_star.norm_axes,self.valid_unet.norm_axes,self.valid_den.norm_axes)
+                _n_tiles(self.valid_star.n_tiles,self.valid_unet.n_tiles,self.valid_den.n_tiles )
+                _model(self.valid_star.model_star, self.valid_unet.model_unet, self.valid_den.model_den)
  
                 _restore()
 
@@ -1092,7 +1098,7 @@ def plugin_wrapper_vollseg():
             if self.debug:
                 print(
                     f'valid ({all_valid}):',
-                    ', '.join([f'{k}={v}' for k, v in vars(self.valid).items()]),
+                    ', '.join([f'{k}={v}' for k, v in vars(self.valid_star).items()]),
                 )
 
 
@@ -1250,7 +1256,7 @@ def plugin_wrapper_vollseg():
                             except FileNotFoundError:
                                 pass
                         finally:
-                            select_model_master(key_star, None, None, None, None)
+                            select_model_master(key_star, None, None)
                             plugin.progress_bar.hide()
         
                     worker = _get_model_folder()
@@ -1265,11 +1271,11 @@ def plugin_wrapper_vollseg():
                     plugin.progress_bar.show()
 
                 else:
-                    select_model_master(key_star, None, None, None, None)
+                    select_model_master(key_star, None, None)
         else:
              plugin.call_button.enabled = True
              key_star = None, None
-             select_model_master(key_star, None, None, None, None)
+             select_model_master(key_star, None, None)
              
              
              
@@ -1689,7 +1695,7 @@ def plugin_wrapper_vollseg():
                             
                         finally:
         
-                                select_model_master(None, None, key_unet, None, None)
+                                select_model_master(None, key_unet, None)
                                 plugin.progress_bar.hide()
         
                     worker = _get_model_folder()
@@ -1704,11 +1710,11 @@ def plugin_wrapper_vollseg():
                     plugin.progress_bar.show()
         
                 else:
-                    select_model_master(None, None, key_unet, None, None)
+                    select_model_master(None, key_unet, None)
         else:
                  plugin.call_button.enabled = True
                  key_unet = None, None 
-                 select_model_master(None, None, key_unet, None, None)
+                 select_model_master(None, key_unet, None)
     @change_handler(plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_den(model_name_den: str):
             model_class_den = ( CARE if Signal.sender() is plugin.model_den else None ) 
@@ -1729,7 +1735,7 @@ def plugin_wrapper_vollseg():
                                 
                             finally:
             
-                                    select_model_master(None, None, None, None,key_den)
+                                    select_model_master(None, None,key_den)
                                     plugin.progress_bar.hide()
             
                         worker = _get_model_folder()
@@ -1744,11 +1750,11 @@ def plugin_wrapper_vollseg():
                         plugin.progress_bar.show()
             
                     else:
-                        select_model_master(None, None, None, None,key_den)
+                        select_model_master(None, None,key_den)
             else:
                      plugin.call_button.enabled = True
                      key_den = None, None 
-                     select_model_master(None, None, None, None,key_den)
+                     select_model_master(None, None,key_den)
 
     # load config/thresholds from custom model path
     # -> triggered by _model_type_change
@@ -1765,7 +1771,7 @@ def plugin_wrapper_vollseg():
         except FileNotFoundError:
             pass
         finally:
-            select_model_master(key, None, None, None, None)
+            select_model_master(key, None, None)
 
     @change_handler(plugin.model_folder_unet, init=False)
     def _model_unet_folder_change(_path: str):
@@ -1778,7 +1784,7 @@ def plugin_wrapper_vollseg():
         except FileNotFoundError:
             pass
         finally:
-            select_model_master(None, None, key,  None, None)
+            select_model_master(None, key,  None)
 
     @change_handler(plugin.model_folder_den, init=False)
     def _model_den_folder_change(_path: str):
@@ -1791,7 +1797,7 @@ def plugin_wrapper_vollseg():
         except FileNotFoundError:
             pass
         finally:
-            select_model_master(None, None, None, None,key)
+            select_model_master(None, None,key)
 
     # -------------------------------------------------------------------------
 
