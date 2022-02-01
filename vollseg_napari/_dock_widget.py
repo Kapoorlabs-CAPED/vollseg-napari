@@ -762,688 +762,49 @@ def plugin_wrapper_vollseg():
         for widget in widgets:
             widget.native.setStyleSheet('' if valid else 'background-color: lightcoral')
 
-    class Unet_den_updater:
-        def __init__(self, debug=DEBUG):
-            from types import SimpleNamespace
-
-            self.debug = debug
-            self.valid = SimpleNamespace(
-                **{
-                    k: False
-                    for k in ('image_axes', 'model_den', 'n_tiles', 'norm_axes')
-                }
-            )
-            self.args = SimpleNamespace()
-            self.viewer = None
-
-        def __call__(self, k, valid, args=None):
-            assert k in vars(self.valid)
-            setattr(self.valid, k, bool(valid))
-            setattr(self.args, k, args)
-            print('den again',self.valid, self.args)
-            self._update()
-
-        def help(self, msg):
-            if self.viewer is not None:
-                self.viewer.help = msg
-            elif len(str(msg)) > 0:
-                print(f'HELP: {msg}')
-        
-        def _update(self):
-
-            print('what is den',plugin.model_den)
-            # try to get a hold of the viewer (can be None when plugin starts)
-            if self.viewer is None:
-                # TODO: when is this not safe to do and will hang forever?
-                # while plugin.viewer.value is None:
-                #     time.sleep(0.01)
-                if plugin.viewer.value is not None:
-                    self.viewer = plugin.viewer.value
-                    if DEBUG:
-                        print('GOT viewer')
-
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
-
-            def _model(valid):
-                widgets_valid(
-                    plugin.model_den, plugin.model_folder_den.line_edit, valid=valid,
-                )
-                print('den',plugin.model_den, plugin.model_folder_den.line_edit, valid)
-                if valid:
-                    print(valid)
-                    config_den = self.args.model_den
-                    axes_den = config_den.get(
-                        'axes', 'ZYXC'[-len(config_den['unet_input_shape']) :]
-                    )
-                    print('den axes',axes_den)
-                    if 'T' in axes_den:
-                        raise RuntimeError('model with axis "T" not supported')
-                    plugin_extra_parameters.den_model_axes.value = axes_den.replace('C', f'C[{config_den["n_channel_in"]}]')    
-                    plugin.model_folder_den.line_edit.tooltip = ''
-                    return axes_den, config_den
-                else:
-                    
-                    plugin_extra_parameters.den_model_axes.value = ''
-                    plugin.model_folder_den.line_edit.tooltip = (
-                        'Invalid model directory'
-                    )
-
-            def _image_axes(valid):
-                axes, image, err = getattr(self.args, 'image_axes', (None, None, None))
-                
-                print('image axes',axes)
-                widgets_valid(
-                    plugin.axes,
-                    valid=(
-                        valid or (image is None and (axes is None or len(axes) == 0))
-                    ),
-                )
-                
-
-                if valid:
-                    plugin.axes.tooltip = '\n'.join(
-                        [f'{a} = {s}' for a, s in zip(axes, get_data(image).shape)]
-                    )
-                    return axes, image
-                else:
-                    if err is not None:
-                        err = str(err)
-                        err = err[:-1] if err.endswith('.') else err
-                        plugin.axes.tooltip = err
-                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
-                    else:
-                        plugin.axes.tooltip = ''
-
-            def _norm_axes(valid):
-                norm_axes, err = getattr(self.args, 'norm_axes', (None, None))
-                widgets_valid(plugin.norm_axes, valid=valid)
-                if valid:
-                    plugin.norm_axes.tooltip = f'Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together.'
-                    return norm_axes
-                else:
-                    if err is not None:
-                        err = str(err)
-                        err = err[:-1] if err.endswith('.') else err
-                        plugin.norm_axes.tooltip = err
-                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
-                    else:
-                        plugin.norm_axes.tooltip = ''
-
-            def _n_tiles(valid):
-                n_tiles, image, err = getattr(self.args, 'n_tiles', (None, None, None))
-                widgets_valid(
-                    plugin_star_parameters.n_tiles, valid=(valid or image is None)
-                )
-                if valid:
-                    plugin_star_parameters.n_tiles.tooltip = (
-                        'no tiling'
-                        if n_tiles is None
-                        else '\n'.join(
-                            [
-                                f'{t}: {s}'
-                                for t, s in zip(n_tiles, get_data(image).shape)
-                            ]
-                        )
-                    )
-                    return n_tiles
-                else:
-                    msg = str(err) if err is not None else ''
-                    plugin_star_parameters.n_tiles.tooltip = msg
-
-            def _no_tiling_for_axis(axes_image, n_tiles, axis):
-                if n_tiles is not None and axis in axes_image:
-                    return n_tiles[axes_dict(axes_image)[axis]] == 1
-                return True
-
-            def _restore():
-                widgets_valid(plugin.image, valid=plugin.image.value is not None)
-
-            all_valid = False
-            help_msg = ''
-
-            print(self.valid.image_axes
-            , self.valid.n_tiles
-            , self.valid.model_den)
-            if (
-                self.valid.image_axes
-                and self.valid.n_tiles
-                and self.valid.model_den
-            ):
-                axes_image, image = _image_axes(True)
-                (axes_model_den, config_den) = _model(True)
-                n_tiles = _n_tiles(True)
-                if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
-                    print('in no tiling with C')
-                    # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin_star_parameters.n_tiles, valid=False)
-                    err = 'number of tiles must be 1 for C axis'
-                    plugin_star_parameters.n_tiles.tooltip = err
-                    _restore()
-                elif not _no_tiling_for_axis(axes_image, n_tiles, 'T'):
-                    print('in no tiling with T')
-                    # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin_star_parameters.n_tiles, valid=False)
-                    err = 'number of tiles must be 1 for T axis'
-                    plugin_star_parameters.n_tiles.tooltip = err
-                    _restore()
-                
-                
-                else:
-                    # check if image and models are compatible
-                    ch_model_den = config_den['n_channel_in']
-                    
-                    ch_image = (
-                        get_data(image).shape[axes_dict(axes_image)['C']]
-                        if 'C' in axes_image
-                        else 1
-                    )
-                    print('Channels',ch_model_den, ch_image)
-                    all_valid = (
-                        set(axes_model_den.replace('C', ''))
-                        == set(axes_image.replace('C', '').replace('T', ''))
-                        and ch_model_den == ch_image
-                    )
-
-                    widgets_valid(
-                        plugin.image,
-                        plugin.model_den,
-                        plugin.model_folder_den.line_edit,
-                        valid=all_valid,
-                    )
-                    if all_valid:
-                        help_msg = ''
-                    else:
-                        help_msg = f'Model with axes {axes_model_den.replace("C", f"C[{ch_model_den}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
-            else:
-                
-                print('Invalid den',self.valid.model_den)
-                _image_axes(self.valid.image_axes)
-                _norm_axes(self.valid.norm_axes)
-                _n_tiles(self.valid.n_tiles)
-                _model(self.valid.model_den)
-
-                _restore()
-
-            self.help(help_msg)
-            if all_valid:
-               print('den_all_valid', all_valid) 
-               plugin.call_button.enabled = True
-            if self.debug:
-                print(
-                    f'valid ({all_valid}):',
-                    ', '.join([f'{k}={v}' for k, v in vars(self.valid).items()]),
-                )
- 
-          
-    class Unet_updater:
-        def __init__(self, debug=DEBUG):
-            from types import SimpleNamespace
-
-            self.debug = debug
-            self.valid = SimpleNamespace(
-                **{
-                    k: False
-                    for k in ('image_axes', 'model_unet', 'n_tiles', 'norm_axes')
-                }
-            )
-            self.args = SimpleNamespace()
-            self.viewer = None
-
-        def __call__(self, k, valid, args=None):
-            assert k in vars(self.valid)
-            setattr(self.valid, k, bool(valid))
-            setattr(self.args, k, args)
-            print('unet again',self.valid, self.args)
-            self._update()
-
-        def help(self, msg):
-            if self.viewer is not None:
-                self.viewer.help = msg
-            elif len(str(msg)) > 0:
-                print(f'HELP: {msg}')
-        
-        def _update(self):
-
-            print('what is unet',plugin.model_unet)
-            # try to get a hold of the viewer (can be None when plugin starts)
-            if self.viewer is None:
-                # TODO: when is this not safe to do and will hang forever?
-                # while plugin.viewer.value is None:
-                #     time.sleep(0.01)
-                if plugin.viewer.value is not None:
-                    self.viewer = plugin.viewer.value
-                    if DEBUG:
-                        print('GOT viewer')
-
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
-
-            def _model(valid):
-                widgets_valid(
-                    plugin.model_unet, plugin.model_folder_unet.line_edit, valid=valid,
-                )
-                print('unet',plugin.model_unet, plugin.model_folder_unet.line_edit, valid)
-                if valid:
-                    print(valid)
-                    config_unet = self.args.model_unet
-                    axes_unet = config_unet.get(
-                        'axes', 'ZYXC'[-len(config_unet['unet_input_shape']) :]
-                    )
-                    print('unet axes',axes_unet)
-                    if 'T' in axes_unet:
-                        raise RuntimeError('model with axis "T" not supported')
-                    plugin_extra_parameters.unet_model_axes.value = axes_unet.replace('C', f'C[{config_unet["n_channel_in"]}]')    
-                    plugin.model_folder_unet.line_edit.tooltip = ''
-                    return axes_unet, config_unet
-                else:
-                    plugin_extra_parameters.unet_model_axes.value = '' 
-                    plugin.model_folder_unet.line_edit.tooltip = (
-                        'Invalid model directory'
-                    )
-
-            def _image_axes(valid):
-                axes, image, err = getattr(self.args, 'image_axes', (None, None, None))
-                
-                print('image axes',axes)
-                widgets_valid(
-                    plugin.axes,
-                    valid=(
-                        valid or (image is None and (axes is None or len(axes) == 0))
-                    ),
-                )
-                
-
-                if valid:
-                    plugin.axes.tooltip = '\n'.join(
-                        [f'{a} = {s}' for a, s in zip(axes, get_data(image).shape)]
-                    )
-                    return axes, image
-                else:
-                    if err is not None:
-                        err = str(err)
-                        err = err[:-1] if err.endswith('.') else err
-                        plugin.axes.tooltip = err
-                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
-                    else:
-                        plugin.axes.tooltip = ''
-
-            def _norm_axes(valid):
-                norm_axes, err = getattr(self.args, 'norm_axes', (None, None))
-                widgets_valid(plugin.norm_axes, valid=valid)
-                if valid:
-                    plugin.norm_axes.tooltip = f'Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together.'
-                    return norm_axes
-                else:
-                    if err is not None:
-                        err = str(err)
-                        err = err[:-1] if err.endswith('.') else err
-                        plugin.norm_axes.tooltip = err
-                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
-                    else:
-                        plugin.norm_axes.tooltip = ''
-
-            def _n_tiles(valid):
-                n_tiles, image, err = getattr(self.args, 'n_tiles', (None, None, None))
-                widgets_valid(
-                    plugin_star_parameters.n_tiles, valid=(valid or image is None)
-                )
-                if valid:
-                    plugin_star_parameters.n_tiles.tooltip = (
-                        'no tiling'
-                        if n_tiles is None
-                        else '\n'.join(
-                            [
-                                f'{t}: {s}'
-                                for t, s in zip(n_tiles, get_data(image).shape)
-                            ]
-                        )
-                    )
-                    return n_tiles
-                else:
-                    msg = str(err) if err is not None else ''
-                    plugin_star_parameters.n_tiles.tooltip = msg
-
-            def _no_tiling_for_axis(axes_image, n_tiles, axis):
-                if n_tiles is not None and axis in axes_image:
-                    return n_tiles[axes_dict(axes_image)[axis]] == 1
-                return True
-
-            def _restore():
-                widgets_valid(plugin.image, valid=plugin.image.value is not None)
-
-            all_valid = False
-            help_msg = ''
-
-            print('unet',self.valid.image_axes
-            ,self.valid.n_tiles
-            , self.valid.model_unet
-            ) 
-            if (
-                self.valid.image_axes
-                and self.valid.n_tiles
-                and self.valid.model_unet
-            ):
-                axes_image, image = _image_axes(True)
-                (axes_model_unet, config_unet) = _model(True)
-                n_tiles = _n_tiles(True)
-                if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
-                    # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin_star_parameters.n_tiles, valid=False)
-                    err = 'number of tiles must be 1 for C axis'
-                    plugin_star_parameters.n_tiles.tooltip = err
-                    _restore()
-                elif not _no_tiling_for_axis(axes_image, n_tiles, 'T'):
-                    # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin_star_parameters.n_tiles, valid=False)
-                    err = 'number of tiles must be 1 for T axis'
-                    plugin_star_parameters.n_tiles.tooltip = err
-                    _restore()
-                
-               
-                else:
-                    # check if image and models are compatible
-                    ch_model_unet = config_unet['n_channel_in']
-                    
-                    ch_image = (
-                        get_data(image).shape[axes_dict(axes_image)['C']]
-                        if 'C' in axes_image
-                        else 1
-                    )
-                    print('Channels',ch_model_unet, ch_image)
-                    all_valid = (
-                        set(axes_model_unet.replace('C', ''))
-                        == set(axes_image.replace('C', '').replace('T', ''))
-                        and ch_model_unet == ch_image
-                    )
-
-                    widgets_valid(
-                        plugin.image,
-                        plugin.model_unet,
-                        plugin.model_folder_unet.line_edit,
-                        valid=all_valid,
-                    )
-                    if all_valid:
-                        help_msg = ''
-                    else:
-                        help_msg = f'Model with axes {axes_model_unet.replace("C", f"C[{ch_model_unet}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
-            else:
-                
-                print('Invalid unet',self.valid.model_unet)
-                _image_axes(self.valid.image_axes)
-                _norm_axes(self.valid.norm_axes)
-                _n_tiles(self.valid.n_tiles)
-                _model(self.valid.model_unet)
-
-                _restore()
-
-            self.help(help_msg)
-            if all_valid:
-               print('unet_all_valid', all_valid)
-               plugin.call_button.enabled = True
-            # widgets_valid(plugin.call_button, valid=all_valid)
-            if self.debug:
-                print(
-                    f'valid ({all_valid}):',
-                    ', '.join([f'{k}={v}' for k, v in vars(self.valid).items()]),
-                )
-                
-                
-
-
-    class Updater:
-        def __init__(self, debug=DEBUG):
-            from types import SimpleNamespace
-
-            self.debug = debug
-            self.valid = SimpleNamespace(
-                **{
-                    k: False
-                    for k in ('image_axes', 'model_star', 'n_tiles', 'norm_axes')
-                }
-            )
-            self.args = SimpleNamespace()
-            self.viewer = None
-
-        def __call__(self, k, valid, args=None):
-            assert k in vars(self.valid)
-            setattr(self.valid, k, bool(valid))
-            setattr(self.args, k, args)
-            print('star again',self.valid, self.args)
-            self._update()
-
-        def help(self, msg):
-            if self.viewer is not None:
-                self.viewer.help = msg
-            elif len(str(msg)) > 0:
-                print(f'HELP: {msg}')
-
-        def _update(self):
-            # try to get a hold of the viewer (can be None when plugin starts)
-            if self.viewer is None:
-                # TODO: when is this not safe to do and will hang forever?
-                # while plugin.viewer.value is None:
-                #     time.sleep(0.01)
-                if plugin.viewer.value is not None:
-                    self.viewer = plugin.viewer.value
-                    if DEBUG:
-                        print('GOT viewer')
-
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
-
-            def _model(valid):
-                widgets_valid(
-                    plugin.model2d_star,
-                    plugin.model3d_star,
-                    plugin.model_folder_star.line_edit,
-                    valid=valid,
-                )
-                
-                print('star',plugin.model2d_star,plugin.model3d_star, plugin.model_folder_star.line_edit, valid)
-                if valid:
-                    print(valid)
-                    config_star = self.args.model_star
-                    
-                    axes_star = config_star.get(
-                        'axes', 'ZYXC'[-len(config_star['net_input_shape']) :]
-                    )
-                    print('star axes',axes_star)
-                    if 'T' in axes_star:
-                        raise RuntimeError('model with axis "T" not supported')
-                    plugin_star_parameters.star_model_axes.value = axes_star.replace(
-                        'C', f'C[{config_star["n_channel_in"]}]'
-                    )
-                    
-                    plugin.model_folder_star.line_edit.tooltip = ''
-
-                    return axes_star, config_star
-                else:
-                    plugin_star_parameters.star_model_axes.value = ''
-                    plugin.model_folder_star.line_edit.tooltip = (
-                        'Invalid model directory'
-                    )
-
-            def _image_axes(valid):
-                axes, image, err = getattr(self.args, 'image_axes', (None, None, None))
-                print('image star axes',axes)
-                widgets_valid(
-                    plugin.axes,
-                    valid=(
-                        valid or (image is None and (axes is None or len(axes) == 0))
-                    ),
-                )
-                
-
-                if valid:
-                    plugin.axes.tooltip = '\n'.join(
-                        [f'{a} = {s}' for a, s in zip(axes, get_data(image).shape)]
-                    )
-                    return axes, image
-                else:
-                    if err is not None:
-                        err = str(err)
-                        err = err[:-1] if err.endswith('.') else err
-                        plugin.axes.tooltip = err
-                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
-                    else:
-                        plugin.axes.tooltip = ''
-
-            def _norm_axes(valid):
-                norm_axes, err = getattr(self.args, 'norm_axes', (None, None))
-                widgets_valid(plugin.norm_axes, valid=valid)
-                if valid:
-                    plugin.norm_axes.tooltip = f'Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together.'
-                    return norm_axes
-                else:
-                    if err is not None:
-                        err = str(err)
-                        err = err[:-1] if err.endswith('.') else err
-                        plugin.norm_axes.tooltip = err
-                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
-                    else:
-                        plugin.norm_axes.tooltip = ''
-
-            def _n_tiles(valid):
-                n_tiles, image, err = getattr(self.args, 'n_tiles', (None, None, None))
-                widgets_valid(
-                    plugin_star_parameters.n_tiles, valid=(valid or image is None)
-                )
-                if valid:
-                    plugin_star_parameters.n_tiles.tooltip = (
-                        'no tiling'
-                        if n_tiles is None
-                        else '\n'.join(
-                            [
-                                f'{t}: {s}'
-                                for t, s in zip(n_tiles, get_data(image).shape)
-                            ]
-                        )
-                    )
-                    return n_tiles
-                else:
-                    msg = str(err) if err is not None else ''
-                    plugin_star_parameters.n_tiles.tooltip = msg
-
-            def _no_tiling_for_axis(axes_image, n_tiles, axis):
-                if n_tiles is not None and axis in axes_image:
-                    return n_tiles[axes_dict(axes_image)[axis]] == 1
-                return True
-
-            def _restore():
-                widgets_valid(plugin.image, valid=plugin.image.value is not None)
-
-            all_valid = False
-            help_msg = ''
-            
-            if (
-                self.valid.image_axes
-                and self.valid.n_tiles
-                and self.valid.model_star
-                and self.valid.norm_axes
-            ):
-                axes_image, image = _image_axes(True)
-                (axes_model_star, config_star) = _model(True)
-                axes_norm = _norm_axes(True)
-                n_tiles = _n_tiles(True)
-                if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
-                    # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin_star_parameters.n_tiles, valid=False)
-                    err = 'number of tiles must be 1 for C axis'
-                    plugin_star_parameters.n_tiles.tooltip = err
-                    _restore()
-                elif not _no_tiling_for_axis(axes_image, n_tiles, 'T'):
-                    # check if image axes and n_tiles are compatible
-                    widgets_valid(plugin_star_parameters.n_tiles, valid=False)
-                    err = 'number of tiles must be 1 for T axis'
-                    plugin_star_parameters.n_tiles.tooltip = err
-                    _restore()
-                elif set(axes_norm).isdisjoint(set(axes_image)):
-                    # check if image axes and normalization axes are compatible
-                    widgets_valid(plugin.norm_axes, valid=False)
-                    err = f'Image axes ({axes_image}) must contain at least one of the normalization axes ({", ".join(axes_norm)})'
-                    plugin.norm_axes.tooltip = err
-                    _restore()
-                
-                else:
-                    # check if image and models are compatible
-                    ch_model_star = config_star['n_channel_in']
-                    ch_image = (
-                        get_data(image).shape[axes_dict(axes_image)['C']]
-                        if 'C' in axes_image
-                        else 1
-                    )
-                    all_valid = (
-                        set(axes_model_star.replace('C', ''))
-                        == set(axes_image.replace('C', '').replace('T', ''))
-                        and ch_model_star == ch_image
-                    )
-
-                    widgets_valid(
-                        plugin.image,
-                        plugin.model2d_star,
-                        plugin.model3d_star,
-                        plugin.model_folder_star.line_edit,
-                        valid=all_valid,
-                    )
-                    if all_valid:
-                        help_msg = ''
-                    else:
-                        help_msg = f'Model with axes {axes_model_star.replace("C", f"C[{ch_model_star}]")} and image with axes {axes_image.replace("C", f"C[{ch_image}]")} not compatible'
-            else:
-                
-                _image_axes(self.valid.image_axes)
-                _norm_axes(self.valid.norm_axes)
-                _n_tiles(self.valid.n_tiles)
-                _model(self.valid.model_star)
- 
-                _restore()
-
-            self.help(help_msg)
-            if all_valid:
-              print('star_all_valid', all_valid)  
-              plugin.call_button.enabled = True
-            # widgets_valid(plugin.call_button, valid=all_valid)
-            if self.debug:
-                print(
-                    f'valid ({all_valid}):',
-                    ', '.join([f'{k}={v}' for k, v in vars(self.valid).items()]),
-                )
-
+   
 
     class Updater_master:
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
 
             self.debug = debug
-            self.valid = SimpleNamespace(
+            self.valid_star = SimpleNamespace(
                 **{
-                    k: False
-                    for k in ('image_axes', 'model_star', 'model_unet', 'model_den', 'n_tiles', 'norm_axes')
+                    k_star: False
+                    for k_star in ('image_axes', 'model_star', 'n_tiles', 'norm_axes')
+                }
+            )
+
+            self.valid_unet = SimpleNamespace(
+                **{
+                    k_unet: False
+                    for k_unet in ('image_axes','model_unet', 'n_tiles', 'norm_axes')
+                }
+            )
+
+            self.valid_den = SimpleNamespace(
+                **{
+                    k_den: False
+                    for k_den in ('image_axes', 'model_den', 'n_tiles', 'norm_axes')
                 }
             )
             self.args = SimpleNamespace()
             self.viewer = None
 
-        def __call__(self, k, valid, args=None):
-            assert k in vars(self.valid)
-            setattr(self.valid, k, bool(valid))
-            setattr(self.args, k, args)
+        def __call__(self, k_star, valid_star, k_unet, valid_unet, k_den, valid_den, args=None):
+            assert k_star in vars(self.valid_star)
+            setattr(self.valid_star, k_star, bool(valid_star))
+            setattr(self.args, k_star, args)
+            
+            assert k_unet in vars(self.valid_unet)
+            setattr(self.valid_unet, k_unet, bool(valid_unet))
+            setattr(self.args, k_unet, args)
+
+            assert k_den in vars(self.valid_den)
+            setattr(self.valid_den, k_den, bool(valid_den))
+            setattr(self.args, k_den, args)
+
             self._update()
 
         def help(self, msg):
@@ -1717,7 +1078,7 @@ def plugin_wrapper_vollseg():
                 _image_axes(self.valid.image_axes)
                 _norm_axes(self.valid.norm_axes)
                 _n_tiles(self.valid.n_tiles)
-                _model(self.valid.model_star)
+                _model(self.valid.model_star, self.valid.model_unet, self.valid.model_den)
  
                 _restore()
 
@@ -1733,30 +1094,11 @@ def plugin_wrapper_vollseg():
                 )
 
 
-    update = Updater()
-    update_unet = Unet_updater()
-    update_den = Unet_den_updater()
+  
     
     update_master = Updater_master() 
     
-    def select_model_star(key_star):
-        nonlocal model_selected_star
-        model_selected_star = key_star
-        config_star = model_star_configs.get(key_star)
-        update('model_star', config_star is not None, config_star)
-
-    def select_model_unet(key_unet):
-        nonlocal model_selected_unet
-        model_selected_unet = key_unet
-        config_unet = model_unet_configs.get(key_unet)
-        update_unet('model_unet', config_unet is not None, config_unet)
-       
-    def select_model_den(key_den):
-        nonlocal model_selected_den
-        model_selected_den = key_den
-        config_den = model_den_configs.get(key_den)
-        update_den('model_den', config_den is not None, config_den)
-
+   
 
     def select_model_master(key_star, key_unet, key_den):
         nonlocal model_selected_star,model_selected_unet, model_selected_den
@@ -1825,17 +1167,12 @@ def plugin_wrapper_vollseg():
         try:
             axes = axes_check_and_normalize(value, disallowed='S')
             if len(axes) >= 1:
-                update('norm_axes', True, (axes, None))
-                update_unet('norm_axes', True, (axes, None))
-                update_den('norm_axes', True, (axes, None))
+
+                update_master('norm_axes', True, (axes, None),'norm_axes', True, (axes, None),'norm_axes', True, (axes, None) )
             else:
-                update('norm_axes', False, (axes, 'Cannot be empty'))
-                update_unet('norm_axes', False, (axes, 'Cannot be empty'))
-                update_den('norm_axes', False, (axes, 'Cannot be empty'))
+                update_master('norm_axes', False, (axes, 'Cannot be empty'),'norm_axes', False, (axes, 'Cannot be empty'),'norm_axes', False, (axes, 'Cannot be empty') ) 
         except ValueError as err:
-            update('norm_axes', False, (value, err))
-            update_unet('norm_axes', False, (value, err))
-            update_den('norm_axes', False, (value, err))
+            update_master('norm_axes', False, (value, err),'norm_axes', False, (value, err),'norm_axes', False, (value, err))
     # -------------------------------------------------------------------------
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
@@ -2516,13 +1853,11 @@ def plugin_wrapper_vollseg():
             axes = axes_check_and_normalize(
                 value, length=get_data(image).ndim, disallowed='S'
             )
-            update('image_axes', True, (axes, image, None))
-            update_unet('image_axes', True, (axes, image, None))
-            update_den('image_axes', True, (axes, image, None))
+
+            update_master('image_axes', True, (axes, image, None),'image_axes', True, (axes, image, None),'image_axes', True, (axes, image, None))
         except ValueError as err:
-            update('image_axes', False, (value, image, err))
-            update_unet('image_axes', False, (value, image, err))
-            update_den('image_axes', False, (value, image, err))
+
+            update_master('image_axes', False, (value, image, err),'image_axes', False, (value, image, err),'image_axes', False, (value, image, err))
         # finally:
         # widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
@@ -2534,9 +1869,8 @@ def plugin_wrapper_vollseg():
             image is not None or _raise(ValueError('no image selected'))
             value = plugin_star_parameters.n_tiles.get_value()
             if value is None:
-                update('n_tiles', True, (None, image, None))
-                update_unet('n_tiles', True, (None, image, None))
-                update_den('n_tiles', True, (None, image, None))
+
+                update_master('n_tiles', True, (None, image, None),'n_tiles', True, (None, image, None),'n_tiles', True, (None, image, None))
                 return
             shape = get_data(image).shape
             try:
@@ -2546,13 +1880,9 @@ def plugin_wrapper_vollseg():
                 raise ValueError(f'must be a tuple/list of length {len(shape)}')
             if not all(isinstance(t, int) and t >= 1 for t in value):
                 raise ValueError(f'each value must be an integer >= 1')
-            update('n_tiles', True, (value, image, None))
-            update_unet('n_tiles', True, (value, image, None))
-            update_den('n_tiles', True, (value, image, None))
+            update_master('n_tiles', True, (value, image, None),'n_tiles', True, (value, image, None),'n_tiles', True, (value, image, None))    
         except (ValueError, SyntaxError) as err:
-            update('n_tiles', False, (None, image, err))
-            update_unet('n_tiles', False, (None, image, err))
-            update_den('n_tiles', False, (None, image, err))
+            update_master('n_tiles', False, (None, image, err),'n_tiles', False, (None, image, err),'n_tiles', False, (None, image, err))
     # -------------------------------------------------------------------------
 
     # set thresholds to optimized values for chosen model
