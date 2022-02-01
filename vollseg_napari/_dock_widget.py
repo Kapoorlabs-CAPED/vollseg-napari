@@ -767,43 +767,45 @@ def plugin_wrapper_vollseg():
     class Updater_master:
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
-
+               
             self.debug = debug
             self.valid_star = SimpleNamespace(
                 **{
                     k_star: False
-                    for k_star in ('image_axes', 'model_star', 'n_tiles', 'norm_axes')
+                    for k_star in ('image_axes', 'model_star',  'n_tiles', 'norm_axes')
                 }
             )
-
+            self.args_star = SimpleNamespace() 
             self.valid_unet = SimpleNamespace(
                 **{
                     k_unet: False
-                    for k_unet in ('image_axes','model_unet', 'n_tiles', 'norm_axes')
+                    for k_unet in ('image_axes','model_unet',  'n_tiles', 'norm_axes')
                 }
             )
-
+            self.args_unet = SimpleNamespace() 
             self.valid_den = SimpleNamespace(
                 **{
                     k_den: False
-                    for k_den in ('image_axes', 'model_den', 'n_tiles', 'norm_axes')
+                    for k_den in ('image_axes', 'model_den',  'n_tiles', 'norm_axes')
                 }
             )
-            self.args = SimpleNamespace()
+            self.args_den = SimpleNamespace()
             self.viewer = None
 
-        def __call__(self, k_star, valid_star, k_unet, valid_unet, k_den, valid_den, args=None):
+        def __call__(self, k_star, valid_star, k_unet, valid_unet, k_den, valid_den, args_star=None, args_unet=None, args_den=None):
+            print('kstar', k_star)
             assert k_star in vars(self.valid_star)
             setattr(self.valid_star, k_star, bool(valid_star))
-            setattr(self.args, k_star, args)
+            setattr(self.args_star, k_star, args_star)
             
+            print('kunet', k_unet)
             assert k_unet in vars(self.valid_unet)
             setattr(self.valid_unet, k_unet, bool(valid_unet))
-            setattr(self.args, k_unet, args)
+            setattr(self.args_unet, k_unet, args_unet)
 
             assert k_den in vars(self.valid_den)
             setattr(self.valid_den, k_den, bool(valid_den))
-            setattr(self.args, k_den, args)
+            setattr(self.args_den, k_den, args_den)
 
             self._update()
 
@@ -914,7 +916,7 @@ def plugin_wrapper_vollseg():
 
 
 
-            def _image_axes(valid):
+            def _image_axes(valid_star, valid_unet, valid_den):
                 axes, image, err = getattr(self.args, 'image_axes', (None, None, None))
                 widgets_valid(
                     plugin.axes,
@@ -938,7 +940,7 @@ def plugin_wrapper_vollseg():
                     else:
                         plugin.axes.tooltip = ''
 
-            def _norm_axes(valid):
+            def _norm_axes(valid_star, valid_unet, valid_den):
                 norm_axes, err = getattr(self.args, 'norm_axes', (None, None))
                 widgets_valid(plugin.norm_axes, valid=valid)
                 if valid:
@@ -953,7 +955,7 @@ def plugin_wrapper_vollseg():
                     else:
                         plugin.norm_axes.tooltip = ''
 
-            def _n_tiles(valid):
+            def _n_tiles(valid_star, valid_unet, valid_den):
                 n_tiles, image, err = getattr(self.args, 'n_tiles', (None, None, None))
                 widgets_valid(
                     plugin_star_parameters.n_tiles, valid=(valid or image is None)
@@ -994,7 +996,7 @@ def plugin_wrapper_vollseg():
                 and self.valid.norm_axes
             ):
                 axes_image, image = _image_axes(True)
-                (axes_model_star, config_star, axes_model_unet, config_unet, axes_model_den, config_den) = _model(True)
+                (axes_model_star, config_star, axes_model_unet, config_unet, axes_model_den, config_den) = _model(True, True, True)
                 axes_norm = _norm_axes(True)
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
@@ -1109,7 +1111,7 @@ def plugin_wrapper_vollseg():
         config_unet = model_unet_configs.get(key_unet)
         config_den = model_den_configs.get(key_den)
 
-        update_master( 'model_star', 'model_unet', 'model_den', config_star is not None, config_star, config_unet is not None, config_unet,  config_den is not None, config_den)    
+        update_master( 'model_star',  config_star is not None, config_star, 'model_unet',  config_unet is not None, config_unet, 'model_den',  config_den is not None, config_den)    
 
     # -------------------------------------------------------------------------
 
@@ -1168,11 +1170,11 @@ def plugin_wrapper_vollseg():
             axes = axes_check_and_normalize(value, disallowed='S')
             if len(axes) >= 1:
 
-                update_master('norm_axes', True, (axes, None),'norm_axes', True, (axes, None),'norm_axes', True, (axes, None) )
+                update_master('norm_axes', True,'norm_axes', True, 'norm_axes', True, (axes, None) , (axes, None), (axes, None) )
             else:
-                update_master('norm_axes', False, (axes, 'Cannot be empty'),'norm_axes', False, (axes, 'Cannot be empty'),'norm_axes', False, (axes, 'Cannot be empty') ) 
+                update_master('norm_axes', False, 'norm_axes', False, 'norm_axes', False, (axes, 'Cannot be empty') , (axes, 'Cannot be empty'), (axes, 'Cannot be empty') ) 
         except ValueError as err:
-            update_master('norm_axes', False, (value, err),'norm_axes', False, (value, err),'norm_axes', False, (value, err))
+            update_master('norm_axes', False, 'norm_axes', False, 'norm_axes', False, (value, err) , (value, err) , (value, err))
     # -------------------------------------------------------------------------
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
@@ -1248,7 +1250,7 @@ def plugin_wrapper_vollseg():
                             except FileNotFoundError:
                                 pass
                         finally:
-                            select_model_star(key_star)
+                            select_model_master(key_star, None, None, None, None)
                             plugin.progress_bar.hide()
         
                     worker = _get_model_folder()
@@ -1263,11 +1265,11 @@ def plugin_wrapper_vollseg():
                     plugin.progress_bar.show()
 
                 else:
-                    select_model_star(key_star)
+                    select_model_master(key_star, None, None, None, None)
         else:
              plugin.call_button.enabled = True
              key_star = None, None
-             select_model_star(key_star)
+             select_model_master(key_star, None, None, None, None)
              
              
              
@@ -1687,7 +1689,7 @@ def plugin_wrapper_vollseg():
                             
                         finally:
         
-                                select_model_unet(key_unet)
+                                select_model_master(None, None, key_unet, None, None)
                                 plugin.progress_bar.hide()
         
                     worker = _get_model_folder()
@@ -1702,11 +1704,11 @@ def plugin_wrapper_vollseg():
                     plugin.progress_bar.show()
         
                 else:
-                    select_model_unet(key_unet)
+                    select_model_master(None, None, key_unet, None, None)
         else:
                  plugin.call_button.enabled = True
                  key_unet = None, None 
-                 select_model_unet(key_unet)
+                 select_model_master(None, None, key_unet, None, None)
     @change_handler(plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_den(model_name_den: str):
             model_class_den = ( CARE if Signal.sender() is plugin.model_den else None ) 
@@ -1727,7 +1729,7 @@ def plugin_wrapper_vollseg():
                                 
                             finally:
             
-                                    select_model_den(key_den)
+                                    select_model_master(None, None, None, None,key_den)
                                     plugin.progress_bar.hide()
             
                         worker = _get_model_folder()
@@ -1742,11 +1744,11 @@ def plugin_wrapper_vollseg():
                         plugin.progress_bar.show()
             
                     else:
-                        select_model_den(key_den)
+                        select_model_master(None, None, None, None,key_den)
             else:
                      plugin.call_button.enabled = True
                      key_den = None, None 
-                     select_model_den(key_den)
+                     select_model_master(None, None, None, None,key_den)
 
     # load config/thresholds from custom model path
     # -> triggered by _model_type_change
@@ -1763,7 +1765,7 @@ def plugin_wrapper_vollseg():
         except FileNotFoundError:
             pass
         finally:
-            select_model_star(key)
+            select_model_master(key, None, None, None, None)
 
     @change_handler(plugin.model_folder_unet, init=False)
     def _model_unet_folder_change(_path: str):
@@ -1776,7 +1778,7 @@ def plugin_wrapper_vollseg():
         except FileNotFoundError:
             pass
         finally:
-            select_model_unet(key)
+            select_model_master(None, None, key,  None, None)
 
     @change_handler(plugin.model_folder_den, init=False)
     def _model_den_folder_change(_path: str):
@@ -1789,7 +1791,7 @@ def plugin_wrapper_vollseg():
         except FileNotFoundError:
             pass
         finally:
-            select_model_den(key)
+            select_model_master(None, None, None, None,key)
 
     # -------------------------------------------------------------------------
 
@@ -1854,10 +1856,10 @@ def plugin_wrapper_vollseg():
                 value, length=get_data(image).ndim, disallowed='S'
             )
 
-            update_master('image_axes', True, (axes, image, None),'image_axes', True, (axes, image, None),'image_axes', True, (axes, image, None))
+            update_master('image_axes', True, 'image_axes', True,'image_axes', True, (axes, image, None), (axes, image, None), (axes, image, None))
         except ValueError as err:
 
-            update_master('image_axes', False, (value, image, err),'image_axes', False, (value, image, err),'image_axes', False, (value, image, err))
+            update_master('image_axes', False, 'image_axes', False,'image_axes', False, (value, image, err), (value, image, err), (value, image, err))
         # finally:
         # widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
@@ -1870,7 +1872,7 @@ def plugin_wrapper_vollseg():
             value = plugin_star_parameters.n_tiles.get_value()
             if value is None:
 
-                update_master('n_tiles', True, (None, image, None),'n_tiles', True, (None, image, None),'n_tiles', True, (None, image, None))
+                update_master('n_tiles', True, 'n_tiles', True,'n_tiles', True, (None, image, None), (None, image, None), (None, image, None))
                 return
             shape = get_data(image).shape
             try:
@@ -1880,9 +1882,9 @@ def plugin_wrapper_vollseg():
                 raise ValueError(f'must be a tuple/list of length {len(shape)}')
             if not all(isinstance(t, int) and t >= 1 for t in value):
                 raise ValueError(f'each value must be an integer >= 1')
-            update_master('n_tiles', True, (value, image, None),'n_tiles', True, (value, image, None),'n_tiles', True, (value, image, None))    
+            update_master('n_tiles', True, 'n_tiles', True,'n_tiles', True, (value, image, None), (value, image, None), (value, image, None))    
         except (ValueError, SyntaxError) as err:
-            update_master('n_tiles', False, (None, image, err),'n_tiles', False, (None, image, err),'n_tiles', False, (None, image, err))
+            update_master('n_tiles', False, 'n_tiles', False,'n_tiles', False, (None, image, err), (None, image, err), (None, image, err))
     # -------------------------------------------------------------------------
 
     # set thresholds to optimized values for chosen model
