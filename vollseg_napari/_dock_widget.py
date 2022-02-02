@@ -528,15 +528,15 @@ def plugin_wrapper_vollseg():
             #plugin.call_button.enabled = False
         if model_selected_star is not None:    
              model_star = get_model_star(*model_selected_star)
-        else:
+        if star_seg_model_type == 'NOSTAR':
             model_star = None
         if model_selected_unet is not None:
             model_unet = get_model_unet(*model_selected_unet)
-        else:
+        if unet_seg_model_type == 'NOUNET':
             model_unet = None
         if model_selected_den is not None:
             model_den = get_model_den(*model_selected_den)
-        else:
+        if den_model_type == 'NODEN':
             model_den = None
         lkwargs = {}
         print('selected model', model_star, model_unet, model_den)
@@ -2001,13 +2001,13 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_unet(model_name_unet: str):
         
-
+        
         if Signal.sender() is not plugin.model_unet_none:
                 model_class_unet = ( UNET if Signal.sender() is plugin.model_unet else UNET if plugin.model_unet.value is not None and Signal.sender() is None else None ) 
                 
                 print('class unet',model_class_unet, plugin.model_unet)
                 if model_class_unet is not None:
-
+                        plugin_extra_parameters.dounet.value = True  
                         if Signal.sender is not None:
                              model_name = model_name_unet
                         elif plugin.model_unet.value is not None:
@@ -2045,6 +2045,7 @@ def plugin_wrapper_vollseg():
                             select_model_unet(key_unet)
         else:
                  plugin.call_button.enabled = True
+                 plugin_extra_parameters.dounet.value = False
                  plugin_extra_parameters.unet_model_axes.value = ''
                  plugin.model_folder_unet.line_edit.tooltip = (
                         'Invalid model directory'
@@ -2120,6 +2121,7 @@ def plugin_wrapper_vollseg():
 
     @change_handler(plugin.model_folder_unet, init=False)
     def _model_unet_folder_change(_path: str):
+        plugin_extra_parameters.dounet.value = True 
         path = Path(_path)
         key = CUSTOM_SEG_MODEL_UNET, path
         try:

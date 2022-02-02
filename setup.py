@@ -14,7 +14,7 @@ with open(path.join(_dir,'README.md'), encoding="utf-8") as f:
 
 setup(
     name='vollseg-napari',
-    version= '2.0.0',
+    version= '2.0.2',
     description='Irregular cell shape segmentation using VollSeg',
     long_description=long_description,
     long_description_content_type='text/markdown',
