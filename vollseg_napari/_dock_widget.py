@@ -1940,55 +1940,55 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False)
     def _model_change_star(model_name_star: str):
 
-
-        model_class_star = (
-                    StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D if Signal.sender() is plugin.model3d_star else StarDist2D 
-                    if  plugin.model2d_star.value is not None and Signal.sender() is None else StarDist3D if plugin.model3d_star.value is not None and Signal.sender() is None else None
-                )
+        if Signal.sender() is not plugin.model_star_none:
+                model_class_star = (
+                            StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D if Signal.sender() is plugin.model3d_star else StarDist2D 
+                            if  plugin.model2d_star.value is not None and Signal.sender() is None else StarDist3D if plugin.model3d_star.value is not None and Signal.sender() is None else None
+                        )
         
-        if model_class_star is not None:
-                if Signal.sender is not None:
-                   model_name = model_name_star
-                elif plugin.model2d_star.value is not None:
-                    model_name = plugin.model2d_star.value
-                elif plugin.model3d_star.value is not None:
-                    model_name = plugin.model3d_star.value       
+                if model_class_star is not None:
+                        if Signal.sender is not None:
+                                model_name = model_name_star
+                        elif plugin.model2d_star.value is not None:
+                            model_name = plugin.model2d_star.value
+                        elif plugin.model3d_star.value is not None:
+                            model_name = plugin.model3d_star.value       
+                        
+                        key_star = model_class_star, model_name
+                        if key_star not in model_star_configs:
+                            print('key stars',key_star, model_star_configs)
+                            @thread_worker
+                            def _get_model_folder():
+                                return get_model_folder(*key_star)
                 
-                key_star = model_class_star, model_name
-                if key_star not in model_star_configs:
-                    print('key stars',key_star, model_star_configs)
-                    @thread_worker
-                    def _get_model_folder():
-                        return get_model_folder(*key_star)
-        
-                    def _process_model_folder(path):
-                        try:
-                            model_star_configs[key_star] = load_json(str(path / 'config.json'))
-                            try:
-                                # not all models have associated thresholds
-                                model_star_threshs[key_star] = load_json(
-                                    str(path / 'thresholds.json')
-                                )
-                            except FileNotFoundError:
-                                pass
-                        finally:
-                            select_model_star(key_star)
-                            plugin.progress_bar.hide()
-        
-                    worker = _get_model_folder()
-                    worker.returned.connect(_process_model_folder)
-                    worker.start()
-        
-                    # delay showing progress bar -> won't show up if model already downloaded
-                    # TODO: hacky -> better way to do this?
-                    time.sleep(0.1)
-                    plugin.call_button.enabled = False
-                    plugin.progress_bar.label = 'Downloading StarDist model'
-                    plugin.progress_bar.show()
+                            def _process_model_folder(path):
+                                try:
+                                    model_star_configs[key_star] = load_json(str(path / 'config.json'))
+                                    try:
+                                        # not all models have associated thresholds
+                                        model_star_threshs[key_star] = load_json(
+                                            str(path / 'thresholds.json')
+                                        )
+                                    except FileNotFoundError:
+                                        pass
+                                finally:
+                                    select_model_star(key_star)
+                                    plugin.progress_bar.hide()
+                
+                            worker = _get_model_folder()
+                            worker.returned.connect(_process_model_folder)
+                            worker.start()
+                
+                            # delay showing progress bar -> won't show up if model already downloaded
+                            # TODO: hacky -> better way to do this?
+                            time.sleep(0.1)
+                            plugin.call_button.enabled = False
+                            plugin.progress_bar.label = 'Downloading StarDist model'
+                            plugin.progress_bar.show()
 
-                else:
-                    select_model_star(key_star)
-        elif model_class_star is None:
+                        else:
+                            select_model_star(key_star)
+        else:
              plugin.call_button.enabled = True
              plugin_star_parameters.star_model_axes.value = ''
              plugin.model_folder_star.line_edit.tooltip = (
@@ -1999,47 +1999,49 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_unet(model_name_unet: str):
         
-        model_class_unet = ( UNET if Signal.sender() is plugin.model_unet else UNET if plugin.model_unet.value is not None and Signal.sender() is None else None ) 
-         
-        print('class unet',model_class_unet, plugin.model_unet)
-        if model_class_unet is not None:
 
-                if Signal.sender is not None:
-                   model_name = model_name_unet
-                elif plugin.model_unet.value is not None:
-                    model_name = plugin.model_unet.value
-                key_unet = model_class_unet, model_name
-                print('key unets',key_unet, model_unet_configs)
-                if key_unet not in model_unet_configs:
-        
-                    @thread_worker
-                    def _get_model_folder():
-                        return get_model_folder(*key_unet)
-        
-                    def _process_model_folder(path):
-        
-                        try:
-                            model_unet_configs[key_unet] = load_json(str(path / 'config.json'))
-                            
-                        finally:
-        
-                                select_model_unet(key_unet)
-                                plugin.progress_bar.hide()
-        
-                    worker = _get_model_folder()
-                    worker.returned.connect(_process_model_folder)
-                    worker.start()
-        
-                    # delay showing progress bar -> won't show up if model already downloaded
-                    # TODO: hacky -> better way to do this?
-                    time.sleep(0.1)
-                    plugin.call_button.enabled = False
-                    plugin.progress_bar.label = 'Downloading UNET model'
-                    plugin.progress_bar.show()
-        
-                else:
-                    select_model_unet(key_unet)
-        elif model_class_unet is None:
+        if Signal.sender() is not plugin.model_unet_none:
+                model_class_unet = ( UNET if Signal.sender() is plugin.model_unet else UNET if plugin.model_unet.value is not None and Signal.sender() is None else None ) 
+                
+                print('class unet',model_class_unet, plugin.model_unet)
+                if model_class_unet is not None:
+
+                        if Signal.sender is not None:
+                             model_name = model_name_unet
+                        elif plugin.model_unet.value is not None:
+                            model_name = plugin.model_unet.value
+                        key_unet = model_class_unet, model_name
+                        print('key unets',key_unet, model_unet_configs)
+                        if key_unet not in model_unet_configs:
+                
+                            @thread_worker
+                            def _get_model_folder():
+                                return get_model_folder(*key_unet)
+                
+                            def _process_model_folder(path):
+                
+                                try:
+                                    model_unet_configs[key_unet] = load_json(str(path / 'config.json'))
+                                    
+                                finally:
+                
+                                        select_model_unet(key_unet)
+                                        plugin.progress_bar.hide()
+                
+                            worker = _get_model_folder()
+                            worker.returned.connect(_process_model_folder)
+                            worker.start()
+                
+                            # delay showing progress bar -> won't show up if model already downloaded
+                            # TODO: hacky -> better way to do this?
+                            time.sleep(0.1)
+                            plugin.call_button.enabled = False
+                            plugin.progress_bar.label = 'Downloading UNET model'
+                            plugin.progress_bar.show()
+                
+                        else:
+                            select_model_unet(key_unet)
+        else:
                  plugin.call_button.enabled = True 
                  plugin_extra_parameters.unet_model_axes.value = ''
                  plugin.model_folder_unet.line_edit.tooltip = (
@@ -2048,10 +2050,12 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_den(model_name_den: str):
            
-            model_class_den = ( CARE if Signal.sender() is plugin.model_den else CARE if plugin.model_den.value is not None and Signal.sender() is None else None ) 
+
+            if Signal.sender() is not plugin.model_den_none: 
+                model_class_den = ( CARE if Signal.sender() is plugin.model_den else CARE if plugin.model_den.value is not None and Signal.sender() is None else None ) 
             
-            print('class den ',model_class_den)
-            if model_class_den is not None:
+                print('class den ',model_class_den)
+                if model_class_den is not None:
 
                     if Signal.sender is not None:
                        model_name = model_name_den
@@ -2088,7 +2092,7 @@ def plugin_wrapper_vollseg():
             
                     else:
                         select_model_den(key_den)
-            elif model_class_den is None:
+            else:
                      plugin.call_button.enabled = True
                      plugin_extra_parameters.den_model_axes.value = ''
                      plugin.model_folder_den.line_edit.tooltip = (
