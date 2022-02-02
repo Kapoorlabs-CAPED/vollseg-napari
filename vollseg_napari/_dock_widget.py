@@ -2249,8 +2249,8 @@ def plugin_wrapper_vollseg():
     def _set_thresholds():
         if model_selected_star in model_star_threshs:
             thresholds = model_star_threshs[model_selected_star]
-            plugin.nms_thresh.value = thresholds['nms']
-            plugin.prob_thresh.value = thresholds['prob']
+            plugin_star_parameters.nms_thresh.value = thresholds['nms']
+            plugin_star_parameters.prob_thresh.value = thresholds['prob']
 
     @change_handler(plugin_extra_parameters.min_size)
     def _min_size_change(value: float):
