@@ -1546,7 +1546,7 @@ def plugin_wrapper_vollseg():
     def return_segment_time(pred):
 
         res, scale_out, t, x = pred
-        if plugin.den_model_type.value != 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
+        if plugin.den_model_type.value != 'NOSTAR' and  plugin.star_seg_model_type.value != 'NOSTAR':
 
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = zip(*res)
             
@@ -1556,7 +1556,7 @@ def plugin_wrapper_vollseg():
             
             denoised_image = np.reshape(denoised_image, x.shape)
             
-        elif plugin.den_model_type.value == 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
+        elif  plugin.den_model_type.value == 'NOSTAR' and  plugin.star_seg_model_type.value != 'NOSTAR':
             
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton = zip(*res)
             
@@ -1681,6 +1681,7 @@ def plugin_wrapper_vollseg():
     def return_segment(pred):
               
           res, scale_out = pred
+
           if plugin.den_model_type.value != 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
 
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
@@ -2043,7 +2044,7 @@ def plugin_wrapper_vollseg():
                         else:
                             select_model_unet(key_unet)
         else:
-                 plugin.call_button.enabled = True 
+                 plugin.call_button.enabled = True
                  plugin_extra_parameters.unet_model_axes.value = ''
                  plugin.model_folder_unet.line_edit.tooltip = (
                         'Invalid model directory'
