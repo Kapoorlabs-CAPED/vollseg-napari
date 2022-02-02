@@ -561,13 +561,14 @@ def plugin_wrapper_vollseg():
         # don't want to load persisted values for these widgets
 
         # TODO: progress bar (labels) often don't show up. events not processed?
+        original_tiling = plugin_star_parameters.n_tiles.value
         if 'T' in axes:
             app = use_app()
             t = axes_dict(axes)['T']
             n_frames = x.shape[t]
             if plugin_star_parameters.n_tiles.value is not None:
                 # remove tiling value for time axis
-                original_tiling = plugin_star_parameters.n_tiles.value
+                
                 plugin_star_parameters.n_tiles.value = tuple(
                     v
                     for i, v in enumerate(plugin_star_parameters.n_tiles.value)
@@ -1682,14 +1683,14 @@ def plugin_wrapper_vollseg():
           res, scale_out = pred
           if plugin.den_model_type.value != 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
 
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, scale_out = res
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
               
           elif plugin.den_model_type.value == 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, scale_out = res
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton = res
               
           if plugin.star_seg_model_type.value == 'NOSTAR':
               
-              unet_mask, denoised_image, scale_out = res
+              unet_mask, denoised_image = res
                   
           for layer in list(plugin.viewer.value.layers):
               
@@ -1706,7 +1707,7 @@ def plugin_wrapper_vollseg():
               if 'Skeleton' in layer.name:
                        plugin.viewer.value.layers.remove(layer)
               if 'Denoised Image' in layer.name:
-                       plugin.viewer.layers.value.remove(layer)         
+                       plugin.viewer.value.layers.remove(layer)         
                        
           if plugin.star_seg_model_type.value != 'NOSTAR':
               plugin.viewer.value.add_image(
@@ -2073,7 +2074,7 @@ def plugin_wrapper_vollseg():
             
                             try:
                                 model_den_configs[key_den] = load_json(str(path / 'config.json'))
-                                
+
                             finally:
             
                                     select_model_den(key_den)
