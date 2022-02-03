@@ -111,7 +111,39 @@ def plugin_wrapper_vollseg():
     model_selected_star = None
     model_selected_unet = None
     model_selected_den = None
+    DEFAULTS_MODEL = dict(
+        star_seg_model_type=StarDist3D,
+        unet_seg_model_type=UNET,
+        den_model_type=CARE,
+        model2d_star=models2d_star[0][0],
+        model_unet=models_unet[0][0],
+        model3d_star=models3d_star[0][0],
+        model_den=models_den[0][0],
+        model_den_none='NODEN',
+        model_star_none='NOSTAR',
+        model_unet_none='NOUNET',
+        norm_axes='ZYX',
+    )
 
+    DEFAULTS_STAR_PARAMETERS = dict(
+        norm_image=True,
+        perc_low=1.0,
+        perc_high=99.8,
+        prob_thresh=0.5,
+        nms_thresh=0.4,
+        n_tiles=(1,1,1),
+    )
+
+    DEFAULTS_VOLL_PARAMETERS = dict(
+        min_size_mask=10.0,
+        min_size=10.0,
+        max_size=100000.0,
+        isRGB = False,
+        dounet=True,
+        slicemerge = False,
+        iouthresh = 0.5,
+        prob_map_watershed=True,
+    )
     CUSTOM_SEG_MODEL_STAR = 'CUSTOM_SEG_MODEL_STAR'
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
@@ -146,7 +178,7 @@ def plugin_wrapper_vollseg():
                 None, name=path_star.name, basedir=str(path_star.parent)
             )
        
-        elif star_seg_model_type is not None:
+        elif star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:
             return star_seg_model_type.local_from_pretrained(model_star)
         else:
             
@@ -166,7 +198,7 @@ def plugin_wrapper_vollseg():
             )
         
 
-        elif unet_seg_model_type is not None:
+        elif unet_seg_model_type !=DEFAULTS_MODEL['model_unet_none']:
             return unet_seg_model_type.local_from_pretrained(model_unet)
         else:
             
@@ -183,47 +215,13 @@ def plugin_wrapper_vollseg():
             return model_class_den(
                 None, name=path_den.name, basedir=str(path_den.parent)
             )
-        elif den_model_type == CARE:
+        elif den_model_type != DEFAULTS_MODEL['model_den_none']:
             return den_model_type.local_from_pretrained(model_den)
-
-        elif den_model_type == 'NODEN':
-            return None
-
+        else:
+           return None
 
 
-    DEFAULTS_MODEL = dict(
-        star_seg_model_type=StarDist3D,
-        unet_seg_model_type=UNET,
-        den_model_type=CARE,
-        model2d_star=models2d_star[0][0],
-        model_unet=models_unet[0][0],
-        model3d_star=models3d_star[0][0],
-        model_den=models_den[0][0],
-        model_den_none='NODEN',
-        model_star_none='NOSTAR',
-        model_unet_none='NOUNET',
-        norm_axes='ZYX',
-    )
-
-    DEFAULTS_STAR_PARAMETERS = dict(
-        norm_image=True,
-        perc_low=1.0,
-        perc_high=99.8,
-        prob_thresh=0.5,
-        nms_thresh=0.4,
-        n_tiles=(1,1,1),
-    )
-
-    DEFAULTS_VOLL_PARAMETERS = dict(
-        min_size_mask=10.0,
-        min_size=10.0,
-        max_size=100000.0,
-        isRGB = False,
-        dounet=True,
-        slicemerge = False,
-        iouthresh = 0.5,
-        prob_map_watershed=True,
-    )
+    
 
     @magicgui(
         norm_image=dict(
@@ -528,15 +526,15 @@ def plugin_wrapper_vollseg():
             #plugin.call_button.enabled = False
         if model_selected_star is not None:    
              model_star = get_model_star(*model_selected_star)
-        if star_seg_model_type == 'NOSTAR':
+        if star_seg_model_type == DEFAULTS_MODEL['model_star_none']:
             model_star = None
         if model_selected_unet is not None:
             model_unet = get_model_unet(*model_selected_unet)
-        if unet_seg_model_type == 'NOUNET':
+        if unet_seg_model_type == DEFAULTS_MODEL['model_unet_none']:
             model_unet = None
         if model_selected_den is not None:
             model_den = get_model_den(*model_selected_den)
-        if den_model_type == 'NODEN':
+        if den_model_type == DEFAULTS_MODEL['model_den_none']:
             model_den = None
         lkwargs = {}
         print('selected model', model_star, model_unet, model_den)
@@ -1546,7 +1544,7 @@ def plugin_wrapper_vollseg():
     def return_segment_time(pred):
 
         res, scale_out, t, x = pred
-        if plugin.den_model_type.value != 'NOSTAR' and  plugin.star_seg_model_type.value != 'NOSTAR':
+        if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
 
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = zip(*res)
             
@@ -1556,13 +1554,13 @@ def plugin_wrapper_vollseg():
             
             denoised_image = np.reshape(denoised_image, x.shape)
             
-        elif  plugin.den_model_type.value == 'NOSTAR' and  plugin.star_seg_model_type.value != 'NOSTAR':
+        elif  plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
             
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton = zip(*res)
             
             
         
-        if plugin.star_seg_model_type.value != 'NOSTAR': 
+        if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']: 
                 labels = np.asarray(labels)
                 labels = np.moveaxis(labels, 0, t)
                 labels = np.reshape(labels, x.shape)
@@ -1604,7 +1602,7 @@ def plugin_wrapper_vollseg():
                     if 'Denoised Image' in layer.name:
                              plugin.viewer.value.layers.remove(layer)         
                              
-                if plugin.star_seg_model_type.value != 'NOSTAR':
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
                     plugin.viewer.value.add_image(
                         
                             probability_map,
@@ -1665,7 +1663,7 @@ def plugin_wrapper_vollseg():
                                 visible=False,
                             
                     )
-                if plugin.den_model_type.value != 'NODEN':
+                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
                     plugin.viewer.value.add_image(
                         
                             denoised_image,
@@ -1682,14 +1680,14 @@ def plugin_wrapper_vollseg():
               
           res, scale_out = pred
 
-          if plugin.den_model_type.value != 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
+          if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
 
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
               
-          elif plugin.den_model_type.value == 'NODEN' and plugin.star_seg_model_type.value != 'NOSTAR':
+          elif plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton = res
               
-          if plugin.star_seg_model_type.value == 'NOSTAR':
+          if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
               
               unet_mask, denoised_image = res
                   
@@ -1710,7 +1708,7 @@ def plugin_wrapper_vollseg():
               if 'Denoised Image' in layer.name:
                        plugin.viewer.value.layers.remove(layer)         
                        
-          if plugin.star_seg_model_type.value != 'NOSTAR':
+          if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
               plugin.viewer.value.add_image(
                   
                       probability_map,
