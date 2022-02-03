@@ -1195,6 +1195,7 @@ def plugin_wrapper_vollseg():
             )
             self.args = SimpleNamespace()
             self.viewer = None
+            
 
         def __call__(self, k, valid, args=None):
             assert k in vars(self.valid)
@@ -1397,16 +1398,16 @@ def plugin_wrapper_vollseg():
             self.help(help_msg)
             plugin.call_button.enabled = all_valid
             # widgets_valid(plugin.call_button, valid=all_valid)
+            
             if self.debug:
                 print(
                     f'valid ({all_valid}):',
                     ', '.join([f'{k}={v}' for k, v in vars(self.valid).items()]),
                 )
-                
+                    
     update = Updater()
     update_unet = Unet_updater()
     update_den = Unet_den_updater()
-
     def select_model_star(key_star):
         nonlocal model_selected_star
         model_selected_star = key_star
@@ -1481,17 +1482,27 @@ def plugin_wrapper_vollseg():
         try:
             axes = axes_check_and_normalize(value, disallowed='S')
             if len(axes) >= 1:
-                update('norm_axes', True, (axes, None))
-                update_unet('norm_axes', True, (axes, None))
-                update_den('norm_axes', True, (axes, None))
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                   update('norm_axes', True, (axes, None))
+                if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:   
+                   update_unet('norm_axes', True, (axes, None))
+                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:   
+                   update_den('norm_axes', True, (axes, None))
             else:
-                update('norm_axes', False, (axes, 'Cannot be empty'))
-                update_unet('norm_axes', False, (axes, 'Cannot be empty'))
-                update_den('norm_axes', False, (axes, 'Cannot be empty'))
+
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                   update('norm_axes', False, (axes, 'Cannot be empty'))
+                if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:   
+                   update_unet('norm_axes', False, (axes, 'Cannot be empty'))
+                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:   
+                   update_den('norm_axes', False, (axes, 'Cannot be empty'))
         except ValueError as err:
-            update('norm_axes', False, (value, err))
-            update_unet('norm_axes', False, (value, err))
-            update_den('norm_axes', False, (value, err))
+            if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+               update('norm_axes', False, (value, err))
+            if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:
+               update_unet('norm_axes', False, (value, err))
+            if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:    
+               update_den('norm_axes', False, (value, err))
     # -------------------------------------------------------------------------
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
@@ -2206,13 +2217,19 @@ def plugin_wrapper_vollseg():
             axes = axes_check_and_normalize(
                 value, length=get_data(image).ndim, disallowed='S'
             )
-            update('image_axes', True, (axes, image, None))
-            update_unet('image_axes', True, (axes, image, None))
-            update_den('image_axes', True, (axes, image, None))
+            if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+               update('image_axes', True, (axes, image, None))
+            if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:
+               update_unet('image_axes', True, (axes, image, None))
+            if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:   
+               update_den('image_axes', True, (axes, image, None))
         except ValueError as err:
-            update('image_axes', False, (value, image, err))
-            update_unet('image_axes', False, (value, image, err))
-            update_den('image_axes', False, (value, image, err))
+            if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']: 
+               update('image_axes', False, (value, image, err))
+            if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:   
+               update_unet('image_axes', False, (value, image, err))
+            if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:   
+               update_den('image_axes', False, (value, image, err))
         # finally:
         # widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
@@ -2224,9 +2241,12 @@ def plugin_wrapper_vollseg():
             image is not None or _raise(ValueError('no image selected'))
             value = plugin_star_parameters.n_tiles.get_value()
             if value is None:
-                update('n_tiles', True, (None, image, None))
-                update_unet('n_tiles', True, (None, image, None))
-                update_den('n_tiles', True, (None, image, None))
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                   update('n_tiles', True, (None, image, None))
+                if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:   
+                   update_unet('n_tiles', True, (None, image, None))
+                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:   
+                     update_den('n_tiles', True, (None, image, None))
                 return
             shape = get_data(image).shape
             try:
@@ -2236,13 +2256,19 @@ def plugin_wrapper_vollseg():
                 raise ValueError(f'must be a tuple/list of length {len(shape)}')
             if not all(isinstance(t, int) and t >= 1 for t in value):
                 raise ValueError(f'each value must be an integer >= 1')
-            update('n_tiles', True, (value, image, None))
-            update_unet('n_tiles', True, (value, image, None))
-            update_den('n_tiles', True, (value, image, None))
+            if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:    
+                 update('n_tiles', True, (value, image, None))
+            if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:     
+                 update_unet('n_tiles', True, (value, image, None))
+            if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:     
+                 update_den('n_tiles', True, (value, image, None))
         except (ValueError, SyntaxError) as err:
-            update('n_tiles', False, (None, image, err))
-            update_unet('n_tiles', False, (None, image, err))
-            update_den('n_tiles', False, (None, image, err))
+            if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                 update('n_tiles', False, (None, image, err))
+            if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:     
+                 update_unet('n_tiles', False, (None, image, err))
+            if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:     
+                 update_den('n_tiles', False, (None, image, err))
     # -------------------------------------------------------------------------
 
     # set thresholds to optimized values for chosen model
