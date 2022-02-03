@@ -1810,7 +1810,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              if plugin.den_model_type.value != 'NODEN':
+              if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
                   plugin.viewer.value.add_image(
                       
                           denoised_image,
@@ -1831,7 +1831,7 @@ def plugin_wrapper_vollseg():
                   if 'VollSeg Binary' in layer.name:
                            plugin.viewer.value.layers.remove(layer)
                   if 'Denoised Image' in layer.name:
-                           plugin.viewer.layers.value.remove(layer)
+                           plugin.viewer.value.layers.remove(layer)
                            
                            
               plugin.viewer.value.add_labels(
@@ -1840,7 +1840,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=True)
-              if plugin.den_model_type.value != 'NODEN':
+              if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
                  plugin.viewer.value.add_image(
                      
                          denoised_image,
