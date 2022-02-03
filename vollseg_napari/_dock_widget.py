@@ -20,7 +20,7 @@ import numpy as np
 from pathlib import Path
 from warnings import warn
 from tifffile import imread, imwrite
-from vollseg import inrimage, h5, spatial_image
+from vollseg import inrimage, h5, spatial_image, test_image_ascadian_3d, test_image_carcinoma_3dt
 from qtpy.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -47,9 +47,9 @@ def plugin_wrapper_vollseg():
     from csbdeep.utils import load_json
     import sys
     from vollseg import VollSeg, VollSeg3D, VollSeg2D, VollSeg_unet, CARE, UNET, StarDist2D, StarDist3D
-
+    
     from stardist.utils import abspath
-
+    
     DEBUG = True
                 
     def get_data(image):
@@ -2366,15 +2366,14 @@ def napari_experimental_provide_dock_widget():
 
 @napari_hook_implementation
 def napari_provide_sample_data():
-    from stardist import data
 
     return {
         'test_image_cell_2d': {
-            'data': lambda: [(data.test_image_nuclei_2d(), {'name': 'cell2d'})],
-            'display_name': 'Cell (2D)',
+            'data': lambda: [(test_image_ascadian_3d(), {'name': 'ascadian_embryo_3d'})],
+            'display_name': 'Embryo Cells (3D)',
         },
         'test_image_cell_3d': {
-            'data': lambda: [(data.test_image_nuclei_3d(), {'name': 'cell3d'})],
-            'display_name': 'Cell (3D)',
+            'data': lambda: [(test_image_carcinoma_3dt(), {'name': 'carcinoma_cells_3dt'})],
+            'display_name': 'Breast Cancer Cells (3DT)',
         },
     }
