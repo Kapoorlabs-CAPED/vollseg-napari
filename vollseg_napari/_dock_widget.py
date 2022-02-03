@@ -748,7 +748,7 @@ def plugin_wrapper_vollseg():
     def widgets_valid(*widgets, valid):
         for widget in widgets:
             widget.native.setStyleSheet('' if valid else 'background-color: lightcoral')
-
+            
     class Unet_den_updater:
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace

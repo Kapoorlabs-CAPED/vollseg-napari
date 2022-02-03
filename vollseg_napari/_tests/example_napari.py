@@ -20,10 +20,9 @@ def show_napari_3d_test():
     #viewer.add_image(x)
     viewer.window.add_plugin_dock_widget('TestVollSeg')
     
-    
-
-
+ 
 if __name__ == '__main__':
     viewer = show_napari_3d()
   
     napari.run()
+    
