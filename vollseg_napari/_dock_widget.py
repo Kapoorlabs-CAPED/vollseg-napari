@@ -2339,7 +2339,7 @@ def napari_get_reader(path: str):
         return None
 
 
-@napari_hook_implementation
+""" @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
     return plugin_wrapper_vollseg, dict(name='VollSeg', add_vertical_stretch=True)
 
@@ -2356,4 +2356,4 @@ def napari_provide_sample_data():
             'data': lambda: [(test_image_carcinoma_3dt(), {'name': 'carcinoma_cells_3dt'})],
             'display_name': 'Breast Cancer Cells (3DT)',
         },
-    } 
+    }  """

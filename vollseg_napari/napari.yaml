@@ -15,9 +15,9 @@ contributions:
   - command: vollseg-napari.widget
     display_name: VollSeg
   sample_data:
-  - key: nuclei_2d
+  - key: ascadian_embryo_3d
     display_name: Embryo Cells (3D)
-    command: stardist-napari.data.nuclei_2d
-  - key: nuclei_3d
-    display_name: Breast Cancer Cells (3DT
-    command: stardist-napari.data.nuclei_3d
+    command: vollseg-napari.test_image_ascadian_3d
+  - key: carcinoma_cells_3dt
+    display_name: Breast Cancer Cells (3DT)
+    command: vollseg-napari.test_image_carcinoma_3dt
