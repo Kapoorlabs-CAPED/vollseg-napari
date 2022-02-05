@@ -4,7 +4,7 @@ contributions:
   commands:
   - id: vollseg-napari.widget
     title: Create VollSeg widget
-    python_name: vollseg_napari._dock_widget:plugin_wrapper
+    python_name: vollseg_napari._dock_widget:plugin_wrapper_vollseg
   - id: vollseg-napari.test_image_ascadian_3d
     title: Ascadian (3D) sample
     python_name: vollseg_napari._sample_data:_test_image_cell_3d

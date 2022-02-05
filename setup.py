@@ -34,13 +34,13 @@ setup(
     packages=find_packages(),
     python_requires='>=3.7',
 
-      #package_data={'vollseg_napari': [ 'resources/*', 'napari.yaml' ]},
+      package_data={'vollseg_napari': [ 'resources/*', 'napari.yaml' ]},
 
-      #entry_points={'napari.manifest': ['vollseg-napari = vollseg_napari:napari.yaml']},
+      entry_points={'napari.manifest': ['vollseg-napari = vollseg_napari:napari.yaml']},
 
-      package_data={'vollseg_napari': [ 'resources/*' ]},
+      #package_data={'vollseg_napari': [ 'resources/*' ]},
 
-      entry_points={'napari.plugin': 'VollSeg = vollseg_napari'},
+      #entry_points={'napari.plugin': 'VollSeg = vollseg_napari'},
       
       dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
 
@@ -62,7 +62,7 @@ setup(
     install_requires=[
         'vollseg',
         'tensorflow-gpu==2.7.0',
-        'napari>=0.4.9',
+        'napari>=0.4.13',
          'typing-extensions>=3.10.0.0'
         'magicgui>=0.3.0'
     ],

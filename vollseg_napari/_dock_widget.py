@@ -699,7 +699,7 @@ def plugin_wrapper_vollseg():
                 worker.returned.connect(return_segment_unet)
  
         progress_bar.hide()
-        plugin_star_parameters.n_tiles.value = original_tiling
+        
             
 
     plugin.axes.value = ''
