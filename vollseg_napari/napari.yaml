@@ -1,0 +1,23 @@
+name: vollseg-napari
+schema_version: 0.1.0
+contributions:
+  commands:
+  - id: vollseg-napari.widget
+    title: Create VollSeg widget
+    python_name: vollseg_napari._dock_widget:plugin_wrapper
+  - id: vollseg-napari.test_image_ascadian_3d
+    title: Ascadian (3D) sample
+    python_name: vollseg_napari._sample_data:_test_image_cell_3d
+  - id: vollseg-napari.test_image_carcinoma_3dt
+    title: Carcinome (3D + time) sample
+    python_name: vollseg_napari._sample_data:_test_image_cell_3dt
+  widgets:
+  - command: vollseg-napari.widget
+    display_name: VollSeg
+  sample_data:
+  - key: nuclei_2d
+    display_name: Embryo Cells (3D)
+    command: stardist-napari.data.nuclei_2d
+  - key: nuclei_3d
+    display_name: Breast Cancer Cells (3DT
+    command: stardist-napari.data.nuclei_3d

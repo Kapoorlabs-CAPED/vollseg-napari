@@ -2227,7 +2227,7 @@ def plugin_wrapper_vollseg():
             
             plugin_star_parameters.nms_thresh.value = thresholds['nms']
             plugin_star_parameters.prob_thresh.value = thresholds['prob']
-            
+
         else:
 
             plugin_star_parameters.nms_thresh.value = DEFAULTS_STAR_PARAMETERS['nms_thresh']
@@ -2356,4 +2356,4 @@ def napari_provide_sample_data():
             'data': lambda: [(test_image_carcinoma_3dt(), {'name': 'carcinoma_cells_3dt'})],
             'display_name': 'Breast Cancer Cells (3DT)',
         },
-    }
+    } 

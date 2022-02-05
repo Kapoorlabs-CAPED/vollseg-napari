@@ -34,6 +34,10 @@ setup(
     packages=find_packages(),
     python_requires='>=3.7',
 
+      #package_data={'vollseg_napari': [ 'resources/*', 'napari.yaml' ]},
+
+      #entry_points={'napari.manifest': ['vollseg-napari = vollseg_napari:napari.yaml']},
+
       package_data={'vollseg_napari': [ 'resources/*' ]},
 
       entry_points={'napari.plugin': 'VollSeg = vollseg_napari'},
