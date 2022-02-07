@@ -152,6 +152,7 @@ def plugin_wrapper_vollseg():
         
         display_prob=True,
         display_vollseg = True,
+        display_skeleton = True,
         display_stardist = True,
         display_unet = True,
         display_denoised = True,
@@ -555,6 +556,7 @@ def plugin_wrapper_vollseg():
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
         x = get_data(image)
+        
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = 'Starting VollSeg'
         if plugin_star_parameters.norm_image:
@@ -720,23 +722,12 @@ def plugin_wrapper_vollseg():
             scale_in_dict = dict(zip(axes, image.scale))
             scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]     
             
-                
-            if isinstance(model_star, StarDist3D):
-
-                
+            if model_star is not None:   
                 worker = _VollSeg_time(model_star, model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
                 worker.returned.connect(return_segment_time)
                 worker.yielded.connect(progress_thread)
 
-            if isinstance(model_star, StarDist2D):
 
-                
-
-                
-                
-                worker = _VollSeg_time(model_star, model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
-                worker.returned.connect(return_segment_time)
-                worker.yielded.connect(progress_thread)
             if model_star is None:
                    
                         
@@ -748,19 +739,9 @@ def plugin_wrapper_vollseg():
         else:
             
          
-            # TODO: possible to run this in a way that it can be canceled?
-            if isinstance(model_star, StarDist3D):
-
-                
-                    worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
-                    worker.returned.connect(return_segment)
-            if isinstance(model_star, StarDist2D):
-
-                
-                    print('Starting VollSeg')
-                
-                    worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
-                    worker.returned.connect(return_segment)
+            worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
+            worker.returned.connect(return_segment)
+            
             if model_star is None:
                 
                          
@@ -1668,10 +1649,9 @@ def plugin_wrapper_vollseg():
                 Markers = np.asarray(Markers)
                 Markers = np.moveaxis(Markers, 0, t)
                 Markers = np.reshape(Markers, x.shape)     
-                
                 for layer in list(plugin.viewer.value.layers):
                     
-                    if 'VollSeg Binary' in layer.name:
+                    if  'VollSeg Binary' in layer.name:
                              plugin.viewer.value.layers.remove(layer)
                     if 'Base Watershed Image' in layer.name:
                              plugin.viewer.value.layers.remove(layer)         
@@ -1747,16 +1727,16 @@ def plugin_wrapper_vollseg():
                                 visible=plugin_display_parameters.display_skeleton.value,
                             
                     )
-                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
-                    plugin.viewer.value.add_image(
-                        
-                            denoised_image,
-                         
-                                name='Denoised Image',
-                                scale=scale_out,
-                                visible=plugin_display_parameters.display_denoised.value,
+                    if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
+                        plugin.viewer.value.add_image(
                             
-                        )
+                                denoised_image,
+                            
+                                    name='Denoised Image',
+                                    scale=scale_out,
+                                    visible=plugin_display_parameters.display_denoised.value,
+                                
+                            )
                 
                 
     
@@ -1774,7 +1754,6 @@ def plugin_wrapper_vollseg():
           if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
               
               unet_mask, denoised_image = res
-                  
           for layer in list(plugin.viewer.value.layers):
               
               if 'VollSeg Binary' in layer.name:
@@ -1853,16 +1832,16 @@ def plugin_wrapper_vollseg():
                           visible=plugin_display_parameters.display_skeleton.value,
                       
               )
-          if plugin.den_model_type.value != 'NODEN':
-              plugin.viewer.value.add_image(
-                  
-                      denoised_image,
-                   
-                          name='Denoised Image',
-                          scale=scale_out,
-                          visible=plugin_display_parameters.display_denoised.value,
-                      
-                  )
+              if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
+                    plugin.viewer.value.add_image(
+                        
+                            denoised_image,
+                        
+                                name='Denoised Image',
+                                scale=scale_out,
+                                visible=plugin_display_parameters.display_denoised.value,
+                            
+                        )
               
     
     def return_segment_unet_time(pred):
@@ -1894,7 +1873,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=plugin_display_parameters.display_unet.value)
-              if plugin.den_model_type.value != 'NODEN':
+              if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
                   plugin.viewer.value.add_image(
                       
                           denoised_image,
@@ -1924,7 +1903,7 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=plugin_display_parameters.display_unet.value)
-              if plugin.den_model_type.value != 'NODEN':
+              if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
                  plugin.viewer.value.add_image(
                      
                          denoised_image,
@@ -2233,7 +2212,7 @@ def plugin_wrapper_vollseg():
     def _image_change(image: napari.layers.Image):
         ndim = get_data(image).ndim
         
-        plugin.image.tooltip = f'Shape: {get_data(image).shape}'
+        plugin.image.tooltip = f'Shape: {get_data(image).shape, str(image.name)}'
 
         # dimensionality of selected model: 2, 3, or None (unknown)
         ndim_model = None
