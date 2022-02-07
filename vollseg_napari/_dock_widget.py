@@ -147,6 +147,18 @@ def plugin_wrapper_vollseg():
         iouthresh = 0.5,
         prob_map_watershed=True,
     )
+    
+    DEFAULTS_DISPLAY_PARAMETERS = dict(
+        
+        display_prob=True,
+        display_vollseg = True,
+        display_stardist = True,
+        display_unet = True,
+        display_denoised = True,
+        display_markers = True,
+        
+    ) 
+
     CUSTOM_SEG_MODEL_STAR = 'CUSTOM_SEG_MODEL_STAR'
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
@@ -300,23 +312,23 @@ def plugin_wrapper_vollseg():
             widget_type='FloatSpinBox',
             label='Min Size Mask (px)',
             min=0.0,
-            max=1000.0,
-            step=1,
+            max=1000000.0,
+            step=10,
             value=DEFAULTS_VOLL_PARAMETERS['min_size_mask'],
         ),
         min_size=dict(
             widget_type='FloatSpinBox',
             label='Min Size Cells (px)',
             min=0.0,
-            max=1000.0,
-            step=1,
+            max=10000000.0,
+            step=10,
             value=DEFAULTS_VOLL_PARAMETERS['min_size'],
         ),
         max_size=dict(
             widget_type='FloatSpinBox',
             label='Max Size Cells (px)',
-            min=1000.0,
-            max=100000.0,
+            min=1.0,
+            max=100000000.0,
             step=100,
             value=DEFAULTS_VOLL_PARAMETERS['max_size'],
         ),
@@ -373,6 +385,63 @@ def plugin_wrapper_vollseg():
     ):
 
         return plugin_extra_parameters
+    
+    @magicgui(
+       
+        display_prob=dict(
+            widget_type='CheckBox',
+            text='Display Probability Map',
+            value=DEFAULTS_DISPLAY_PARAMETERS['display_prob'],
+        ),
+        display_unet=dict(
+            widget_type='CheckBox',
+            text='Display UNET Results',
+            value=DEFAULTS_DISPLAY_PARAMETERS['display_unet'],
+        ),
+        
+        display_stardist =dict(
+            widget_type='CheckBox',
+            text='Display StarDist Results',
+            value=DEFAULTS_DISPLAY_PARAMETERS['display_stardist'],
+        ),
+        display_markers=dict(
+            widget_type='CheckBox',
+            text='Display Markers Results',
+            value=DEFAULTS_DISPLAY_PARAMETERS['display_markers'],
+        ),
+        display_vollseg=dict(
+            widget_type='CheckBox',
+            text='Display VollSeg Results',
+            value=DEFAULTS_DISPLAY_PARAMETERS['display_vollseg'],
+        ),
+        display_denoised=dict(
+            widget_type='CheckBox',
+            text='Display Denoised Results',
+            value=DEFAULTS_DISPLAY_PARAMETERS['display_denoised'],
+        ),
+        display_skeleton=dict(
+            widget_type='CheckBox',
+            text='Display VollSeg Skeleton Results',
+            value=DEFAULTS_DISPLAY_PARAMETERS['display_skeleton'],
+        ),
+        defaults_display_parameters_button=dict(
+            widget_type='PushButton', text='Restore Display Defaults'
+        ),
+        call_button=False,
+    )
+    def plugin_display_parameters(
+        display_prob,
+        display_unet,
+        display_stardist,
+        display_markers,
+        display_vollseg,
+        display_denoised,
+        display_skeleton,
+        defaults_display_parameters_button,
+        
+    ):
+
+        return plugin_display_parameters
 
     logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
 
@@ -738,6 +807,14 @@ def plugin_wrapper_vollseg():
     parameter_extra_tab.setLayout(_parameter_extra_tab_layout)
     _parameter_extra_tab_layout.addWidget(plugin_extra_parameters.native)
     tabs.addTab(parameter_extra_tab, 'VollSeg Parameter Selection')
+
+    parameter_display_tab = QWidget()
+    _parameter_display_tab_layout = QVBoxLayout()
+    parameter_display_tab.setLayout(_parameter_display_tab_layout)
+    _parameter_display_tab_layout.addWidget(plugin_display_parameters.native)
+    tabs.addTab(parameter_display_tab, 'Layer Visibility Selection')
+
+
     plugin.native.layout().addWidget(tabs)
 
     def widgets_inactive(*widgets, active):
@@ -747,7 +824,7 @@ def plugin_wrapper_vollseg():
 
     def widgets_valid(*widgets, valid):
         for widget in widgets:
-            widget.native.setStyleSheet('' if valid else 'background-color: lightcoral')
+            widget.native.setStyleSheet('' if valid else 'background-color: red')
             
     class Unet_den_updater:
         def __init__(self, debug=DEBUG):
@@ -1436,6 +1513,34 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_extra_parameters.prob_map_watershed)
     def _prob_map_watershed_change(active: bool):
         plugin_extra_parameters.prob_map_watershed.value = active
+   
+    @change_handler(plugin_display_parameters.display_prob)
+    def _display_prob_map_change(active: bool):
+        plugin_display_parameters.display_prob.value = active
+
+    @change_handler(plugin_display_parameters.display_unet)
+    def _display_unet_change(active: bool):
+        plugin_display_parameters.display_unet.value = active
+
+    @change_handler(plugin_display_parameters.display_stardist)
+    def _display_star_change(active: bool):
+        plugin_display_parameters.display_stardist.value = active
+    
+    @change_handler(plugin_display_parameters.display_denoised)
+    def _display_den_change(active: bool):
+        plugin_display_parameters.display_denoised.value = active
+
+    @change_handler(plugin_display_parameters.display_markers)
+    def _display_den_change(active: bool):
+        plugin_display_parameters.display_markers.value = active
+
+    @change_handler(plugin_display_parameters.display_vollseg)
+    def _display_den_change(active: bool):
+        plugin_display_parameters.display_vollseg.value = active
+  
+    @change_handler(plugin_display_parameters.display_skeleton)
+    def _display_skel_change(active: bool):
+        plugin_display_parameters.display_skeleton.value = active
 
     # ensure that percentile low < percentile high
     @change_handler(plugin_star_parameters.perc_low)
@@ -1588,7 +1693,7 @@ def plugin_wrapper_vollseg():
                             
                                 name='Base Watershed Image',
                                 scale=scale_out,
-                                visible=False,
+                                visible=plugin_display_parameters.display_prob.value,
                            
                     )
 
@@ -1596,7 +1701,7 @@ def plugin_wrapper_vollseg():
                         
                             labels,
                           
-                                name='VollSeg labels', scale= scale_out, opacity=0.5, 
+                                name='VollSeg labels', scale= scale_out, opacity=0.5,  visible = plugin_display_parameters.display_vollseg.value
                         
                     )
 
@@ -1607,7 +1712,7 @@ def plugin_wrapper_vollseg():
                                 name='StarDist',
                                 scale=scale_out,
                                 opacity=0.5,
-                                visible=False,
+                                visible=plugin_display_parameters.display_stardist.value,
                            
                     )
                     
@@ -1618,7 +1723,7 @@ def plugin_wrapper_vollseg():
                                 name='VollSeg Binary',
                                 scale=scale_out,
                                 opacity=0.5,
-                                visible=False,
+                                visible=plugin_display_parameters.display_unet.value,
                           
                     )
 
@@ -1629,7 +1734,7 @@ def plugin_wrapper_vollseg():
                                 name='Markers',
                                 scale=scale_out,
                                 opacity=0.5,
-                                visible=False,
+                                visible=plugin_display_parameters.display_markers.value,
                           
                     )
                     plugin.viewer.value.add_labels(
@@ -1639,7 +1744,7 @@ def plugin_wrapper_vollseg():
                                 name='Skeleton',
                                 scale=scale_out,
                                 opacity=0.5,
-                                visible=False,
+                                visible=plugin_display_parameters.display_skeleton.value,
                             
                     )
                 if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
@@ -1649,7 +1754,7 @@ def plugin_wrapper_vollseg():
                          
                                 name='Denoised Image',
                                 scale=scale_out,
-                                visible=False,
+                                visible=plugin_display_parameters.display_denoised.value,
                             
                         )
                 
@@ -1694,7 +1799,7 @@ def plugin_wrapper_vollseg():
                       
                           name='Base Watershed Image',
                           scale=scale_out,
-                          visible=False,
+                          visible=plugin_display_parameters.display_prob.value,
                      
               )
 
@@ -1702,7 +1807,7 @@ def plugin_wrapper_vollseg():
                   
                       labels,
                     
-                          name='VollSeg labels', scale= scale_out, opacity=0.5, 
+                          name='VollSeg labels', scale= scale_out, opacity=0.5, visible = plugin_display_parameters.display_vollseg.value 
                   
               )
 
@@ -1713,7 +1818,7 @@ def plugin_wrapper_vollseg():
                           name='StarDist',
                           scale=scale_out,
                           opacity=0.5,
-                          visible=False,
+                          visible=plugin_display_parameters.display_stardist.value,
                      
               )
               
@@ -1724,7 +1829,7 @@ def plugin_wrapper_vollseg():
                           name='VollSeg Binary',
                           scale=scale_out,
                           opacity=0.5,
-                          visible=False,
+                          visible=plugin_display_parameters.display_unet.value,
                     
               )
 
@@ -1735,7 +1840,7 @@ def plugin_wrapper_vollseg():
                           name='Markers',
                           scale=scale_out,
                           opacity=0.5,
-                          visible=False,
+                          visible=plugin_display_parameters.display_markers.value,
                     
               )
               plugin.viewer.value.add_labels(
@@ -1745,7 +1850,7 @@ def plugin_wrapper_vollseg():
                           name='Skeleton',
                           scale=scale_out,
                           opacity=0.5,
-                          visible=False,
+                          visible=plugin_display_parameters.display_skeleton.value,
                       
               )
           if plugin.den_model_type.value != 'NODEN':
@@ -1755,7 +1860,7 @@ def plugin_wrapper_vollseg():
                    
                           name='Denoised Image',
                           scale=scale_out,
-                          visible=False,
+                          visible=plugin_display_parameters.display_denoised.value,
                       
                   )
               
@@ -1788,7 +1893,7 @@ def plugin_wrapper_vollseg():
                       unet_mask, name ='VollSeg Binary',
                           scale= scale_out,
                           opacity=0.5,
-                          visible=True)
+                          visible=plugin_display_parameters.display_unet.value)
               if plugin.den_model_type.value != 'NODEN':
                   plugin.viewer.value.add_image(
                       
@@ -1796,7 +1901,7 @@ def plugin_wrapper_vollseg():
                        
                               name='Denoised Image',
                               scale=scale_out,
-                              visible=False,
+                              visible=plugin_display_parameters.display_denoised.value,
                           
                       )
               
@@ -1818,7 +1923,7 @@ def plugin_wrapper_vollseg():
                       unet_mask, name ='VollSeg Binary',
                           scale= scale_out,
                           opacity=0.5,
-                          visible=True)
+                          visible=plugin_display_parameters.display_unet.value)
               if plugin.den_model_type.value != 'NODEN':
                  plugin.viewer.value.add_image(
                      
@@ -1826,7 +1931,7 @@ def plugin_wrapper_vollseg():
                       
                              name='Denoised Image',
                              scale=scale_out,
-                             visible=False,
+                             visible=plugin_display_parameters.display_denoised.value,
                          
                      )
       
@@ -1871,7 +1976,8 @@ def plugin_wrapper_vollseg():
              
             yield count
             pre_res.append(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                 iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
+                                min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                       max_size=plugin_extra_parameters.max_size.value, iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
         
         pred = pre_res, scale_out, t, x
         return pred           
@@ -1880,6 +1986,8 @@ def plugin_wrapper_vollseg():
     def _Unet( model_unet, x, axes, noise_model, scale_out):
     
         res = VollSeg(x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+        min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                       max_size=plugin_extra_parameters.max_size.value,
                      iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
 
         pred = res, scale_out
@@ -2197,11 +2305,7 @@ def plugin_wrapper_vollseg():
         try:
             image is not None or _raise(ValueError('no image selected'))
             value = plugin_star_parameters.n_tiles.get_value()
-            if value is None:
-                update('n_tiles', True, (None, image, None))
-                update_unet('n_tiles', True, (None, image, None))
-                update_den('n_tiles', True, (None, image, None))
-                return
+            
             shape = get_data(image).shape
             try:
                 value = tuple(value)
@@ -2210,13 +2314,19 @@ def plugin_wrapper_vollseg():
                 raise ValueError(f'must be a tuple/list of length {len(shape)}')
             if not all(isinstance(t, int) and t >= 1 for t in value):
                 raise ValueError(f'each value must be an integer >= 1')
-            update('n_tiles', True, (value, image, None))
-            update_unet('n_tiles', True, (value, image, None))
-            update_den('n_tiles', True, (value, image, None))
+            if plugin.star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:    
+               update('n_tiles', True, (value, image, None))
+            if plugin.unet_seg_model_type !=DEFAULTS_MODEL['model_unet_none']:   
+               update_unet('n_tiles', True, (value, image, None))
+            if plugin.den_model_type !=DEFAULTS_MODEL['model_den_none']:   
+               update_den('n_tiles', True, (value, image, None))
         except (ValueError, SyntaxError) as err:
-            update('n_tiles', False, (None, image, err))
-            update_unet('n_tiles', False, (None, image, err))
-            update_den('n_tiles', False, (None, image, err))
+            if plugin.star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:
+               update('n_tiles', False, (None, image, err))
+            if plugin.unet_seg_model_type !=DEFAULTS_MODEL['model_unet_none']:   
+               update_unet('n_tiles', False, (None, image, err))
+            if plugin.den_model_type !=DEFAULTS_MODEL['model_den_none']:   
+               update_den('n_tiles', False, (None, image, err))
     # -------------------------------------------------------------------------
 
     # set thresholds to optimized values for chosen model
@@ -2266,6 +2376,13 @@ def plugin_wrapper_vollseg():
     def restore_vollseg_param_defaults():
         for k, v in DEFAULTS_VOLL_PARAMETERS.items():
             getattr(plugin_extra_parameters, k).value = v
+     
+    @change_handler(
+        plugin_display_parameters.defaults_display_parameters_button, init=False
+    )
+    def restore_display_param_defaults():
+        for k, v in DEFAULTS_DISPLAY_PARAMETERS.items():
+            getattr(plugin_display_parameters, k).value = v
 
     @change_handler(plugin.defaults_model_button, init=False)
     def restore_model_defaults():
