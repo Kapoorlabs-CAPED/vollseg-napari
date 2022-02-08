@@ -144,6 +144,7 @@ def plugin_wrapper_vollseg():
         isRGB = False,
         dounet=True,
         slicemerge = False,
+        seedpool = True,
         iouthresh = 0.5,
         prob_map_watershed=True,
     )
@@ -349,6 +350,11 @@ def plugin_wrapper_vollseg():
             text='RGB image',
             value=DEFAULTS_VOLL_PARAMETERS['isRGB'],
         ),
+        seedpool=dict(
+            widget_type='CheckBox',
+            text='Do seed pooling',
+            value=DEFAULTS_VOLL_PARAMETERS['seedpool'],
+        ),
         slicemerge=dict(
             widget_type='CheckBox',
             text='Merge slices (UNET)',
@@ -377,6 +383,7 @@ def plugin_wrapper_vollseg():
         prob_map_watershed,
         dounet,
         isRGB,
+        seedpool,
         slicemerge,
         iouthresh,
         unet_model_axes,
@@ -1478,7 +1485,11 @@ def plugin_wrapper_vollseg():
     def _dounet_change(active: bool):
         plugin_extra_parameters.dounet.value = active
         
-        
+    @change_handler(plugin_extra_parameters.seedpool)
+    def _seed_pool_change(active: bool):
+
+        plugin_extra_parameters.seedpool.value = active 
+
     @change_handler(plugin_extra_parameters.slicemerge)
     def _slicemerge_change(active: bool):
         plugin_extra_parameters.slicemerge.value = active
@@ -1537,7 +1548,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_star_parameters.perc_high)
     def _perc_high_change():
 
-        
+
          plugin_star_parameters.perc_high.value = max(
             plugin_star_parameters.perc_low.value + 0.01,
             plugin_star_parameters.perc_high.value,
@@ -1939,6 +1950,7 @@ def plugin_wrapper_vollseg():
                        prob_thresh=plugin_star_parameters.prob_thresh.value,
                        nms_thresh=plugin_star_parameters.nms_thresh.value,
                        min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                       seedpool= plugin_extra_parameters.seedpool.value,
                        min_size=plugin_extra_parameters.min_size.value,
                        max_size=plugin_extra_parameters.max_size.value,
                        n_tiles=plugin_star_parameters.n_tiles.value,
@@ -1960,7 +1972,7 @@ def plugin_wrapper_vollseg():
              
             yield count
             pre_res.append(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                                min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value, iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
         
         pred = pre_res, scale_out, t, x
@@ -1970,7 +1982,7 @@ def plugin_wrapper_vollseg():
     def _Unet( model_unet, x, axes, noise_model, scale_out):
     
         res = VollSeg(x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-        min_size_mask=plugin_extra_parameters.min_size_mask.value,
+        min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value,
                      iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
 
@@ -1991,6 +2003,7 @@ def plugin_wrapper_vollseg():
             nms_thresh=plugin_star_parameters.nms_thresh.value,
             min_size_mask=plugin_extra_parameters.min_size_mask.value,
             min_size=plugin_extra_parameters.min_size.value,
+            seedpool= plugin_extra_parameters.seedpool.value,
             max_size=plugin_extra_parameters.max_size.value,
             n_tiles=plugin_star_parameters.n_tiles.value,
             UseProbability=plugin_extra_parameters.prob_map_watershed.value,
@@ -2336,7 +2349,9 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin_extra_parameters.iouthresh)
     def _iou_thresh_change(value: float):
 
-        plugin_extra_parameters.iouthresh.value = value     
+        plugin_extra_parameters.iouthresh.value = value 
+
+            
 
     @change_handler(plugin_extra_parameters.min_size_mask)
     def _min_size_mask_change(value: float):
