@@ -1526,16 +1526,21 @@ def plugin_wrapper_vollseg():
     # ensure that percentile low < percentile high
     @change_handler(plugin_star_parameters.perc_low)
     def _perc_low_change():
-        plugin_star_parameters.perc_high.value = max(
-            plugin_star_parameters.perc_low.value + 0.01,
-            plugin_star_parameters.perc_high.value,
-        )
 
-    @change_handler(plugin_star_parameters.perc_high)
-    def _perc_high_change():
         plugin_star_parameters.perc_low.value = min(
             plugin_star_parameters.perc_low.value,
             plugin_star_parameters.perc_high.value - 0.01,
+        )
+
+        
+
+    @change_handler(plugin_star_parameters.perc_high)
+    def _perc_high_change():
+
+        
+         plugin_star_parameters.perc_high.value = max(
+            plugin_star_parameters.perc_low.value + 0.01,
+            plugin_star_parameters.perc_high.value,
         )
 
     @change_handler(plugin.norm_axes)
