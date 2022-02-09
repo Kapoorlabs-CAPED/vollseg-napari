@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vollseg-napari
-Version: 2.0.6
+Version: 2.0.9
 Summary: Irregular cell shape segmentation using VollSeg
 Home-page: https://github.com/kapoorlab/vollseg
 Author: Varun Kapoor

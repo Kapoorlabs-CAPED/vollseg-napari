@@ -2398,7 +2398,7 @@ def plugin_wrapper_vollseg():
     plugin_extra_parameters.den_model_axes.enabled = False
 
   
-    return plugin
+    return plugin, plugin_star_parameters, plugin_extra_parameters
 
 
 def inrimage_file_reader(path):
