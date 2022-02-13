@@ -1549,17 +1549,27 @@ def plugin_wrapper_vollseg():
         try:
             axes = axes_check_and_normalize(value, disallowed='S')
             if len(axes) >= 1:
-                update('norm_axes', True, (axes, None))
-                update_unet('norm_axes', True, (axes, None))
-                update_den('norm_axes', True, (axes, None))
+                
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                   update('norm_axes', True, (axes, None))
+                if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:   
+                   update_unet('norm_axes', True, (axes, None))
+                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:   
+                    update_den('norm_axes', True, (axes, None))
             else:
-                update('norm_axes', False, (axes, 'Cannot be empty'))
-                update_unet('norm_axes', False, (axes, 'Cannot be empty'))
-                update_den('norm_axes', False, (axes, 'Cannot be empty'))
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                    update('norm_axes', False, (axes, 'Cannot be empty'))
+                if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:     
+                    update_unet('norm_axes', False, (axes, 'Cannot be empty'))
+                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:    
+                   update_den('norm_axes', False, (axes, 'Cannot be empty'))
         except ValueError as err:
-            update('norm_axes', False, (value, err))
-            update_unet('norm_axes', False, (value, err))
-            update_den('norm_axes', False, (value, err))
+            if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                update('norm_axes', False, (value, err))
+            if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:    
+                update_unet('norm_axes', False, (value, err))
+            if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:    
+                update_den('norm_axes', False, (value, err))
     # -------------------------------------------------------------------------
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
@@ -1577,6 +1587,16 @@ def plugin_wrapper_vollseg():
         ) - {selected}:
             w.hide()
         selected.show()
+        if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
+                plugin_extra_parameters.prob_map_watershed.hide()
+                plugin_extra_parameters.seedpool.hide()
+                for w in set(plugin_star_parameters):
+                    w.hide()
+        else:
+                for w in set(plugin_star_parameters):
+                    w.show()   
+                plugin_extra_parameters.prob_map_watershed.show()
+                plugin_extra_parameters.seedpool.show()         
         # trigger _model_change_star()
         selected.changed(selected.value)
 
@@ -1588,6 +1608,9 @@ def plugin_wrapper_vollseg():
         ) - {selected}:
             w.hide()
         selected.show()
+
+        
+
         # trigger _model_change_unet
         selected.changed(selected.value)
 
