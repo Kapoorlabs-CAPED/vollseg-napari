@@ -1055,7 +1055,6 @@ def plugin_wrapper_vollseg():
                         if len(layers_remaining) == 0:
                             plugin.image.tooltip = ''
                             plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
 
             def _model(valid):
                 widgets_valid(
@@ -1262,7 +1261,6 @@ def plugin_wrapper_vollseg():
                         if len(layers_remaining) == 0:
                             plugin.image.tooltip = ''
                             plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
 
             def _model(valid):
                 widgets_valid(
@@ -2274,13 +2272,19 @@ def plugin_wrapper_vollseg():
             axes = axes_check_and_normalize(
                 value, length=get_data(image).ndim, disallowed='S'
             )
-            update('image_axes', True, (axes, image, None))
-            update_unet('image_axes', True, (axes, image, None))
-            update_den('image_axes', True, (axes, image, None))
+            if plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:
+               update('image_axes', True, (axes, image, None))
+            if plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:   
+               update_unet('image_axes', True, (axes, image, None))
+            if plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:   
+               update_den('image_axes', True, (axes, image, None))
         except ValueError as err:
-            update('image_axes', False, (value, image, err))
-            update_unet('image_axes', False, (value, image, err))
-            update_den('image_axes', False, (value, image, err))
+            if plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:
+               update('image_axes', False, (value, image, err))
+            if plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:   
+               update_unet('image_axes', False, (value, image, err))
+            if plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:   
+               update_den('image_axes', False, (value, image, err))
         # finally:
         # widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
@@ -2300,18 +2304,18 @@ def plugin_wrapper_vollseg():
                 raise ValueError(f'must be a tuple/list of length {len(shape)}')
             if not all(isinstance(t, int) and t >= 1 for t in value):
                 raise ValueError(f'each value must be an integer >= 1')
-            if plugin.star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:    
+            if plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:    
                update('n_tiles', True, (value, image, None))
-            if plugin.unet_seg_model_type !=DEFAULTS_MODEL['model_unet_none']:   
+            if plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:   
                update_unet('n_tiles', True, (value, image, None))
-            if plugin.den_model_type !=DEFAULTS_MODEL['model_den_none']:   
+            if plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:   
                update_den('n_tiles', True, (value, image, None))
         except (ValueError, SyntaxError) as err:
-            if plugin.star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:
+            if plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:
                update('n_tiles', False, (None, image, err))
-            if plugin.unet_seg_model_type !=DEFAULTS_MODEL['model_unet_none']:   
+            if plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:   
                update_unet('n_tiles', False, (None, image, err))
-            if plugin.den_model_type !=DEFAULTS_MODEL['model_den_none']:   
+            if plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:   
                update_den('n_tiles', False, (None, image, err))
     # -------------------------------------------------------------------------
 
