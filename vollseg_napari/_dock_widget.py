@@ -2034,6 +2034,8 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False)
     def _model_change_star(model_name_star: str):
 
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False
         if Signal.sender() is not plugin.model_star_none:
                 model_class_star = (
                             StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D if Signal.sender() is plugin.model3d_star else StarDist2D 
@@ -2082,6 +2084,7 @@ def plugin_wrapper_vollseg():
                         else:
                             select_model_star(key_star)
         else:
+
              plugin.call_button.enabled = True
              plugin_star_parameters.star_model_axes.value = ''
              plugin.model_folder_star.line_edit.tooltip = (
@@ -2092,7 +2095,8 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_unet(model_name_unet: str):
         
-        
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False
         if Signal.sender() is not plugin.model_unet_none:
                 model_class_unet = ( UNET if Signal.sender() is plugin.model_unet else UNET if plugin.model_unet.value is not None and Signal.sender() is None else None ) 
                 
@@ -2142,7 +2146,8 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_den(model_name_den: str):
            
-
+            if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False
             if Signal.sender() is not plugin.model_den_none: 
                 model_class_den = ( CARE if Signal.sender() is plugin.model_den else CARE if plugin.model_den.value is not None and Signal.sender() is None else None ) 
             
@@ -2183,6 +2188,7 @@ def plugin_wrapper_vollseg():
                     else:
                         select_model_den(key_den)
             else:
+
                      plugin.call_button.enabled = True
                      plugin_extra_parameters.den_model_axes.value = ''
                      plugin.model_folder_den.line_edit.tooltip = (
