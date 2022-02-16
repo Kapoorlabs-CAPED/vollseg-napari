@@ -35,7 +35,7 @@ def plugin_wrapper_vollseg():
     from vollseg.pretrained import get_registered_models, get_model_folder, get_model_details, get_model_instance
     from csbdeep.utils import load_json
     import sys
-    from vollseg import VollSeg, VollSeg3D, VollSeg2D, VollSeg_unet, CARE, UNET, StarDist2D, StarDist3D
+    from vollseg import VollSeg, VollSeg3D, VollSeg2D, VollSeg_unet, CARE, UNET, StarDist2D, StarDist3D, MASKUNET
     
     from stardist.utils import abspath
     
@@ -95,25 +95,36 @@ def plugin_wrapper_vollseg():
         ((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m), m)
         for m in _models_den
     ]
-
+     
+    _models_mask, _aliases_mask = get_registered_models(MASKUNET)
+    # use first alias for model selection (if alias exists)
+    models_mask = [
+        ((_aliases_mask[m][0] if len(_aliases_mask[m]) > 0 else m), m)
+        for m in _models_mask
+    ]  
     model_star_configs = dict()
     model_unet_configs = dict()
     model_den_configs = dict()
+    model_roi_configs = dict()
     model_star_threshs = dict()
     model_selected_star = None
     model_selected_unet = None
     model_selected_den = None
+    model_selected_roi = None
     DEFAULTS_MODEL = dict(
         star_seg_model_type=StarDist3D,
         unet_seg_model_type=UNET,
         den_model_type=CARE,
+        roi_model_type = MASKUNET,
         model2d_star=models2d_star[0][0],
         model_unet=models_unet[0][0],
+        model_roi = models_mask[0][0],
         model3d_star=models3d_star[0][0],
         model_den=models_den[0][0],
         model_den_none='NODEN',
         model_star_none='NOSTAR',
         model_unet_none='NOUNET',
+        model_roi_none='NOROI',
         norm_axes='ZYX',
     )
 
@@ -153,6 +164,8 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_STAR = 'CUSTOM_SEG_MODEL_STAR'
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
+    CUSTOM_ROI_MODEL = 'CUSTOM_ROI_MODEL'
+    CUSTOM_ROI_IMAGE = 'CUSTOM_ROI_IMAGE'
     star_seg_model_type_choices = [
         ('2D', StarDist2D),
         ('3D', StarDist3D),
@@ -168,6 +181,13 @@ def plugin_wrapper_vollseg():
         ('DenoiseCARE', CARE),
         ('NODEN', 'NODEN'),
         ('Custom CARE', CUSTOM_DEN_MODEL),
+    ]
+
+    roi_model_type_choices = [
+        ('PreTrainedROI', MASKUNET),
+        ('NOROI', 'NOROI'),
+        ('Custom ROI', CUSTOM_ROI_MODEL),
+        ('ROI Image', CUSTOM_ROI_IMAGE)
     ]
 
     @functools.lru_cache(maxsize=None)
@@ -188,6 +208,26 @@ def plugin_wrapper_vollseg():
         else:
             
             return None
+    
+    @functools.lru_cache(maxsize=None)
+    def get_model_roi(roi_model_type, model_roi):
+        if roi_model_type == CUSTOM_ROI_MODEL:
+            path_roi = Path(model_roi)
+            path_roi.is_dir() or _raise(
+                FileNotFoundError(f'{path_roi} is not a directory')
+            )
+            config_roi = model_roi_configs[(roi_model_type, model_roi)]
+            model_class_roi = UNET 
+            return model_class_roi(
+                None, name=path_roi.name, basedir=str(path_roi.parent)
+            )
+       
+        elif roi_model_type !=DEFAULTS_MODEL['model_roi_none']:
+            return roi_model_type.local_from_pretrained(model_roi)
+        else:
+            
+            return None
+
 
     @functools.lru_cache(maxsize=None)
     def get_model_unet(unet_seg_model_type, model_unet):
@@ -469,6 +509,13 @@ def plugin_wrapper_vollseg():
             choices=den_model_type_choices,
             value=DEFAULTS_MODEL['den_model_type'],
         ),
+        roi_model_type=dict(
+            widget_type='RadioButtons',
+            label='Region of Interest Model Type',
+            orientation='horizontal',
+            choices=roi_model_type_choices,
+            value=DEFAULTS_MODEL['roi_model_type'],
+        ),
         model2d_star=dict(
             widget_type='ComboBox',
             visible=False,
@@ -497,9 +544,18 @@ def plugin_wrapper_vollseg():
             choices=models_den,
             value=DEFAULTS_MODEL['model_den'],
         ),
+        model_roi=dict(
+            widget_type='ComboBox',
+            visible=False,
+            label='Pre-trained ROI Model',
+            choices=models_mask,
+            value=DEFAULTS_MODEL['model_roi'],
+        ),
+        model_roi_image=dict(label='Input Roi Image'),
         model_den_none=dict(widget_type='Label', visible=False, label='No Denoising'),
         model_unet_none=dict(widget_type='Label', visible=False, label='NOUNET'),
         model_star_none=dict(widget_type='Label', visible=False, label='NOSTAR'),
+        model_roi_none=dict(widget_type='Label', visible=False, label='NOROI'),
         model_folder_star=dict(
             widget_type='FileEdit',
             visible=False,
@@ -515,7 +571,9 @@ def plugin_wrapper_vollseg():
             label='Custom Denoising Model',
             mode='d',
         ),
-       
+         model_folder_roi=dict(
+            widget_type='FileEdit', visible=False, label='Custom ROI Model', mode='d'
+        ),
         norm_axes=dict(
             widget_type='LineEdit',
             label='Normalization Axes',
@@ -537,22 +595,29 @@ def plugin_wrapper_vollseg():
         star_seg_model_type,
         unet_seg_model_type,
         den_model_type,
+        roi_model_type,
         model2d_star,
         model3d_star,
         model_unet,
         model_den,
+        model_roi,
+        model_roi_image: napari.layers.Image,
         model_den_none,
         model_unet_none,
         model_star_none,
+        model_roi_none,
         model_folder_star,
         model_folder_unet,
         model_folder_den,
+        model_folder_roi,
         norm_axes,
         defaults_model_button,
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
         x = get_data(image)
-        
+        if model_roi_image.value is not None:
+            y = get_data(model_roi_image)
+        else: y = None    
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = 'Starting VollSeg'
         if plugin_star_parameters.norm_image:
@@ -601,6 +666,10 @@ def plugin_wrapper_vollseg():
             model_unet = get_model_unet(*model_selected_unet)
         if unet_seg_model_type == DEFAULTS_MODEL['model_unet_none']:
             model_unet = None
+        if model_selected_roi is not None:
+            model_roi = get_model_roi(*model_selected_roi)
+        if roi_model_type == DEFAULTS_MODEL['model_roi_none']:
+            model_roi = None    
         if model_selected_den is not None:
             model_den = get_model_den(*model_selected_den)
         if den_model_type == DEFAULTS_MODEL['model_den_none']:
@@ -763,12 +832,16 @@ def plugin_wrapper_vollseg():
         StarDist3D: plugin.model3d_star,
         UNET: plugin.model_unet,
         CARE: plugin.model_den,
+        MASKUNET: plugin.model_roi,
         'NODEN': plugin.model_den_none,
         'NOUNET': plugin.model_unet_none,
         'NOSTAR': plugin.model_star_none,
+        'NOROI' : plugin.model_roi_none,
         CUSTOM_SEG_MODEL_STAR: plugin.model_folder_star,
         CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
         CUSTOM_DEN_MODEL: plugin.model_folder_den,
+        CUSTOM_ROI_MODEL: plugin.model_folder_roi,
+        CUSTOM_ROI_IMAGE: plugin.model_roi_image,
     }
 
     tabs = QTabWidget()
@@ -1592,6 +1665,8 @@ def plugin_wrapper_vollseg():
                 plugin_extra_parameters.seedpool.hide()
                 for w in set(plugin_star_parameters):
                     w.hide()
+                plugin_star_parameters.n_tiles.show()  
+                plugin_star_parameters.norm_image.show()  
         else:
                 for w in set(plugin_star_parameters):
                     w.show()   
@@ -1605,6 +1680,20 @@ def plugin_wrapper_vollseg():
         selected = widget_for_modeltype[seg_model_type]
         for w in set(
             (plugin.model_unet, plugin.model_unet_none, plugin.model_folder_unet)
+        ) - {selected}:
+            w.hide()
+        selected.show()
+
+        
+
+        # trigger _model_change_unet
+        selected.changed(selected.value)
+
+    @change_handler(plugin.roi_model_type, init=False)
+    def _roi_model_type_change(roi_model_type: Union[str, type]):
+        selected = widget_for_modeltype[roi_model_type]
+        for w in set(
+            (plugin.model_roi, plugin.model_roi_image, plugin.model_roi_none, plugin.model_folder_roi)
         ) - {selected}:
             w.hide()
         selected.show()
@@ -2034,8 +2123,7 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False)
     def _model_change_star(model_name_star: str):
 
-        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
-                        plugin.call_button.enabled = False
+       
         if Signal.sender() is not plugin.model_star_none:
                 model_class_star = (
                             StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D if Signal.sender() is plugin.model3d_star else StarDist2D 
@@ -2090,13 +2178,13 @@ def plugin_wrapper_vollseg():
              plugin.model_folder_star.line_edit.tooltip = (
                         'Invalid model directory'
                     )
-
-
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False
+    
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_unet(model_name_unet: str):
         
-        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
-                        plugin.call_button.enabled = False
+        
         if Signal.sender() is not plugin.model_unet_none:
                 model_class_unet = ( UNET if Signal.sender() is plugin.model_unet else UNET if plugin.model_unet.value is not None and Signal.sender() is None else None ) 
                 
@@ -2143,11 +2231,66 @@ def plugin_wrapper_vollseg():
                  plugin.model_folder_unet.line_edit.tooltip = (
                         'Invalid model directory'
                     )
+
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False   
+
+
+    @change_handler(plugin.model_roi, plugin.model_roi_none, plugin.model_roi_image, init=False) 
+    def _model_change_roi(model_name_roi: str):
+        
+        
+        if Signal.sender() is not plugin.model_roi_none:
+                model_class_roi = ( MASKUNET if Signal.sender() is plugin.model_roi else MASKUNET if plugin.model_roi.value is not None and Signal.sender() is None else None ) 
+                
+                if model_class_roi is not None:
+                        if Signal.sender is not None:
+                             model_name = model_name_roi
+                        elif plugin.model_unet.value is not None:
+                            model_name = plugin.model_unet.value
+                        key_roi = model_class_roi, model_name
+                        if key_roi not in model_roi_configs:
+                
+                            @thread_worker
+                            def _get_model_folder():
+                                return get_model_folder(*key_roi)
+                
+                            def _process_model_folder(path):
+                
+                                try:
+                                    model_unet_configs[key_roi] = load_json(str(path / 'config.json'))
+                                    
+                                finally:
+                
+                                        select_model_unet(key_roi)
+                                        plugin.progress_bar.hide()
+                
+                            worker = _get_model_folder()
+                            worker.returned.connect(_process_model_folder)
+                            worker.start()
+                
+                            # delay showing progress bar -> won't show up if model already downloaded
+                            # TODO: hacky -> better way to do this?
+                            time.sleep(0.1)
+                            plugin.call_button.enabled = False
+                            plugin.progress_bar.label = 'Downloading UNET model'
+                            plugin.progress_bar.show()
+                
+                        elif plugin.model_roi_image is None:
+                            select_model_unet(key_roi)
+                        elif plugin.model_roi_image is not None:
+                                 
+        else:
+                 plugin.call_button.enabled = True
+                 plugin_extra_parameters.roi_model_axes.value = ''
+                 plugin.model_folder_roi.line_edit.tooltip = (
+                        'Invalid model directory'
+                    )                    
+
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_den(model_name_den: str):
            
-            if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
-                        plugin.call_button.enabled = False
+            
             if Signal.sender() is not plugin.model_den_none: 
                 model_class_den = ( CARE if Signal.sender() is plugin.model_den else CARE if plugin.model_den.value is not None and Signal.sender() is None else None ) 
             
@@ -2195,6 +2338,8 @@ def plugin_wrapper_vollseg():
                         'Invalid model directory'
                     )
 
+            if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False
     # load config/thresholds from custom model path
     # -> triggered by _model_type_change
     # note: will be triggered at every keystroke (when typing the path)
