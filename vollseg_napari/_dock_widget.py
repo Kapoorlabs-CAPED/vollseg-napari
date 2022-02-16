@@ -39,12 +39,17 @@ def plugin_wrapper_vollseg():
     
     from stardist.utils import abspath
     
-    DEBUG = True
+    DEBUG = False
                 
     def get_data(image):
         image = image.data[0] if image.multiscale else image.data
         # enforce dense numpy array in case we are given a dask array etc
         return np.asarray(image)
+    def get_data_label(image):
+        if image is not None:
+                image = image.data
+                # enforce dense numpy array in case we are given a dask array etc
+                return np.asarray(image).astype('uint16')
 
     def change_handler(*widgets, init=True, debug=DEBUG):
         def decorator_change_handler(handler):
@@ -53,10 +58,7 @@ def plugin_wrapper_vollseg():
                 source = Signal.sender()
                 emitter = Signal.current_emitter()
                 if debug:
-                    print(f'Choosen model_type for StarDist 2D {plugin.model2d_star.value}')
-                    print(f'Choosen model_type for StarDist 3D {plugin.model3d_star.value}')
-                    print(f'Choosen model_type for UNET {plugin.model_unet.value}')
-                    print(f'Choosen model_type for CARE {plugin.model_den.value}')
+                   
                     print(f'{str(emitter.name).upper()}: {source.name} = {args!r}')
                 return handler(*args)
 
@@ -140,7 +142,7 @@ def plugin_wrapper_vollseg():
     DEFAULTS_VOLL_PARAMETERS = dict(
         min_size_mask=1.0,
         min_size=1.0,
-        max_size=100000.0,
+        max_size=10000000.0,
         isRGB = False,
         dounet=True,
         slicemerge = False,
@@ -211,18 +213,19 @@ def plugin_wrapper_vollseg():
     
     @functools.lru_cache(maxsize=None)
     def get_model_roi(roi_model_type, model_roi):
+
         if roi_model_type == CUSTOM_ROI_MODEL:
             path_roi = Path(model_roi)
             path_roi.is_dir() or _raise(
                 FileNotFoundError(f'{path_roi} is not a directory')
             )
             config_roi = model_roi_configs[(roi_model_type, model_roi)]
-            model_class_roi = UNET 
+            model_class_roi = MASKUNET 
             return model_class_roi(
                 None, name=path_roi.name, basedir=str(path_roi.parent)
             )
-       
-        elif roi_model_type !=DEFAULTS_MODEL['model_roi_none']:
+        
+        elif roi_model_type !=DEFAULTS_MODEL['model_roi_none'] and plugin.model_roi_image.value is None:
             return roi_model_type.local_from_pretrained(model_roi)
         else:
             
@@ -359,7 +362,7 @@ def plugin_wrapper_vollseg():
             widget_type='FloatSpinBox',
             label='Max Size Cells (px)',
             min=0.0,
-            max=100000000.0,
+            max=1.0E100,
             step=100,
             value=DEFAULTS_VOLL_PARAMETERS['max_size'],
         ),
@@ -601,7 +604,7 @@ def plugin_wrapper_vollseg():
         model_unet,
         model_den,
         model_roi,
-        model_roi_image: napari.layers.Image,
+        model_roi_image: napari.layers.Labels,
         model_den_none,
         model_unet_none,
         model_star_none,
@@ -615,9 +618,14 @@ def plugin_wrapper_vollseg():
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
         x = get_data(image)
-        if model_roi_image.value is not None:
-            y = get_data(model_roi_image)
-        else: y = None    
+        print('KKKKKK',model_roi_image)
+        if roi_model_type == DEFAULTS_MODEL['model_roi_none']: 
+            y = None 
+            model_roi_image = None
+        elif model_roi_image is not None:
+            y = get_data_label(model_roi_image)
+         
+        print('KKKKKK',model_roi_image,y, roi_model_type)
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = 'Starting VollSeg'
         if plugin_star_parameters.norm_image:
@@ -668,7 +676,7 @@ def plugin_wrapper_vollseg():
             model_unet = None
         if model_selected_roi is not None:
             model_roi = get_model_roi(*model_selected_roi)
-        if roi_model_type == DEFAULTS_MODEL['model_roi_none']:
+        if roi_model_type == DEFAULTS_MODEL['model_roi_none'] or y is not None :
             model_roi = None    
         if model_selected_den is not None:
             model_den = get_model_den(*model_selected_den)
@@ -777,7 +785,7 @@ def plugin_wrapper_vollseg():
                 axes_out = list(model_den._axes_out[:-1])
                                 
         scale_in_dict = dict(zip(axes, image.scale))
-        scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]        
+        scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]       
         if 'T' in axes:
             x_reorder = np.moveaxis(x, t, 0)
             
@@ -788,7 +796,7 @@ def plugin_wrapper_vollseg():
             scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]     
             
             if model_star is not None:   
-                worker = _VollSeg_time(model_star, model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
+                worker = _VollSeg_time(model_star, model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x, y)
                 worker.returned.connect(return_segment_time)
                 worker.yielded.connect(progress_thread)
 
@@ -796,21 +804,21 @@ def plugin_wrapper_vollseg():
             if model_star is None:
                    
                         
-                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
+                    worker = _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x, y)
                     worker.returned.connect(return_segment_unet_time)
                     worker.yielded.connect(progress_thread)
 
             
         else:
             
-         
-            worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
-            worker.returned.connect(return_segment)
+            if model_star is not None: 
+                worker = _Segment(model_star, model_unet, model_roi, x, axes, model_den,scale_out, y)
+                worker.returned.connect(return_segment)
             
             if model_star is None:
                 
                          
-                worker = _Unet(model_unet, x, axes, model_den,scale_out)
+                worker = _Unet(model_unet, model_roi, x, axes, model_den,scale_out)
                 worker.returned.connect(return_segment_unet)
  
         progress_bar.hide()
@@ -1529,6 +1537,10 @@ def plugin_wrapper_vollseg():
         config_den = model_den_configs.get(key_den)
         update_den('model_den', config_den is not None, config_den)
 
+    def select_model_roi(key_roi):
+        nonlocal model_selected_roi
+        model_selected_unet = key_roi
+        config_roi = model_roi_configs.get(key_roi)
     # -------------------------------------------------------------------------
 
     # hide percentile selection if normalization turned off
@@ -1667,6 +1679,8 @@ def plugin_wrapper_vollseg():
                     w.hide()
                 plugin_star_parameters.n_tiles.show()  
                 plugin_star_parameters.norm_image.show()  
+                plugin_star_parameters.perc_low.show()
+                plugin_star_parameters.perc_high.show()
         else:
                 for w in set(plugin_star_parameters):
                     w.show()   
@@ -1858,7 +1872,7 @@ def plugin_wrapper_vollseg():
     def return_segment(pred):
               
           res, scale_out = pred
-
+         
           if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
 
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
@@ -2032,7 +2046,7 @@ def plugin_wrapper_vollseg():
           
         
     @thread_worker(connect = {"returned": return_segment_time } )         
-    def _VollSeg_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
+    def _VollSeg_time( model_star, model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x, y):
        
       
        pre_res = []
@@ -2046,6 +2060,8 @@ def plugin_wrapper_vollseg():
                        model_star,
                        axes=axes_reorder,
                        noise_model=noise_model,
+                       roi_model = model_roi,
+                       roi_image = y,
                        prob_thresh=plugin_star_parameters.prob_thresh.value,
                        nms_thresh=plugin_star_parameters.nms_thresh.value,
                        min_size_mask=plugin_extra_parameters.min_size_mask.value,
@@ -2063,14 +2079,15 @@ def plugin_wrapper_vollseg():
               
               
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
-    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
+    def _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x, y):
         
     
         pre_res = []
         for  count, _x in enumerate(x_reorder):
              
             yield count
-            pre_res.append(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+            pre_res.append(VollSeg(_x, unet_model = model_unet, roi_model = model_roi,
+                       roi_image = y, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                                 min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value, iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
         
@@ -2078,9 +2095,9 @@ def plugin_wrapper_vollseg():
         return pred           
               
     @thread_worker(connect = {"returned": return_segment_unet } )         
-    def _Unet( model_unet, x, axes, noise_model, scale_out):
+    def _Unet( model_unet, model_roi, x, axes, noise_model, scale_out):
     
-        res = VollSeg(x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+        res = VollSeg(x, unet_model = model_unet, roi_model = model_roi, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
         min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value,
                      iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
@@ -2089,7 +2106,7 @@ def plugin_wrapper_vollseg():
         return pred           
              
     @thread_worker (connect = {"returned": return_segment } )        
-    def _Segment(model_star, model_unet, x, axes, noise_model, scale_out):
+    def _Segment(model_star, model_unet,  model_roi, x, axes, noise_model, scale_out, y):
     
         
         res = VollSeg(
@@ -2098,6 +2115,8 @@ def plugin_wrapper_vollseg():
             model_star,
             axes=axes,
             noise_model=noise_model,
+            roi_model =  model_roi,
+            roi_image = y,
             prob_thresh=plugin_star_parameters.prob_thresh.value,
             nms_thresh=plugin_star_parameters.nms_thresh.value,
             min_size_mask=plugin_extra_parameters.min_size_mask.value,
@@ -2239,15 +2258,14 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.model_roi, plugin.model_roi_none, plugin.model_roi_image, init=False) 
     def _model_change_roi(model_name_roi: str):
         
-        
-        if Signal.sender() is not plugin.model_roi_none:
+
+        if Signal.sender() is not plugin.model_roi_none and plugin.model_roi_image:
                 model_class_roi = ( MASKUNET if Signal.sender() is plugin.model_roi else MASKUNET if plugin.model_roi.value is not None and Signal.sender() is None else None ) 
-                
                 if model_class_roi is not None:
                         if Signal.sender is not None:
                              model_name = model_name_roi
-                        elif plugin.model_unet.value is not None:
-                            model_name = plugin.model_unet.value
+                        elif plugin.model_roi.value is not None:
+                            model_name = plugin.model_roi.value
                         key_roi = model_class_roi, model_name
                         if key_roi not in model_roi_configs:
                 
@@ -2258,11 +2276,11 @@ def plugin_wrapper_vollseg():
                             def _process_model_folder(path):
                 
                                 try:
-                                    model_unet_configs[key_roi] = load_json(str(path / 'config.json'))
+                                    model_roi_configs[key_roi] = load_json(str(path / 'config.json'))
                                     
                                 finally:
                 
-                                        select_model_unet(key_roi)
+                                        select_model_roi(key_roi)
                                         plugin.progress_bar.hide()
                 
                             worker = _get_model_folder()
@@ -2277,12 +2295,9 @@ def plugin_wrapper_vollseg():
                             plugin.progress_bar.show()
                 
                         elif plugin.model_roi_image is None:
-                            select_model_unet(key_roi)
-                        elif plugin.model_roi_image is not None:
+                            select_model_roi(key_roi)
                                  
         else:
-                 plugin.call_button.enabled = True
-                 plugin_extra_parameters.roi_model_axes.value = ''
                  plugin.model_folder_roi.line_edit.tooltip = (
                         'Invalid model directory'
                     )                    
@@ -2390,7 +2405,6 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.image, init=False)
     def _image_change(image: napari.layers.Image):
         ndim = get_data(image).ndim
-        
         plugin.image.tooltip = f'Shape: {get_data(image).shape, str(image.name)}'
 
         # dimensionality of selected model: 2, 3, or None (unknown)
@@ -2432,6 +2446,13 @@ def plugin_wrapper_vollseg():
             plugin.axes.value = axes
         plugin_star_parameters.n_tiles.changed(plugin_star_parameters.n_tiles.value)
         plugin.norm_axes.changed(plugin.norm_axes.value)
+    # -> triggered by napari (if there are any open images on plugin launch)
+    @change_handler(plugin.model_roi_image, init=False)
+    def _roi_image_change(model_roi_image: napari.layers.Labels):
+        if plugin.model_roi_image.value is not None:
+            plugin.model_roi_image.tooltip = f'Shape: {get_data_label(model_roi_image).shape, str(model_roi_image.name)}'
+        if plugin.model_roi_none == DEFAULTS_MODEL['model_roi_none']:
+                plugin.model_roi_image = None
 
     # -> triggered by _image_change
     @change_handler(plugin.axes, init=False)
