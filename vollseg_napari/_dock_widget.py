@@ -1519,7 +1519,9 @@ def plugin_wrapper_vollseg():
             model_selected_star = key_star
             config_star = model_star_configs.get(key_star)
             update('model_star', config_star is not None, config_star)
-    
+        if plugin.star_seg_model_type == DEFAULTS_MODEL['model_star_none']:
+           model_selected_star = None
+                
 
     def select_model_unet(key_unet):
         nonlocal model_selected_unet
@@ -1527,6 +1529,8 @@ def plugin_wrapper_vollseg():
             model_selected_unet = key_unet
             config_unet = model_unet_configs.get(key_unet)
             update_unet('model_unet', config_unet is not None, config_unet)
+        if plugin.star_unet_model_type == DEFAULTS_MODEL['model_unet_none']:
+           model_selected_unet = None    
        
     def select_model_den(key_den):
         nonlocal model_selected_den
@@ -1534,12 +1538,16 @@ def plugin_wrapper_vollseg():
             model_selected_den = key_den
             config_den = model_den_configs.get(key_den)
             update_den('model_den', config_den is not None, config_den)
+        if plugin.den_model_type == DEFAULTS_MODEL['model_den_none']:
+           model_selected_den = None
 
     def select_model_roi(key_roi):
         nonlocal model_selected_roi
         if key_roi is not None:
             model_selected_unet = key_roi
             config_roi = model_roi_configs.get(key_roi)
+        if plugin.roi_model_type == DEFAULTS_MODEL['model_roi_none']:
+           model_selected_roi = None    
     # -------------------------------------------------------------------------
 
     # hide percentile selection if normalization turned off
@@ -1978,13 +1986,18 @@ def plugin_wrapper_vollseg():
                      
                      
               res, scale_out, t, x = pred
-              unet_mask, denoised_image = zip(*res)
+              unet_mask, skeleton, denoised_image = zip(*res)
               
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
               unet_mask = np.reshape(unet_mask, x.shape)
               
+              skeleton = np.asarray(skeleton)
+              skeleton = skeleton > 0
+              skeleton = np.moveaxis(skeleton, 0, t)
+              skeleton = np.reshape(skeleton, x.shape)
+
               denoised_image = np.asarray(denoised_image)
               denoised_image = np.moveaxis(denoised_image, 0, t)
               denoised_image = np.reshape(denoised_image, x.shape)
@@ -1994,13 +2007,22 @@ def plugin_wrapper_vollseg():
                            plugin.viewer.value.layers.remove(layer)
                   if 'Denoised Image' in layer.name:
                            plugin.viewer.value.layers.remove(layer)     
-                           
+                  if 'Skeleton' in layer.name:
+                       plugin.viewer.value.layers.remove(layer)         
               plugin.viewer.value.add_labels(
                   
                       unet_mask, name ='VollSeg Binary',
                           scale= scale_out,
                           opacity=0.5,
                           visible=plugin_display_parameters.display_unet.value)
+
+              plugin.viewer.value.add_labels(
+                  
+                      skeleton, name ='Skeleton',
+                          scale= scale_out,
+                          opacity=0.5,
+                          visible=plugin_display_parameters.display_skeleton.value)
+
               if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
                   plugin.viewer.value.add_image(
                       
@@ -2016,14 +2038,15 @@ def plugin_wrapper_vollseg():
     def return_segment_unet(pred):
             
               res, scale_out = pred
-              unet_mask, denoised_image = res
+              unet_mask, skeleton, denoised_image = res
               for layer in list(plugin.viewer.value.layers):
                   
                   if 'VollSeg Binary' in layer.name:
                            plugin.viewer.value.layers.remove(layer)
                   if 'Denoised Image' in layer.name:
                            plugin.viewer.layers.value.remove(layer)
-                           
+                  if 'Skeleton' in layer.name:
+                       plugin.viewer.value.layers.remove(layer)         
                            
               plugin.viewer.value.add_labels(
                   
@@ -2031,6 +2054,13 @@ def plugin_wrapper_vollseg():
                           scale= scale_out,
                           opacity=0.5,
                           visible=plugin_display_parameters.display_unet.value)
+
+              plugin.viewer.value.add_labels(
+                  
+                      skeleton, name ='Skeleton',
+                          scale= scale_out,
+                          opacity=0.5,
+                          visible=plugin_display_parameters.display_skeleton.value)            
               if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
                  plugin.viewer.value.add_image(
                      
