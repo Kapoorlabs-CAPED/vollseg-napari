@@ -208,7 +208,6 @@ def plugin_wrapper_vollseg():
         elif star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:
             return star_seg_model_type.local_from_pretrained(model_star)
         else:
-            
             return None
     
     @functools.lru_cache(maxsize=None)
@@ -618,14 +617,8 @@ def plugin_wrapper_vollseg():
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
         x = get_data(image)
-        print('KKKKKK',model_roi_image)
-        if roi_model_type == DEFAULTS_MODEL['model_roi_none']: 
-            y = None 
-            model_roi_image = None
-        elif model_roi_image is not None:
-            y = get_data_label(model_roi_image)
+        
          
-        print('KKKKKK',model_roi_image,y, roi_model_type)
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = 'Starting VollSeg'
         if plugin_star_parameters.norm_image:
@@ -667,21 +660,22 @@ def plugin_wrapper_vollseg():
         #if model_selected_star is None and model_selected_unet is None and model_selected_den is None:
             #plugin.call_button.enabled = False
         if model_selected_star is not None:    
-             model_star = get_model_star(*model_selected_star)
-        if star_seg_model_type == DEFAULTS_MODEL['model_star_none']:
-            model_star = None
+           model_star = get_model_star(*model_selected_star)
+        else: model_star = None   
         if model_selected_unet is not None:
-            model_unet = get_model_unet(*model_selected_unet)
-        if unet_seg_model_type == DEFAULTS_MODEL['model_unet_none']:
-            model_unet = None
+           model_unet = get_model_unet(*model_selected_unet)
+        else: model_unet = None   
         if model_selected_roi is not None:
-            model_roi = get_model_roi(*model_selected_roi)
-        if roi_model_type == DEFAULTS_MODEL['model_roi_none'] or y is not None :
-            model_roi = None    
+           model_roi = get_model_roi(*model_selected_roi)
+        else: model_roi = None   
         if model_selected_den is not None:
-            model_den = get_model_den(*model_selected_den)
-        if den_model_type == DEFAULTS_MODEL['model_den_none']:
-            model_den = None
+           model_den = get_model_den(*model_selected_den)
+        else: model_den = None   
+        if roi_model_type == DEFAULTS_MODEL['model_roi_none']: 
+            y = None 
+            model_roi_image = None
+        elif model_roi_image is not None and model_roi is None:
+            y = get_data_label(model_roi_image)
         lkwargs = {}
         print('selected model', model_star, model_unet, model_den)
         
@@ -1521,26 +1515,31 @@ def plugin_wrapper_vollseg():
 
     def select_model_star(key_star):
         nonlocal model_selected_star
-        model_selected_star = key_star
-        config_star = model_star_configs.get(key_star)
-        update('model_star', config_star is not None, config_star)
+        if key_star is not None:
+            model_selected_star = key_star
+            config_star = model_star_configs.get(key_star)
+            update('model_star', config_star is not None, config_star)
+    
 
     def select_model_unet(key_unet):
         nonlocal model_selected_unet
-        model_selected_unet = key_unet
-        config_unet = model_unet_configs.get(key_unet)
-        update_unet('model_unet', config_unet is not None, config_unet)
+        if key_unet is not None:
+            model_selected_unet = key_unet
+            config_unet = model_unet_configs.get(key_unet)
+            update_unet('model_unet', config_unet is not None, config_unet)
        
     def select_model_den(key_den):
         nonlocal model_selected_den
-        model_selected_den = key_den
-        config_den = model_den_configs.get(key_den)
-        update_den('model_den', config_den is not None, config_den)
+        if key_den is not None:
+            model_selected_den = key_den
+            config_den = model_den_configs.get(key_den)
+            update_den('model_den', config_den is not None, config_den)
 
     def select_model_roi(key_roi):
         nonlocal model_selected_roi
-        model_selected_unet = key_roi
-        config_roi = model_roi_configs.get(key_roi)
+        if key_roi is not None:
+            model_selected_unet = key_roi
+            config_roi = model_roi_configs.get(key_roi)
     # -------------------------------------------------------------------------
 
     # hide percentile selection if normalization turned off
@@ -2191,7 +2190,7 @@ def plugin_wrapper_vollseg():
                         else:
                             select_model_star(key_star)
         else:
-             
+             select_model_star(None)
              plugin.call_button.enabled = True
              plugin_star_parameters.star_model_axes.value = ''
              plugin.model_folder_star.line_edit.tooltip = (
@@ -2244,6 +2243,7 @@ def plugin_wrapper_vollseg():
                         else:
                             select_model_unet(key_unet)
         else:
+                 select_model_unet(None)
                  plugin.call_button.enabled = True
                  plugin_extra_parameters.dounet.value = False
                  plugin_extra_parameters.unet_model_axes.value = ''
@@ -2294,10 +2294,10 @@ def plugin_wrapper_vollseg():
                             plugin.progress_bar.label = 'Downloading UNET model'
                             plugin.progress_bar.show()
                 
-                        elif plugin.model_roi_image is None:
-                            select_model_roi(key_roi)
+                        
                                  
         else:
+                 select_model_roi(None)
                  plugin.model_folder_roi.line_edit.tooltip = (
                         'Invalid model directory'
                     )                    
@@ -2346,7 +2346,7 @@ def plugin_wrapper_vollseg():
                     else:
                         select_model_den(key_den)
             else:
-
+                     select_model_den(None)
                      plugin.call_button.enabled = True
                      plugin_extra_parameters.den_model_axes.value = ''
                      plugin.model_folder_den.line_edit.tooltip = (
@@ -2430,7 +2430,7 @@ def plugin_wrapper_vollseg():
             if model_selected_den in model_den_configs:
                 config = model_den_configs[model_selected_den]
                 ndim_model_den = config.get('n_dim')
-        ndim_model = np.max(ndim_model_star,ndim_model_unet, ndim_model_den)
+        ndim_model = max(ndim_model_star,ndim_model_unet, ndim_model_den)
         axes = None
         
         if ndim == 2:
