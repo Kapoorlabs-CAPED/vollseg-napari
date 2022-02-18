@@ -1529,7 +1529,7 @@ def plugin_wrapper_vollseg():
             model_selected_unet = key_unet
             config_unet = model_unet_configs.get(key_unet)
             update_unet('model_unet', config_unet is not None, config_unet)
-        if plugin.star_unet_model_type == DEFAULTS_MODEL['model_unet_none']:
+        if plugin.unet_seg_model_type == DEFAULTS_MODEL['model_unet_none']:
            model_selected_unet = None    
        
     def select_model_den(key_den):
