@@ -2191,7 +2191,7 @@ def plugin_wrapper_vollseg():
                         else:
                             select_model_star(key_star)
         else:
-
+             
              plugin.call_button.enabled = True
              plugin_star_parameters.star_model_axes.value = ''
              plugin.model_folder_star.line_edit.tooltip = (
@@ -2408,23 +2408,31 @@ def plugin_wrapper_vollseg():
         plugin.image.tooltip = f'Shape: {get_data(image).shape, str(image.name)}'
 
         # dimensionality of selected model: 2, 3, or None (unknown)
-        ndim_model = None
+        ndim_model = 1
+        ndim_model_star = 1
+        ndim_model_unet = 1
+        ndim_model_den = 1 
+
+
         if plugin.star_seg_model_type.value == StarDist2D:
-            ndim_model = 2
+            ndim_model_star = 2
         elif plugin.star_seg_model_type.value == StarDist3D:
-            ndim_model = 3
-        else:
+            ndim_model_star = 3
+        elif plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:
             if model_selected_star in model_star_configs:
                 config = model_star_configs[model_selected_star]
-                ndim_model = config.get('n_dim')
-                
+                ndim_model_star = config.get('n_dim')
+        elif plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:
             if model_selected_unet in model_unet_configs:
                 config = model_unet_configs[model_selected_unet]
-                ndim_model = config.get('n_dim')    
-        #Force channel axes to be last
-        
-        # TODO: guess images axes better...
+                ndim_model_unet = config.get('n_dim')
+        elif plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:
+            if model_selected_den in model_den_configs:
+                config = model_den_configs[model_selected_den]
+                ndim_model_den = config.get('n_dim')
+        ndim_model = np.max(ndim_model_star,ndim_model_unet, ndim_model_den)
         axes = None
+        
         if ndim == 2:
             axes = 'YX'
             plugin_star_parameters.n_tiles.value = (1,1)
@@ -2436,8 +2444,6 @@ def plugin_wrapper_vollseg():
             plugin_star_parameters.n_tiles.value = (1,1,1,1)
         else:
             raise NotImplementedError()
-        
-               
         
         if axes == plugin.axes.value:
             # make sure to trigger a changed event, even if value didn't actually change
