@@ -718,24 +718,12 @@ def plugin_wrapper_vollseg():
                     warn(
                         f'output images have different axes ({model_den._axes_out.replace("C","")}) than input image ({axes})'
                     )            
-            # TODO: adjust image.scale according to shuffled axes
-        # don't want to load persisted values for these widgets
 
-        # TODO: progress bar (labels) often don't show up. events not processed?
-        original_tiling = plugin_star_parameters.n_tiles.value
         if 'T' in axes:
             app = use_app()
             t = axes_dict(axes)['T']
             n_frames = x.shape[t]
-            if plugin_star_parameters.n_tiles.value is not None:
-                # remove tiling value for time axis
-                
-                plugin_star_parameters.n_tiles.value = tuple(
-                    v
-                    for i, v in enumerate(plugin_star_parameters.n_tiles.value)
-                    if i != t
-                )
-
+           
 
             def progress_thread(current_time):
                 
@@ -2503,11 +2491,9 @@ def plugin_wrapper_vollseg():
     # -> triggered by _image_change
     @change_handler(plugin.axes, init=False)
     def _axes_change(value: str):
-        if value != value.upper():
-            with plugin.axes.changed.blocked():
-                plugin.axes.value = value.upper()
+        plugin.axes.value = value.upper()
         image = plugin.image.value
-        axes = ''
+        axes = plugin.axes.value
         try:
             image is not None or _raise(ValueError('no image selected'))
             axes = axes_check_and_normalize(
