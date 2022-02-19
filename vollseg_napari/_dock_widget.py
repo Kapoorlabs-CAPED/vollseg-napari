@@ -26,6 +26,7 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QTabWidget,
     QSizePolicy,
+    QPushButton
 )
 
 
@@ -104,6 +105,9 @@ def plugin_wrapper_vollseg():
         ((_aliases_mask[m][0] if len(_aliases_mask[m]) > 0 else m), m)
         for m in _models_mask
     ]  
+   
+   
+
     model_star_configs = dict()
     model_unet_configs = dict()
     model_den_configs = dict()
@@ -113,6 +117,7 @@ def plugin_wrapper_vollseg():
     model_selected_unet = None
     model_selected_den = None
     model_selected_roi = None
+    worker = None
     DEFAULTS_MODEL = dict(
         star_seg_model_type=StarDist3D,
         unet_seg_model_type=UNET,
@@ -482,6 +487,22 @@ def plugin_wrapper_vollseg():
 
         return plugin_display_parameters
 
+
+    @magicgui(
+       
+       
+        stop_button=dict(
+            widget_type='PushButton', text='Stop TimeLapse Calculation', value = True,
+        ),
+        call_button=False,
+    )
+    def plugin_stop_parameters(
+        stop_button
+        
+    ):
+
+        return plugin_stop_parameters    
+
     logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
 
     @magicgui(
@@ -584,6 +605,7 @@ def plugin_wrapper_vollseg():
         defaults_model_button=dict(
             widget_type='PushButton', text='Restore Model Defaults'
         ),
+       
         progress_bar=dict(label=' ', min=0, max=0, visible=False),
         layout='vertical',
         persist=True,
@@ -618,7 +640,7 @@ def plugin_wrapper_vollseg():
     ) -> List[napari.types.LayerDataTuple]:
         x = get_data(image)
         
-         
+        nonlocal worker 
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = 'Starting VollSeg'
         if plugin_star_parameters.norm_image:
@@ -795,6 +817,9 @@ def plugin_wrapper_vollseg():
             scale_in_dict = dict(zip(axes, image.scale))
             scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]     
             
+
+            
+
             if model_star is not None:   
                 worker = _VollSeg_time(model_star, model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x, y)
                 worker.returned.connect(return_segment_time)
@@ -817,9 +842,11 @@ def plugin_wrapper_vollseg():
                          
                 worker = _Unet(model_unet, model_roi, x, axes, model_den,scale_out)
                 worker.returned.connect(return_segment_unet)
-                
-        progress_bar.hide()
+
+        # add a button to the viewew that, when clicked, stops the worker
         
+        progress_bar.hide()
+        plugin_stop_parameters.stop_button.native.setStyleSheet('')
             
     plugin.axes.value = ''
     plugin_star_parameters.n_tiles.value = DEFAULTS_STAR_PARAMETERS['n_tiles']
@@ -868,7 +895,14 @@ def plugin_wrapper_vollseg():
     _parameter_display_tab_layout.addWidget(plugin_display_parameters.native)
     tabs.addTab(parameter_display_tab, 'Layer Visibility Selection')
 
+    parameter_kill_tab = QWidget()
+    _parameter_kill_tab_layout = QVBoxLayout()
+    parameter_kill_tab.setLayout(_parameter_kill_tab_layout)
+    _parameter_kill_tab_layout.addWidget(plugin_stop_parameters.native)
+    tabs.addTab(parameter_kill_tab, 'Interrupt Running computation')
 
+    
+   
     plugin.native.layout().addWidget(tabs)
 
     def widgets_inactive(*widgets, active):
@@ -1534,6 +1568,8 @@ def plugin_wrapper_vollseg():
     def _dounet_change(active: bool):
         plugin_extra_parameters.dounet.value = active
         
+
+
     @change_handler(plugin_extra_parameters.seedpool)
     def _seed_pool_change(active: bool):
 
@@ -1555,6 +1591,15 @@ def plugin_wrapper_vollseg():
     def _prob_map_watershed_change(active: bool):
         plugin_extra_parameters.prob_map_watershed.value = active
    
+
+    @change_handler(plugin_stop_parameters.stop_button)
+    def _stop_computation_change(active: bool):   
+            plugin_stop_parameters.stop_button.value = True 
+            
+            if worker is not None:
+                    worker.quit()
+                    plugin_stop_parameters.stop_button.native.setStyleSheet('background-color: red')
+
     @change_handler(plugin_display_parameters.display_prob)
     def _display_prob_map_change(active: bool):
         plugin_display_parameters.display_prob.value = active
@@ -2576,7 +2621,7 @@ def plugin_wrapper_vollseg():
     def restore_model_defaults():
         for k, v in DEFAULTS_MODEL.items():
             getattr(plugin, k).value = v
-
+    
     # -------------------------------------------------------------------------
 
     # allow some widgets to shrink because their size depends on user input
