@@ -731,50 +731,13 @@ def plugin_wrapper_vollseg():
                 progress_bar.range = (0, n_frames)
                 progress_bar.value = current_time + 1
                 progress_bar.show()
+                plugin_stop_parameters.stop_button.native.setStyleSheet('')
                 
-            def progress(it, **kwargs):
-                progress_bar.label = 'VollSeg Prediction (frames)'
-                progress_bar.range = (0, n_frames)
-                progress_bar.value = 0
-                progress_bar.show()
-                app.process_events()
-                for item in it:
-                    yield item
-                    plugin.progress_bar.increment()
-                    app.process_events()
-                app.process_events()
+           
 
         elif plugin_star_parameters.n_tiles.value is not None and np.prod(plugin_star_parameters.n_tiles.value) > 1:
             plugin_star_parameters.n_tiles.value = tuple(plugin_star_parameters.n_tiles.value)
-            app = use_app()
-
-            def progress_thread(current_time, **kwargs):
-                
-                progress_bar.label = 'CNN Prediction (tiles)'
-                progress_bar.range = (0, kwargs.get('total', 0))
-                progress_bar.value = current_time + 1
-                progress_bar.show()
-            def progress(it, **kwargs):
-                progress_bar.label = 'CNN Prediction (tiles)'
-                progress_bar.range = (0, kwargs.get('total', 0))
-                progress_bar.value = 0
-                progress_bar.show()
-                app.process_events()
-                for item in it:
-                    yield item
-                    progress_bar.increment()
-                    app.process_events()
-                #
-                progress_bar.label = 'NMS Postprocessing'
-                progress_bar.range = (0, 0)
-                app.process_events()
-
-        else:
-            progress = False
-            progress_bar.label = 'VollSeg Prediction'
-            progress_bar.range = (0, 0)
-            progress_bar.show()
-            use_app().process_events()
+        
         if model_star is not None:
                 # semantic output axes of predictions
                 assert model_star._axes_out[-1] == 'C'
@@ -812,7 +775,7 @@ def plugin_wrapper_vollseg():
                 worker = _VollSeg_time(model_star, model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x, y)
                 worker.returned.connect(return_segment_time)
                 worker.yielded.connect(progress_thread)
-
+               
             if model_star is None:
                    
                         
