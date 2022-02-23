@@ -643,44 +643,7 @@ def plugin_wrapper_vollseg():
         nonlocal worker 
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = 'Starting VollSeg'
-        if plugin_star_parameters.norm_image:
-            axes_norm = axes_check_and_normalize(norm_axes)
-            axes_norm = ''.join(
-                set(axes_norm).intersection(set(axes))
-            )  # relevant axes present in input image
-            assert len(axes_norm) > 0
-            # always jointly normalize channels for RGB images
-            if ('C' in axes and image.rgb == True) and ('C' not in axes_norm):
-                axes_norm = axes_norm + 'C'
-                
-                warn('jointly normalizing channels of RGB input image')
-            ax = axes_dict(axes)
-            
-            _axis = tuple(sorted(ax[a] for a in axes_norm))
-            # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
-            # #       also needs to be documented somewhere
-            # if 'T' in axes:
-            #     if 'C' not in axes or image.rgb == True:
-            #          # normalize channels jointly, frames independently
-            #          _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],))
-            #     else:
-            #         # normalize channels independently, frames independently
-            #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],ax['C']))
-            # else:
-            #     if 'C' not in axes or image.rgb == True:
-            #          # normalize channels jointly
-            #         _axis = None
-            #     else:
-            #         # normalize channels independently
-            #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['C'],))
-            x = normalize(
-                x,
-                plugin_star_parameters.perc_low.value,
-                plugin_star_parameters.perc_high.value,
-                axis=_axis,
-            )
-        #if model_selected_star is None and model_selected_unet is None and model_selected_den is None:
-            #plugin.call_button.enabled = False
+        
         if model_selected_star is not None:    
            model_star = get_model_star(*model_selected_star)
         else: model_star = None   
@@ -700,7 +663,6 @@ def plugin_wrapper_vollseg():
             y = get_data_label(model_roi_image)
         else:
             y = None    
-        lkwargs = {}
         
         if model_star is not None:
                 if not axes.replace('T', '').startswith(model_star._axes_out.replace('C', '')):
@@ -2046,6 +2008,9 @@ def plugin_wrapper_vollseg():
                        min_size=plugin_extra_parameters.min_size.value,
                        max_size=plugin_extra_parameters.max_size.value,
                        n_tiles=plugin_star_parameters.n_tiles.value,
+                       donormalize=plugin_star_parameters.norm_image.value,
+                       lower_perc=plugin_star_parameters.perc_low.value, 
+                       upper_perc=plugin_star_parameters.perc_high.value,
                        UseProbability=plugin_extra_parameters.prob_map_watershed.value,
                        dounet=plugin_extra_parameters.dounet.value,
                        RGB = plugin_extra_parameters.isRGB.value,
@@ -2065,7 +2030,9 @@ def plugin_wrapper_vollseg():
             yield count
             pre_res.append(VollSeg(_x, unet_model = model_unet, roi_model = model_roi,
                        roi_image = y, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
+                                min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value, donormalize=plugin_star_parameters.norm_image.value,
+                       lower_perc=plugin_star_parameters.perc_low.value, 
+                       upper_perc=plugin_star_parameters.perc_high.value,
                        max_size=plugin_extra_parameters.max_size.value, iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
         
         pred = pre_res, scale_out, t, x
@@ -2074,7 +2041,9 @@ def plugin_wrapper_vollseg():
     @thread_worker(connect = {"returned": return_segment_unet } )         
     def _Unet( model_unet, model_roi, x, axes, noise_model, scale_out):
     
-        res = VollSeg(x, unet_model = model_unet, roi_model = model_roi, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+        res = VollSeg(x, unet_model = model_unet, roi_model = model_roi, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, donormalize=plugin_star_parameters.norm_image.value,
+                       lower_perc=plugin_star_parameters.perc_low.value, 
+                       upper_perc=plugin_star_parameters.perc_high.value,  RGB = plugin_extra_parameters.isRGB.value,
         min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value,
                      iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
@@ -2103,6 +2072,9 @@ def plugin_wrapper_vollseg():
             n_tiles=plugin_star_parameters.n_tiles.value,
             UseProbability=plugin_extra_parameters.prob_map_watershed.value,
             dounet=plugin_extra_parameters.dounet.value,
+            donormalize=plugin_star_parameters.norm_image.value,
+                       lower_perc=plugin_star_parameters.perc_low.value, 
+                       upper_perc=plugin_star_parameters.perc_high.value,
             slice_merge = plugin_extra_parameters.slicemerge.value,
             iou_threshold = plugin_extra_parameters.iouthresh.value
             )   
