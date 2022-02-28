@@ -3,6 +3,7 @@
 Created on Wed Dec  8 16:15:34 2021
 @author: vkapoor
 '''
+from ctypes.wintypes import RGB
 from napari_plugin_engine import napari_hook_implementation
 from magicgui import magicgui
 from magicgui import widgets as mw
@@ -664,6 +665,8 @@ def plugin_wrapper_vollseg():
         else:
             y = None    
         
+        print(model_star, "here")
+
         if model_star is not None:
                 if not axes.replace('T', '').startswith(model_star._axes_out.replace('C', '')):
                     warn(
@@ -747,14 +750,19 @@ def plugin_wrapper_vollseg():
             
         else:
             
-            if model_star is not None: 
-                worker = _Segment(model_star, model_unet, model_roi, x, axes, model_den,scale_out, y)
-                worker.returned.connect(return_segment)
-            if model_star is None:
-                
-                         
-                worker = _Unet(model_unet, model_roi, x, axes, model_den,scale_out)
-                worker.returned.connect(return_segment_unet)
+           
+
+                    if model_star is not None: 
+                        worker = _Segment(model_star, model_unet, model_roi, x, axes, model_den,scale_out, y)
+                        worker.returned.connect(return_segment)
+                    if model_star is None:
+                        
+                                
+                        worker = _Unet(model_unet, model_roi, x, axes, model_den,scale_out)
+                        worker.returned.connect(return_segment_unet)
+           
+
+
 
         # add a button to the viewew that, when clicked, stops the worker
         
@@ -1435,7 +1443,7 @@ def plugin_wrapper_vollseg():
             model_selected_star = key_star
             config_star = model_star_configs.get(key_star)
             update('model_star', config_star is not None, config_star)
-        if plugin.star_seg_model_type == DEFAULTS_MODEL['model_star_none']:
+        if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
            model_selected_star = None
                 
 
@@ -1445,7 +1453,7 @@ def plugin_wrapper_vollseg():
             model_selected_unet = key_unet
             config_unet = model_unet_configs.get(key_unet)
             update_unet('model_unet', config_unet is not None, config_unet)
-        if plugin.unet_seg_model_type == DEFAULTS_MODEL['model_unet_none']:
+        if plugin.unet_seg_model_type.value == DEFAULTS_MODEL['model_unet_none']:
            model_selected_unet = None    
        
     def select_model_den(key_den):
@@ -1454,7 +1462,7 @@ def plugin_wrapper_vollseg():
             model_selected_den = key_den
             config_den = model_den_configs.get(key_den)
             update_den('model_den', config_den is not None, config_den)
-        if plugin.den_model_type == DEFAULTS_MODEL['model_den_none']:
+        if plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none']:
            model_selected_den = None
 
     def select_model_roi(key_roi):
@@ -1463,7 +1471,7 @@ def plugin_wrapper_vollseg():
             model_selected_roi = key_roi
             config_roi = model_roi_configs.get(key_roi)
             plugin.call_button.enabled = True
-        if plugin.roi_model_type == DEFAULTS_MODEL['model_roi_none']:
+        if plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
            model_selected_roi = None    
     # -------------------------------------------------------------------------
 
@@ -2075,6 +2083,7 @@ def plugin_wrapper_vollseg():
             donormalize=plugin_star_parameters.norm_image.value,
                        lower_perc=plugin_star_parameters.perc_low.value, 
                        upper_perc=plugin_star_parameters.perc_high.value,
+            RGB = plugin_extra_parameters.isRGB.value,           
             slice_merge = plugin_extra_parameters.slicemerge.value,
             iou_threshold = plugin_extra_parameters.iouthresh.value
             )   
