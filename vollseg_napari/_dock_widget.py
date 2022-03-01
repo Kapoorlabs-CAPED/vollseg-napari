@@ -41,7 +41,7 @@ def plugin_wrapper_vollseg():
     
     from stardist.utils import abspath
     
-    DEBUG = True
+    DEBUG = False
                 
     def get_data(image):
         image = image.data[0] if image.multiscale else image.data
@@ -2081,8 +2081,8 @@ def plugin_wrapper_vollseg():
             UseProbability=plugin_extra_parameters.prob_map_watershed.value,
             dounet=plugin_extra_parameters.dounet.value,
             donormalize=plugin_star_parameters.norm_image.value,
-                       lower_perc=plugin_star_parameters.perc_low.value, 
-                       upper_perc=plugin_star_parameters.perc_high.value,
+            lower_perc=plugin_star_parameters.perc_low.value, 
+            upper_perc=plugin_star_parameters.perc_high.value,
             RGB = plugin_extra_parameters.isRGB.value,           
             slice_merge = plugin_extra_parameters.slicemerge.value,
             iou_threshold = plugin_extra_parameters.iouthresh.value
