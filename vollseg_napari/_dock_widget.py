@@ -1569,7 +1569,7 @@ def plugin_wrapper_vollseg():
             plugin_star_parameters.perc_high.value,
         )
 
-    @change_handler(plugin.norm_axes)
+    @change_handler(plugin.norm_axes,plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type)
     def _norm_axes_change(value: str):
         if value != value.upper():
             with plugin.axes.changed.blocked():
@@ -2460,7 +2460,7 @@ def plugin_wrapper_vollseg():
         # widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
     # -> triggered by _image_change
-    @change_handler(plugin_star_parameters.n_tiles, plugin.norm_axes ,init=False)
+    @change_handler(plugin_star_parameters.n_tiles, plugin.norm_axes ,plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type, init=False)
     def _n_tiles_change():
         image = plugin.image.value
         try:
