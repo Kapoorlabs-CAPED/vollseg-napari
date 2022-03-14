@@ -37,7 +37,7 @@ compatible with the respective version of TensorFlow. (If you need help and can 
 VollSeg comes with different options to combine CARE based denoising with UNET, StarDist and segmentation in a region of interest (ROI). We present some examples which are represent optimal combination of these different modes for segmenting different cell types. We summarize this in the table below:
 
 | Example Image | Description | Training Data | Trained Model | GT image   | Optimal combination  | Notebook Code | Model Prediction |
-| :-- | :-: | :-:| :-:| :-- | :-- |
+| :-- | :-: | :-:| :-:| :--: | :--: | :-: | :-- |
 | <img src="https://github.com/vollseg-napari/vollseg_napari/resources/Ascadian_raw.png" title="example Ascadian Embryo" width="120px" align="center">| Light sheet fused from four angles 3D single channel| [Training Data ~320 GB](https://figshare.com/articles/dataset/Astec-half-Pm1_Cut_at_2-cell_stage_half_Phallusia_mammillata_embryo_live_SPIM_imaging_stages_6-16_/11309570?backTo=/s/765d4361d1b073beedd5)| [UNET model] https://zenodo.org/record/6337699#.Yi81InrMJD8 |<img src="https://github.com/vollseg-napari/vollseg_napari/resources/Ascadian_gt.png" title="GT Ascadian Embryo" width="120px" align="center"> | UNET model, slice_merge = False | [Colab Notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_Ascadian_Embryo.ipynb) |<img src="https://github.com/vollseg-napari/vollseg_napari/resources/Ascadian_pred.png" title="GT Ascadian Embryo" width="120px" align="center"> |  
 
 ## Troubleshooting & Support
