@@ -32,7 +32,7 @@ compatible with the respective version of TensorFlow. (If you need help and can 
           pip install vollseg
 
 
-##Examples
+## Examples
 
 VollSeg comes with different options to combine CARE based denoising with UNET, StarDist and segmentation in a region of interest (ROI). We present some examples which are represent optimal combination of these different modes for segmenting different cell types. We summarize this in the table below:
 
