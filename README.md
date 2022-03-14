@@ -33,13 +33,12 @@ compatible with the respective version of TensorFlow. (If you need help and can 
 
 
 ## Examples
-![Segmentation](https://github.com/kapoorlab/VollSeg/blob/main/images/Seg_compare-big.png)
-![Image](https://github.com/kapoorlab/vollseg-napari/vollseg_napari/resources/Ascadian_GT.png)
+
 VollSeg comes with different options to combine CARE based denoising with UNET, StarDist and segmentation in a region of interest (ROI). We present some examples which are represent optimal combination of these different modes for segmenting different cell types. We summarize this in the table below:
 
 | Example Image | Description | Training Data | Trained Model | GT image   | Optimal combination  | Notebook Code | Model Prediction | Metrics |
 | --- | --- |--- | --- |--- | --- |--- | --- | --- |
-| <img src="https://github.com/kapoorlab/vollseg-napari/tree/main/vollseg_napari/resources/Ascadian_raw.jpg"  title="Raw Ascadian Embryo" width="200">| Light sheet fused from four angles 3D single channel| [Training Data ~320 GB](https://figshare.com/articles/dataset/Astec-half-Pm1_Cut_at_2-cell_stage_half_Phallusia_mammillata_embryo_live_SPIM_imaging_stages_6-16_/11309570?backTo=/s/765d4361d1b073beedd5)| [UNET model](https://zenodo.org/record/6337699) |<img src="https://github.com/kapoorlab/vollseg-napari/tree/main/vollseg_napari/resources/Ascadian_GT.jpg" title="GT Ascadian Embryo" width="200"> | UNET model, slice_merge = False | [Colab Notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_Ascadian_Embryo.ipynb) |<img src="https://github.com/kapoorlab/vollseg-napari/tree/main/vollseg_napari/resources/Ascadian_pred.jpg" title="GT Ascadian Embryo" width="200" > | <img src="https://github.com/kapoorlab/vollseg-napari/tree/main/vollseg_napari/resources/Metrics_Ascadian.jpg" title="Metrics Ascadian Embryo" width="200" >  |
+| <img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_raw.png"  title="Raw Ascadian Embryo" width="200">| Light sheet fused from four angles 3D single channel| [Training Data ~320 GB](https://figshare.com/articles/dataset/Astec-half-Pm1_Cut_at_2-cell_stage_half_Phallusia_mammillata_embryo_live_SPIM_imaging_stages_6-16_/11309570?backTo=/s/765d4361d1b073beedd5)| [UNET model](https://zenodo.org/record/6337699) |<img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_GT.png" title="GT Ascadian Embryo" width="200"> | UNET model, slice_merge = False | [Colab Notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_Ascadian_Embryo.ipynb) |<img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_pred.png" title="GT Ascadian Embryo" width="200" > | <img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Metrics_Ascadian.png" title="Metrics Ascadian Embryo" width="200" >  |
 
 ## Troubleshooting & Support
 
