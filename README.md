@@ -34,7 +34,7 @@ compatible with the respective version of TensorFlow. (If you need help and can 
 
 ## Examples
 ![Segmentation](https://github.com/kapoorlab/VollSeg/blob/main/images/Seg_compare-big.png)
-![Image](https://github.com/kapoorlab/vollseg-napari/tree/main/vollseg_napari/resources/Ascadian_GT.png)
+![Image](https://github.com/kapoorlab/vollseg-napari/vollseg_napari/resources/Ascadian_GT.png)
 VollSeg comes with different options to combine CARE based denoising with UNET, StarDist and segmentation in a region of interest (ROI). We present some examples which are represent optimal combination of these different modes for segmenting different cell types. We summarize this in the table below:
 
 | Example Image | Description | Training Data | Trained Model | GT image   | Optimal combination  | Notebook Code | Model Prediction | Metrics |
