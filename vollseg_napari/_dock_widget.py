@@ -401,7 +401,7 @@ def plugin_wrapper_vollseg():
             widget_type='FloatSpinBox',
             label='Threshold linkining',
             min=0.0,
-            max=10.0,
+            max=1.0,
             step=0.1,
             value=DEFAULTS_VOLL_PARAMETERS['iouthresh'],
         ),
@@ -2022,6 +2022,7 @@ def plugin_wrapper_vollseg():
                        UseProbability=plugin_extra_parameters.prob_map_watershed.value,
                        dounet=plugin_extra_parameters.dounet.value,
                        RGB = plugin_extra_parameters.isRGB.value,
+                       iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value
                    ))
                    
        pred = pre_res, scale_out, t, x
