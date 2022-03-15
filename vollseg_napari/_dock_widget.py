@@ -34,14 +34,14 @@ from qtpy.QtWidgets import (
 def plugin_wrapper_vollseg():
 
     from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
-    from vollseg.pretrained import get_registered_models, get_model_folder, get_model_details, get_model_instance
+    from vollseg.pretrained import get_registered_models, get_model_folder
     from csbdeep.utils import load_json
     import sys
-    from vollseg import VollSeg, VollSeg3D, VollSeg2D, VollSeg_unet, CARE, UNET, StarDist2D, StarDist3D, MASKUNET
+    from vollseg import VollSeg, CARE, UNET, StarDist2D, StarDist3D, MASKUNET
     
     from stardist.utils import abspath
     
-    DEBUG = False
+    DEBUG = True
                 
     def get_data(image):
         image = image.data[0] if image.multiscale else image.data
