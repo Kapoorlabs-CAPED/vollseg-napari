@@ -33,7 +33,7 @@ from qtpy.QtWidgets import (
 
 def plugin_wrapper_vollseg():
 
-    from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
+    from csbdeep.utils import _raise, axes_check_and_normalize, axes_dict
     from vollseg.pretrained import get_registered_models, get_model_folder
     from csbdeep.utils import load_json
     import sys
