@@ -1569,11 +1569,10 @@ def plugin_wrapper_vollseg():
             plugin_star_parameters.perc_high.value,
         )
 
-    @change_handler(plugin.norm_axes,plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type)
+    @change_handler(plugin.norm_axes, plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type)
     def _norm_axes_change(value: str):
-        if value != value.upper():
-            with plugin.axes.changed.blocked():
-                plugin.norm_axes.value = value.upper()
+        
+        value = plugin.norm_axes.value 
         try:
             axes = axes_check_and_normalize(value, disallowed='S')
             if len(axes) >= 1:
