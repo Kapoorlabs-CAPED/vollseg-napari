@@ -134,6 +134,7 @@ def plugin_wrapper_vollseg():
         model_unet_none='NOUNET',
         model_roi_none='NOROI',
         norm_axes='ZYX',
+        axes = 'ZYX'
     )
 
     DEFAULTS_STAR_PARAMETERS = dict(
@@ -511,7 +512,7 @@ def plugin_wrapper_vollseg():
             widget_type='Label', label=f'<h1><img src="{logo}">VollSeg</h1>'
         ),
         image=dict(label='Input Image'),
-        axes=dict(widget_type='LineEdit', label='Image Axes'),
+        axes=dict(widget_type='LineEdit', label='Image Axes',value=DEFAULTS_MODEL['axes']),
         star_seg_model_type=dict(
             widget_type='RadioButtons',
             label='StarDist Model Type',
@@ -873,13 +874,6 @@ def plugin_wrapper_vollseg():
                     if DEBUG:
                         print('GOT viewer')
 
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
 
             def _model(valid):
                 widgets_valid(
@@ -1066,12 +1060,7 @@ def plugin_wrapper_vollseg():
                     if DEBUG:
                         print('GOT viewer')
 
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
+                   
 
             def _model(valid):
                 widgets_valid(
@@ -1256,12 +1245,7 @@ def plugin_wrapper_vollseg():
                     if DEBUG:
                         print('GOT viewer')
 
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
+                   
 
             def _model(valid):
                 widgets_valid(
@@ -2433,9 +2417,9 @@ def plugin_wrapper_vollseg():
                 plugin.model_roi_image = None
 
     # -> triggered by _image_change
-    @change_handler(plugin.axes, init=False)
-    def _axes_change(value: str):
-        plugin.axes.value = value.upper()
+    @change_handler(plugin.axes,plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type, init=False)
+    def _axes_change():
+        value = plugin.axes.value
         image = plugin.image.value
         axes = plugin.axes.value
         try:
