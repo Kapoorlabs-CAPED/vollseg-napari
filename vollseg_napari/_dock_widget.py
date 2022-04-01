@@ -36,12 +36,10 @@ def plugin_wrapper_vollseg():
     from csbdeep.utils import _raise, axes_check_and_normalize, axes_dict
     from vollseg.pretrained import get_registered_models, get_model_folder
     from csbdeep.utils import load_json
-    import sys
     from vollseg import VollSeg, CARE, UNET, StarDist2D, StarDist3D, MASKUNET
-    
     from stardist.utils import abspath
     
-    DEBUG = True
+    DEBUG = False
                 
     def get_data(image):
         image = image.data[0] if image.multiscale else image.data
@@ -1694,20 +1692,9 @@ def plugin_wrapper_vollseg():
                 Markers = np.reshape(Markers, x.shape)     
                 for layer in list(plugin.viewer.value.layers):
                     
-                    if  'VollSeg Binary' in layer.name:
+                    if  any('VollSeg Binary','Base Watershed Image','VollSeg labels','StarDist','Markers','Skeleton','Denoised Image')  in layer.name:
                              plugin.viewer.value.layers.remove(layer)
-                    if 'Base Watershed Image' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)         
-                    if 'VollSeg labels' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)
-                    if 'StarDist' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)
-                    if 'Markers' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)         
-                    if 'Skeleton' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)
-                    if 'Denoised Image' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)         
+                         
         if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
                     if plugin_display_parameters.display_prob.value:
                         plugin.viewer.value.add_image(

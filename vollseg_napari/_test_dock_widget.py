@@ -3,6 +3,7 @@
 Created on Wed Dec  8 16:15:34 2021
 @author: vkapoor
 '''
+from ctypes.wintypes import RGB
 from napari_plugin_engine import napari_hook_implementation
 from magicgui import magicgui
 from magicgui import widgets as mw
@@ -26,25 +27,29 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QTabWidget,
     QSizePolicy,
+    QPushButton
 )
 
 
 def plugin_wrapper_vollseg():
 
-    from csbdeep.utils import _raise, normalize, axes_check_and_normalize, axes_dict
-    from vollseg.pretrained import get_registered_models, get_model_folder, get_model_details, get_model_instance
+    from csbdeep.utils import _raise, axes_check_and_normalize, axes_dict
+    from vollseg.pretrained import get_registered_models, get_model_folder
     from csbdeep.utils import load_json
-    import sys
-    from vollseg import VollSeg, VollSeg3D, VollSeg2D, VollSeg_unet, CARE, UNET, StarDist2D, StarDist3D
-    
+    from vollseg import VollSeg, CARE, UNET, StarDist2D, StarDist3D, MASKUNET
     from stardist.utils import abspath
     
-    DEBUG = True
+    DEBUG = False
                 
     def get_data(image):
         image = image.data[0] if image.multiscale else image.data
         # enforce dense numpy array in case we are given a dask array etc
         return np.asarray(image)
+    def get_data_label(image):
+        if image is not None:
+                image = image.data
+                # enforce dense numpy array in case we are given a dask array etc
+                return np.asarray(image).astype('uint16')
 
     def change_handler(*widgets, init=True, debug=DEBUG):
         def decorator_change_handler(handler):
@@ -53,10 +58,7 @@ def plugin_wrapper_vollseg():
                 source = Signal.sender()
                 emitter = Signal.current_emitter()
                 if debug:
-                    print(f'Choosen model_type for StarDist 2D {plugin.model2d_star.value}')
-                    print(f'Choosen model_type for StarDist 3D {plugin.model3d_star.value}')
-                    print(f'Choosen model_type for UNET {plugin.model_unet.value}')
-                    print(f'Choosen model_type for CARE {plugin.model_den.value}')
+                   
                     print(f'{str(emitter.name).upper()}: {source.name} = {args!r}')
                 return handler(*args)
 
@@ -95,26 +97,42 @@ def plugin_wrapper_vollseg():
         ((_aliases_den[m][0] if len(_aliases_den[m]) > 0 else m), m)
         for m in _models_den
     ]
+     
+    _models_mask, _aliases_mask = get_registered_models(MASKUNET)
+    # use first alias for model selection (if alias exists)
+    models_mask = [
+        ((_aliases_mask[m][0] if len(_aliases_mask[m]) > 0 else m), m)
+        for m in _models_mask
+    ]  
+   
+   
 
     model_star_configs = dict()
     model_unet_configs = dict()
     model_den_configs = dict()
+    model_roi_configs = dict()
     model_star_threshs = dict()
     model_selected_star = None
     model_selected_unet = None
     model_selected_den = None
+    model_selected_roi = None
+    worker = None
     DEFAULTS_MODEL = dict(
         star_seg_model_type=StarDist3D,
         unet_seg_model_type=UNET,
         den_model_type=CARE,
+        roi_model_type = MASKUNET,
         model2d_star=models2d_star[0][0],
         model_unet=models_unet[0][0],
+        model_roi = models_mask[0][0],
         model3d_star=models3d_star[0][0],
         model_den=models_den[0][0],
         model_den_none='NODEN',
         model_star_none='NOSTAR',
         model_unet_none='NOUNET',
+        model_roi_none='NOROI',
         norm_axes='ZYX',
+        axes = 'ZYX'
     )
 
     DEFAULTS_STAR_PARAMETERS = dict(
@@ -129,7 +147,7 @@ def plugin_wrapper_vollseg():
     DEFAULTS_VOLL_PARAMETERS = dict(
         min_size_mask=1.0,
         min_size=1.0,
-        max_size=100000.0,
+        max_size=10000000.0,
         isRGB = False,
         dounet=True,
         slicemerge = False,
@@ -153,6 +171,8 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_STAR = 'CUSTOM_SEG_MODEL_STAR'
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
+    CUSTOM_ROI_MODEL = 'CUSTOM_ROI_MODEL'
+    CUSTOM_ROI_IMAGE = 'CUSTOM_ROI_IMAGE'
     star_seg_model_type_choices = [
         ('2D', StarDist2D),
         ('3D', StarDist3D),
@@ -168,6 +188,13 @@ def plugin_wrapper_vollseg():
         ('DenoiseCARE', CARE),
         ('NODEN', 'NODEN'),
         ('Custom CARE', CUSTOM_DEN_MODEL),
+    ]
+
+    roi_model_type_choices = [
+        ('PreTrainedROI', MASKUNET),
+        ('NOROI', 'NOROI'),
+        ('Custom ROI', CUSTOM_ROI_MODEL),
+        ('ROI Image', CUSTOM_ROI_IMAGE)
     ]
 
     @functools.lru_cache(maxsize=None)
@@ -186,8 +213,28 @@ def plugin_wrapper_vollseg():
         elif star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:
             return star_seg_model_type.local_from_pretrained(model_star)
         else:
+            return None
+    
+    @functools.lru_cache(maxsize=None)
+    def get_model_roi(roi_model_type, model_roi):
+
+        if roi_model_type == CUSTOM_ROI_MODEL:
+            path_roi = Path(model_roi)
+            path_roi.is_dir() or _raise(
+                FileNotFoundError(f'{path_roi} is not a directory')
+            )
+            config_roi = model_roi_configs[(roi_model_type, model_roi)]
+            model_class_roi = MASKUNET 
+            return model_class_roi(
+                None, name=path_roi.name, basedir=str(path_roi.parent)
+            )
+        
+        elif roi_model_type !=DEFAULTS_MODEL['model_roi_none'] and plugin.model_roi_image.value is None:
+            return roi_model_type.local_from_pretrained(model_roi)
+        else:
             
             return None
+
 
     @functools.lru_cache(maxsize=None)
     def get_model_unet(unet_seg_model_type, model_unet):
@@ -319,7 +366,7 @@ def plugin_wrapper_vollseg():
             widget_type='FloatSpinBox',
             label='Max Size Cells (px)',
             min=0.0,
-            max=100000000.0,
+            max=1.0E100,
             step=100,
             value=DEFAULTS_VOLL_PARAMETERS['max_size'],
         ),
@@ -353,7 +400,7 @@ def plugin_wrapper_vollseg():
             widget_type='FloatSpinBox',
             label='Threshold linkining',
             min=0.0,
-            max=10.0,
+            max=1.0,
             step=0.1,
             value=DEFAULTS_VOLL_PARAMETERS['iouthresh'],
         ),
@@ -440,6 +487,22 @@ def plugin_wrapper_vollseg():
 
         return plugin_display_parameters
 
+
+    @magicgui(
+       
+       
+        stop_button=dict(
+            widget_type='PushButton', text='Stop TimeLapse Calculation', value = True,
+        ),
+        call_button=False,
+    )
+    def plugin_stop_parameters(
+        stop_button
+        
+    ):
+
+        return plugin_stop_parameters    
+
     logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
 
     @magicgui(
@@ -447,7 +510,7 @@ def plugin_wrapper_vollseg():
             widget_type='Label', label=f'<h1><img src="{logo}">VollSeg</h1>'
         ),
         image=dict(label='Input Image'),
-        axes=dict(widget_type='LineEdit', label='Image Axes'),
+        axes=dict(widget_type='LineEdit', label='Image Axes',value=DEFAULTS_MODEL['axes']),
         star_seg_model_type=dict(
             widget_type='RadioButtons',
             label='StarDist Model Type',
@@ -468,6 +531,13 @@ def plugin_wrapper_vollseg():
             orientation='horizontal',
             choices=den_model_type_choices,
             value=DEFAULTS_MODEL['den_model_type'],
+        ),
+        roi_model_type=dict(
+            widget_type='RadioButtons',
+            label='Region of Interest Model Type',
+            orientation='horizontal',
+            choices=roi_model_type_choices,
+            value=DEFAULTS_MODEL['roi_model_type'],
         ),
         model2d_star=dict(
             widget_type='ComboBox',
@@ -497,9 +567,18 @@ def plugin_wrapper_vollseg():
             choices=models_den,
             value=DEFAULTS_MODEL['model_den'],
         ),
+        model_roi=dict(
+            widget_type='ComboBox',
+            visible=False,
+            label='Pre-trained ROI Model',
+            choices=models_mask,
+            value=DEFAULTS_MODEL['model_roi'],
+        ),
+        model_roi_image=dict(label='Input Roi Image'),
         model_den_none=dict(widget_type='Label', visible=False, label='No Denoising'),
         model_unet_none=dict(widget_type='Label', visible=False, label='NOUNET'),
         model_star_none=dict(widget_type='Label', visible=False, label='NOSTAR'),
+        model_roi_none=dict(widget_type='Label', visible=False, label='NOROI'),
         model_folder_star=dict(
             widget_type='FileEdit',
             visible=False,
@@ -515,7 +594,9 @@ def plugin_wrapper_vollseg():
             label='Custom Denoising Model',
             mode='d',
         ),
-       
+         model_folder_roi=dict(
+            widget_type='FileEdit', visible=False, label='Custom ROI Model', mode='d'
+        ),
         norm_axes=dict(
             widget_type='LineEdit',
             label='Normalization Axes',
@@ -524,6 +605,7 @@ def plugin_wrapper_vollseg():
         defaults_model_button=dict(
             widget_type='PushButton', text='Restore Model Defaults'
         ),
+       
         progress_bar=dict(label=' ', min=0, max=0, visible=False),
         layout='vertical',
         persist=True,
@@ -537,77 +619,53 @@ def plugin_wrapper_vollseg():
         star_seg_model_type,
         unet_seg_model_type,
         den_model_type,
+        roi_model_type,
         model2d_star,
         model3d_star,
         model_unet,
         model_den,
+        model_roi,
+        model_roi_image: napari.layers.Labels,
         model_den_none,
         model_unet_none,
         model_star_none,
+        model_roi_none,
         model_folder_star,
         model_folder_unet,
         model_folder_den,
+        model_folder_roi,
         norm_axes,
         defaults_model_button,
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
         x = get_data(image)
         
+        nonlocal worker 
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = 'Starting VollSeg'
-        if plugin_star_parameters.norm_image:
-            axes_norm = axes_check_and_normalize(norm_axes)
-            axes_norm = ''.join(
-                set(axes_norm).intersection(set(axes))
-            )  # relevant axes present in input image
-            assert len(axes_norm) > 0
-            # always jointly normalize channels for RGB images
-            if ('C' in axes and image.rgb == True) and ('C' not in axes_norm):
-                axes_norm = axes_norm + 'C'
-                
-                warn('jointly normalizing channels of RGB input image')
-            ax = axes_dict(axes)
-            
-            _axis = tuple(sorted(ax[a] for a in axes_norm))
-            # # TODO: address joint vs. channel/time-separate normalization properly (let user choose)
-            # #       also needs to be documented somewhere
-            # if 'T' in axes:
-            #     if 'C' not in axes or image.rgb == True:
-            #          # normalize channels jointly, frames independently
-            #          _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],))
-            #     else:
-            #         # normalize channels independently, frames independently
-            #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['T'],ax['C']))
-            # else:
-            #     if 'C' not in axes or image.rgb == True:
-            #          # normalize channels jointly
-            #         _axis = None
-            #     else:
-            #         # normalize channels independently
-            #         _axis = tuple(i for i in range(x.ndim) if i not in (ax['C'],))
-            x = normalize(
-                x,
-                plugin_star_parameters.perc_low.value,
-                plugin_star_parameters.perc_high.value,
-                axis=_axis,
-            )
-        #if model_selected_star is None and model_selected_unet is None and model_selected_den is None:
-            #plugin.call_button.enabled = False
-        if model_selected_star is not None:    
-             model_star = get_model_star(*model_selected_star)
-        if star_seg_model_type == DEFAULTS_MODEL['model_star_none']:
-            model_star = None
-        if model_selected_unet is not None:
-            model_unet = get_model_unet(*model_selected_unet)
-        if unet_seg_model_type == DEFAULTS_MODEL['model_unet_none']:
-            model_unet = None
-        if model_selected_den is not None:
-            model_den = get_model_den(*model_selected_den)
-        if den_model_type == DEFAULTS_MODEL['model_den_none']:
-            model_den = None
-        lkwargs = {}
-        print('selected model', model_star, model_unet, model_den)
         
+        if model_selected_star is not None:    
+           model_star = get_model_star(*model_selected_star)
+        else: model_star = None   
+        if model_selected_unet is not None:
+           model_unet = get_model_unet(*model_selected_unet)
+        else: model_unet = None   
+        if model_selected_roi is not None:
+           model_roi = get_model_roi(*model_selected_roi)
+        else: model_roi = None   
+        if model_selected_den is not None:
+           model_den = get_model_den(*model_selected_den)
+        else: model_den = None   
+        if roi_model_type == DEFAULTS_MODEL['model_roi_none'] or model_roi is not None: 
+            y = None 
+            model_roi_image = None
+        elif model_roi_image is not None and model_roi is None:
+            y = get_data_label(model_roi_image)
+        else:
+            y = None    
+        
+        print(model_star, "here")
+
         if model_star is not None:
                 if not axes.replace('T', '').startswith(model_star._axes_out.replace('C', '')):
                     warn(
@@ -624,24 +682,12 @@ def plugin_wrapper_vollseg():
                     warn(
                         f'output images have different axes ({model_den._axes_out.replace("C","")}) than input image ({axes})'
                     )            
-            # TODO: adjust image.scale according to shuffled axes
-        # don't want to load persisted values for these widgets
 
-        # TODO: progress bar (labels) often don't show up. events not processed?
-        original_tiling = plugin_star_parameters.n_tiles.value
         if 'T' in axes:
             app = use_app()
             t = axes_dict(axes)['T']
             n_frames = x.shape[t]
-            if plugin_star_parameters.n_tiles.value is not None:
-                # remove tiling value for time axis
-                
-                plugin_star_parameters.n_tiles.value = tuple(
-                    v
-                    for i, v in enumerate(plugin_star_parameters.n_tiles.value)
-                    if i != t
-                )
-
+           
 
             def progress_thread(current_time):
                 
@@ -649,50 +695,13 @@ def plugin_wrapper_vollseg():
                 progress_bar.range = (0, n_frames)
                 progress_bar.value = current_time + 1
                 progress_bar.show()
+                plugin_stop_parameters.stop_button.native.setStyleSheet('')
                 
-            def progress(it, **kwargs):
-                progress_bar.label = 'VollSeg Prediction (frames)'
-                progress_bar.range = (0, n_frames)
-                progress_bar.value = 0
-                progress_bar.show()
-                app.process_events()
-                for item in it:
-                    yield item
-                    plugin.progress_bar.increment()
-                    app.process_events()
-                app.process_events()
+           
 
         elif plugin_star_parameters.n_tiles.value is not None and np.prod(plugin_star_parameters.n_tiles.value) > 1:
             plugin_star_parameters.n_tiles.value = tuple(plugin_star_parameters.n_tiles.value)
-            app = use_app()
-
-            def progress_thread(current_time, **kwargs):
-                
-                progress_bar.label = 'CNN Prediction (tiles)'
-                progress_bar.range = (0, kwargs.get('total', 0))
-                progress_bar.value = current_time + 1
-                progress_bar.show()
-            def progress(it, **kwargs):
-                progress_bar.label = 'CNN Prediction (tiles)'
-                progress_bar.range = (0, kwargs.get('total', 0))
-                progress_bar.value = 0
-                progress_bar.show()
-                app.process_events()
-                for item in it:
-                    yield item
-                    progress_bar.increment()
-                    app.process_events()
-                #
-                progress_bar.label = 'NMS Postprocessing'
-                progress_bar.range = (0, 0)
-                app.process_events()
-
-        else:
-            progress = False
-            progress_bar.label = 'VollSeg Prediction'
-            progress_bar.range = (0, 0)
-            progress_bar.show()
-            use_app().process_events()
+        
         if model_star is not None:
                 # semantic output axes of predictions
                 assert model_star._axes_out[-1] == 'C'
@@ -706,9 +715,14 @@ def plugin_wrapper_vollseg():
                 # semantic output axes of predictions
                 assert model_den._axes_out[-1] == 'C'
                 axes_out = list(model_den._axes_out[:-1])
+
+        if model_roi is not None:
+                # semantic output axes of predictions
+                assert model_roi._axes_out[-1] == 'C'
+                axes_out = list(model_roi._axes_out[:-1])        
                                 
         scale_in_dict = dict(zip(axes, image.scale))
-        scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]        
+        scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]       
         if 'T' in axes:
             x_reorder = np.moveaxis(x, t, 0)
             
@@ -718,36 +732,42 @@ def plugin_wrapper_vollseg():
             scale_in_dict = dict(zip(axes, image.scale))
             scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]     
             
+
+            
+
             if model_star is not None:   
-                worker = _VollSeg_time(model_star, model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
+                worker = _VollSeg_time(model_star, model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x, y)
                 worker.returned.connect(return_segment_time)
                 worker.yielded.connect(progress_thread)
-
-
+               
             if model_star is None:
                    
                         
-                    worker = _Unet_time( model_unet, x_reorder, axes_reorder, model_den, scale_out, t, x)
+                    worker = _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x, y)
                     worker.returned.connect(return_segment_unet_time)
                     worker.yielded.connect(progress_thread)
-
             
         else:
             
-         
-            worker = _Segment(model_star, model_unet, x, axes, model_den,scale_out)
-            worker.returned.connect(return_segment)
-            
-            if model_star is None:
-                
-                         
-                worker = _Unet(model_unet, x, axes, model_den,scale_out)
-                worker.returned.connect(return_segment_unet)
- 
-        progress_bar.hide()
-        
-            
+           
 
+                    if model_star is not None: 
+                        worker = _Segment(model_star, model_unet, model_roi, x, axes, model_den,scale_out, y)
+                        worker.returned.connect(return_segment)
+                    if model_star is None:
+                        
+                                
+                        worker = _Unet(model_unet, model_roi, x, axes, model_den,scale_out)
+                        worker.returned.connect(return_segment_unet)
+           
+
+
+
+        # add a button to the viewew that, when clicked, stops the worker
+        
+        progress_bar.hide()
+        plugin_stop_parameters.stop_button.native.setStyleSheet('')
+            
     plugin.axes.value = ''
     plugin_star_parameters.n_tiles.value = DEFAULTS_STAR_PARAMETERS['n_tiles']
     plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
@@ -763,12 +783,16 @@ def plugin_wrapper_vollseg():
         StarDist3D: plugin.model3d_star,
         UNET: plugin.model_unet,
         CARE: plugin.model_den,
+        MASKUNET: plugin.model_roi,
         'NODEN': plugin.model_den_none,
         'NOUNET': plugin.model_unet_none,
         'NOSTAR': plugin.model_star_none,
+        'NOROI' : plugin.model_roi_none,
         CUSTOM_SEG_MODEL_STAR: plugin.model_folder_star,
         CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
         CUSTOM_DEN_MODEL: plugin.model_folder_den,
+        CUSTOM_ROI_MODEL: plugin.model_folder_roi,
+        CUSTOM_ROI_IMAGE: plugin.model_roi_image,
     }
 
     tabs = QTabWidget()
@@ -789,9 +813,16 @@ def plugin_wrapper_vollseg():
     _parameter_display_tab_layout = QVBoxLayout()
     parameter_display_tab.setLayout(_parameter_display_tab_layout)
     _parameter_display_tab_layout.addWidget(plugin_display_parameters.native)
-    tabs.addTab(parameter_display_tab, 'Layer Visibility Selection')
+    tabs.addTab(parameter_display_tab, 'Display Output Selection')
 
+    parameter_kill_tab = QWidget()
+    _parameter_kill_tab_layout = QVBoxLayout()
+    parameter_kill_tab.setLayout(_parameter_kill_tab_layout)
+    _parameter_kill_tab_layout.addWidget(plugin_stop_parameters.native)
+    tabs.addTab(parameter_kill_tab, 'Interrupt Running computation')
 
+    
+   
     plugin.native.layout().addWidget(tabs)
 
     def widgets_inactive(*widgets, active):
@@ -811,7 +842,7 @@ def plugin_wrapper_vollseg():
             self.valid = SimpleNamespace(
                 **{
                     k: False
-                    for k in ('image_axes', 'model_den', 'n_tiles', 'norm_axes')
+                    for k in ('image_axes', 'model_den', 'n_tiles')
                 }
             )
             self.args = SimpleNamespace()
@@ -841,13 +872,6 @@ def plugin_wrapper_vollseg():
                     if DEBUG:
                         print('GOT viewer')
 
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
 
             def _model(valid):
                 widgets_valid(
@@ -895,31 +919,17 @@ def plugin_wrapper_vollseg():
                     else:
                         plugin.axes.tooltip = ''
 
-            def _norm_axes(valid):
-                norm_axes, err = getattr(self.args, 'norm_axes', (None, None))
-                widgets_valid(plugin.norm_axes, valid=valid)
-                if valid:
-                    plugin.norm_axes.tooltip = f'Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together.'
-                    return norm_axes
-                else:
-                    if err is not None:
-                        err = str(err)
-                        err = err[:-1] if err.endswith('.') else err
-                        plugin.norm_axes.tooltip = err
-                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
-                    else:
-                        plugin.norm_axes.tooltip = ''
+           
 
             def _n_tiles(valid):
-                n_tiles, image, err = getattr(self.args, 'n_tiles', (None, None, None))
+                n_tiles, image, err = getattr(self.args, 'n_tiles', (1, 1, 1))
+
                 widgets_valid(
                     plugin_star_parameters.n_tiles, valid=(valid or image is None)
                 )
                 if valid:
                     plugin_star_parameters.n_tiles.tooltip = (
-                        'no tiling'
-                        if n_tiles is None
-                        else '\n'.join(
+                         '\n'.join(
                             [
                                 f'{t}: {s}'
                                 for t, s in zip(n_tiles, get_data(image).shape)
@@ -996,7 +1006,6 @@ def plugin_wrapper_vollseg():
             else:
                 
                 _image_axes(self.valid.image_axes)
-                _norm_axes(self.valid.norm_axes)
                 _n_tiles(self.valid.n_tiles)
                 _model(self.valid.model_den)
 
@@ -1019,7 +1028,7 @@ def plugin_wrapper_vollseg():
             self.valid = SimpleNamespace(
                 **{
                     k: False
-                    for k in ('image_axes', 'model_unet', 'n_tiles', 'norm_axes')
+                    for k in ('image_axes', 'model_unet', 'n_tiles')
                 }
             )
             self.args = SimpleNamespace()
@@ -1049,13 +1058,7 @@ def plugin_wrapper_vollseg():
                     if DEBUG:
                         print('GOT viewer')
 
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
+                   
 
             def _model(valid):
                 widgets_valid(
@@ -1103,31 +1106,16 @@ def plugin_wrapper_vollseg():
                     else:
                         plugin.axes.tooltip = ''
 
-            def _norm_axes(valid):
-                norm_axes, err = getattr(self.args, 'norm_axes', (None, None))
-                widgets_valid(plugin.norm_axes, valid=valid)
-                if valid:
-                    plugin.norm_axes.tooltip = f'Axes to jointly normalize (if present in selected input image). Note: channels of RGB images are always normalized together.'
-                    return norm_axes
-                else:
-                    if err is not None:
-                        err = str(err)
-                        err = err[:-1] if err.endswith('.') else err
-                        plugin.norm_axes.tooltip = err
-                        # warn(err) # alternative to tooltip (gui doesn't show up in ipython)
-                    else:
-                        plugin.norm_axes.tooltip = ''
+           
 
             def _n_tiles(valid):
-                n_tiles, image, err = getattr(self.args, 'n_tiles', (None, None, None))
+                n_tiles, image, err = getattr(self.args, 'n_tiles', (1, 1, 1))
                 widgets_valid(
                     plugin_star_parameters.n_tiles, valid=(valid or image is None)
                 )
                 if valid:
                     plugin_star_parameters.n_tiles.tooltip = (
-                        'no tiling'
-                        if n_tiles is None
-                        else '\n'.join(
+                         '\n'.join(
                             [
                                 f'{t}: {s}'
                                 for t, s in zip(n_tiles, get_data(image).shape)
@@ -1201,7 +1189,6 @@ def plugin_wrapper_vollseg():
             else:
                 
                 _image_axes(self.valid.image_axes)
-                _norm_axes(self.valid.norm_axes)
                 _n_tiles(self.valid.n_tiles)
                 _model(self.valid.model_unet)
 
@@ -1256,13 +1243,7 @@ def plugin_wrapper_vollseg():
                     if DEBUG:
                         print('GOT viewer')
 
-                    @self.viewer.layers.events.removed.connect
-                    def _layer_removed(event):
-                        layers_remaining = event.source
-                        if len(layers_remaining) == 0:
-                            plugin.image.tooltip = ''
-                            plugin.axes.value = ''
-                            plugin_star_parameters.n_tiles.value = 'None'
+                   
 
             def _model(valid):
                 widgets_valid(
@@ -1333,15 +1314,13 @@ def plugin_wrapper_vollseg():
                         plugin.norm_axes.tooltip = ''
 
             def _n_tiles(valid):
-                n_tiles, image, err = getattr(self.args, 'n_tiles', (None, None, None))
+                n_tiles, image, err = getattr(self.args, 'n_tiles', (1, 1, 1))
                 widgets_valid(
                     plugin_star_parameters.n_tiles, valid=(valid or image is None)
                 )
                 if valid:
                     plugin_star_parameters.n_tiles.tooltip = (
-                        'no tiling'
-                        if n_tiles is None
-                        else '\n'.join(
+                         '\n'.join(
                             [
                                 f'{t}: {s}'
                                 for t, s in zip(n_tiles, get_data(image).shape)
@@ -1442,22 +1421,40 @@ def plugin_wrapper_vollseg():
 
     def select_model_star(key_star):
         nonlocal model_selected_star
-        model_selected_star = key_star
-        config_star = model_star_configs.get(key_star)
-        update('model_star', config_star is not None, config_star)
+        if key_star is not None:
+            model_selected_star = key_star
+            config_star = model_star_configs.get(key_star)
+            update('model_star', config_star is not None, config_star)
+        if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
+           model_selected_star = None
+                
 
     def select_model_unet(key_unet):
         nonlocal model_selected_unet
-        model_selected_unet = key_unet
-        config_unet = model_unet_configs.get(key_unet)
-        update_unet('model_unet', config_unet is not None, config_unet)
+        if key_unet is not None:
+            model_selected_unet = key_unet
+            config_unet = model_unet_configs.get(key_unet)
+            update_unet('model_unet', config_unet is not None, config_unet)
+        if plugin.unet_seg_model_type.value == DEFAULTS_MODEL['model_unet_none']:
+           model_selected_unet = None    
        
     def select_model_den(key_den):
         nonlocal model_selected_den
-        model_selected_den = key_den
-        config_den = model_den_configs.get(key_den)
-        update_den('model_den', config_den is not None, config_den)
+        if key_den is not None:
+            model_selected_den = key_den
+            config_den = model_den_configs.get(key_den)
+            update_den('model_den', config_den is not None, config_den)
+        if plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none']:
+           model_selected_den = None
 
+    def select_model_roi(key_roi):
+        nonlocal model_selected_roi
+        if key_roi is not None:
+            model_selected_roi = key_roi
+            config_roi = model_roi_configs.get(key_roi)
+            plugin.call_button.enabled = True
+        if plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
+           model_selected_roi = None    
     # -------------------------------------------------------------------------
 
     # hide percentile selection if normalization turned off
@@ -1474,6 +1471,8 @@ def plugin_wrapper_vollseg():
     def _dounet_change(active: bool):
         plugin_extra_parameters.dounet.value = active
         
+
+
     @change_handler(plugin_extra_parameters.seedpool)
     def _seed_pool_change(active: bool):
 
@@ -1495,6 +1494,15 @@ def plugin_wrapper_vollseg():
     def _prob_map_watershed_change(active: bool):
         plugin_extra_parameters.prob_map_watershed.value = active
    
+
+    @change_handler(plugin_stop_parameters.stop_button)
+    def _stop_computation_change(active: bool):   
+            plugin_stop_parameters.stop_button.value = True 
+            
+            if worker is not None:
+                    worker.quit()
+                    plugin_stop_parameters.stop_button.native.setStyleSheet('background-color: red')
+
     @change_handler(plugin_display_parameters.display_prob)
     def _display_prob_map_change(active: bool):
         plugin_display_parameters.display_prob.value = active
@@ -1543,25 +1551,22 @@ def plugin_wrapper_vollseg():
             plugin_star_parameters.perc_high.value,
         )
 
-    @change_handler(plugin.norm_axes)
+    @change_handler(plugin.norm_axes, plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type)
     def _norm_axes_change(value: str):
-        if value != value.upper():
-            with plugin.axes.changed.blocked():
-                plugin.norm_axes.value = value.upper()
+        
+        value = plugin.norm_axes.value 
         try:
             axes = axes_check_and_normalize(value, disallowed='S')
             if len(axes) >= 1:
-                update('norm_axes', True, (axes, None))
-                update_unet('norm_axes', True, (axes, None))
-                update_den('norm_axes', True, (axes, None))
+                
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                   update('norm_axes', True, (axes, None))
             else:
-                update('norm_axes', False, (axes, 'Cannot be empty'))
-                update_unet('norm_axes', False, (axes, 'Cannot be empty'))
-                update_den('norm_axes', False, (axes, 'Cannot be empty'))
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                    update('norm_axes', False, (axes, 'Cannot be empty'))
         except ValueError as err:
-            update('norm_axes', False, (value, err))
-            update_unet('norm_axes', False, (value, err))
-            update_den('norm_axes', False, (value, err))
+            if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                update('norm_axes', False, (value, err))
     # -------------------------------------------------------------------------
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
@@ -1579,6 +1584,20 @@ def plugin_wrapper_vollseg():
         ) - {selected}:
             w.hide()
         selected.show()
+        if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
+                plugin_extra_parameters.prob_map_watershed.hide()
+                plugin_extra_parameters.seedpool.hide()
+                for w in set(plugin_star_parameters):
+                    w.hide()
+                plugin_star_parameters.n_tiles.show()  
+                plugin_star_parameters.norm_image.show()  
+                plugin_star_parameters.perc_low.show()
+                plugin_star_parameters.perc_high.show()
+        else:
+                for w in set(plugin_star_parameters):
+                    w.show()   
+                plugin_extra_parameters.prob_map_watershed.show()
+                plugin_extra_parameters.seedpool.show()         
         # trigger _model_change_star()
         selected.changed(selected.value)
 
@@ -1590,6 +1609,23 @@ def plugin_wrapper_vollseg():
         ) - {selected}:
             w.hide()
         selected.show()
+
+        
+
+        # trigger _model_change_unet
+        selected.changed(selected.value)
+
+    @change_handler(plugin.roi_model_type, init=False)
+    def _roi_model_type_change(roi_model_type: Union[str, type]):
+        selected = widget_for_modeltype[roi_model_type]
+        for w in set(
+            (plugin.model_roi, plugin.model_roi_image, plugin.model_roi_none, plugin.model_folder_roi)
+        ) - {selected}:
+            w.hide()
+        selected.show()
+
+        
+
         # trigger _model_change_unet
         selected.changed(selected.value)
 
@@ -1656,99 +1692,89 @@ def plugin_wrapper_vollseg():
                 Markers = np.reshape(Markers, x.shape)     
                 for layer in list(plugin.viewer.value.layers):
                     
-                    if  'VollSeg Binary' in layer.name:
+                    if  any('VollSeg Binary','Base Watershed Image','VollSeg labels','StarDist','Markers','Skeleton','Denoised Image')  in layer.name:
                              plugin.viewer.value.layers.remove(layer)
-                    if 'Base Watershed Image' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)         
-                    if 'VollSeg labels' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)
-                    if 'StarDist' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)
-                    if 'Markers' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)         
-                    if 'Skeleton' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)
-                    if 'Denoised Image' in layer.name:
-                             plugin.viewer.value.layers.remove(layer)         
-                             
-                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
-                    plugin.viewer.value.add_image(
-                        
-                            probability_map,
-                            
-                                name='Base Watershed Image',
-                                scale=scale_out,
-                                visible=plugin_display_parameters.display_prob.value,
-                           
-                    )
-
-                    plugin.viewer.value.add_labels(
-                        
-                            labels,
-                          
-                                name='VollSeg labels', scale= scale_out, opacity=0.5,  visible = plugin_display_parameters.display_vollseg.value
-                        
-                    )
-
-                    plugin.viewer.value.add_labels(
-                        
-                            star_labels,
-                            
-                                name='StarDist',
-                                scale=scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_stardist.value,
-                           
-                    )
-                    
-                    plugin.viewer.value.add_labels(
-                        
-                            unet_mask,
-                           
-                                name='VollSeg Binary',
-                                scale=scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_unet.value,
-                          
-                    )
-
-                    plugin.viewer.value.add_labels(
-                        
-                            Markers,
-                            
-                                name='Markers',
-                                scale=scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_markers.value,
-                          
-                    )
-                    plugin.viewer.value.add_labels(
-                        
-                            Skeleton,
-                            
-                                name='Skeleton',
-                                scale=scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_skeleton.value,
-                            
-                    )
-                    if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
+                         
+        if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+                    if plugin_display_parameters.display_prob.value:
                         plugin.viewer.value.add_image(
+                                    
+                                        probability_map,
+                                        
+                                            name='Base Watershed Image',
+                                            scale=scale_out,
+                                            visible=plugin_display_parameters.display_prob.value,
+                                    
+                                )
+                    if plugin_display_parameters.display_vollseg.value:
+                        plugin.viewer.value.add_labels(
                             
-                                denoised_image,
+                                labels,
                             
-                                    name='Denoised Image',
-                                    scale=scale_out,
-                                    visible=plugin_display_parameters.display_denoised.value,
+                                    name='VollSeg labels', scale= scale_out, opacity=0.5,  visible = plugin_display_parameters.display_vollseg.value
+                            
+                        )
+                    if plugin_display_parameters.display_stardist.value:
+                        plugin.viewer.value.add_labels(
+                            
+                                star_labels,
                                 
-                            )
-                
-                
+                                    name='StarDist',
+                                    scale=scale_out,
+                                    opacity=0.5,
+                                    visible=plugin_display_parameters.display_stardist.value,
+                            
+                        )
+                    if plugin_display_parameters.display_unet.value:    
+                        plugin.viewer.value.add_labels(
+                            
+                                unet_mask,
+                            
+                                    name='VollSeg Binary',
+                                    scale=scale_out,
+                                    opacity=0.5,
+                                    visible=plugin_display_parameters.display_unet.value,
+                            
+                        )
+                    if plugin_display_parameters.display_markers.value:
+                        plugin.viewer.value.add_labels(
+                            
+                                Markers,
+                                
+                                    name='Markers',
+                                    scale=scale_out,
+                                    opacity=0.5,
+                                    visible=plugin_display_parameters.display_markers.value,
+                            
+                        )
+                    if plugin_display_parameters.display_skeleton.value:    
+                        plugin.viewer.value.add_labels(
+                            
+                                Skeleton,
+                                
+                                    name='Skeleton',
+                                    scale=scale_out,
+                                    opacity=0.5,
+                                    visible=plugin_display_parameters.display_skeleton.value,
+                                
+                        )
+                    if plugin_display_parameters.display_denoised.value:     
+                        if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
+                            plugin.viewer.value.add_image(
+                                
+                                    denoised_image,
+                                
+                                        name='Denoised Image',
+                                        scale=scale_out,
+                                        visible=plugin_display_parameters.display_denoised.value,
+                                    
+                                )
+        
     
     def return_segment(pred):
               
           res, scale_out = pred
-
+         
           if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
 
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
@@ -1761,168 +1787,179 @@ def plugin_wrapper_vollseg():
               unet_mask, denoised_image = res
           for layer in list(plugin.viewer.value.layers):
               
-              if 'VollSeg Binary' in layer.name:
+              if any('VollSeg Binary', 'Base Watershed Image', 'VollSeg labels', 'StarDist','Markers', 'Skeleton','Denoised Image' ) in layer.name:
                        plugin.viewer.value.layers.remove(layer)
-              if 'Base Watershed Image' in layer.name:
-                       plugin.viewer.value.layers.remove(layer)         
-              if 'VollSeg labels' in layer.name:
-                       plugin.viewer.value.layers.remove(layer)
-              if 'StarDist' in layer.name:
-                       plugin.viewer.value.layers.remove(layer)
-              if 'Markers' in layer.name:
-                       plugin.viewer.value.layers.remove(layer)         
-              if 'Skeleton' in layer.name:
-                       plugin.viewer.value.layers.remove(layer)
-              if 'Denoised Image' in layer.name:
-                       plugin.viewer.value.layers.remove(layer)         
-                       
+                     
           if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
-              plugin.viewer.value.add_image(
-                  
-                      probability_map,
-                      
-                          name='Base Watershed Image',
-                          scale=scale_out,
-                          visible=plugin_display_parameters.display_prob.value,
-                     
-              )
 
-              plugin.viewer.value.add_labels(
-                  
-                      labels,
+              if plugin_display_parameters.display_prob.value:
+                plugin.viewer.value.add_image(
                     
-                          name='VollSeg labels', scale= scale_out, opacity=0.5, visible = plugin_display_parameters.display_vollseg.value 
-                  
-              )
-
-              plugin.viewer.value.add_labels(
-                  
-                      star_labels,
-                      
-                          name='StarDist',
-                          scale=scale_out,
-                          opacity=0.5,
-                          visible=plugin_display_parameters.display_stardist.value,
-                     
-              )
-              
-              plugin.viewer.value.add_labels(
-                  
-                      unet_mask,
-                     
-                          name='VollSeg Binary',
-                          scale=scale_out,
-                          opacity=0.5,
-                          visible=plugin_display_parameters.display_unet.value,
-                    
-              )
-
-              plugin.viewer.value.add_labels(
-                  
-                      Markers,
-                      
-                          name='Markers',
-                          scale=scale_out,
-                          opacity=0.5,
-                          visible=plugin_display_parameters.display_markers.value,
-                    
-              )
-              plugin.viewer.value.add_labels(
-                  
-                      Skeleton,
-                      
-                          name='Skeleton',
-                          scale=scale_out,
-                          opacity=0.5,
-                          visible=plugin_display_parameters.display_skeleton.value,
-                      
-              )
-              if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
-                    plugin.viewer.value.add_image(
+                        probability_map,
                         
-                            denoised_image,
+                            name='Base Watershed Image',
+                            scale=scale_out,
+                            visible=plugin_display_parameters.display_prob.value,
                         
-                                name='Denoised Image',
-                                scale=scale_out,
-                                visible=plugin_display_parameters.display_denoised.value,
+                )
+              if plugin_display_parameters.display_vollseg.value:
+                    plugin.viewer.value.add_labels(
+                        
+                            labels,
                             
-                        )
-              
-    
+                                name='VollSeg labels', scale= scale_out, opacity=0.5, visible = plugin_display_parameters.display_vollseg.value 
+                        
+                    )
+              if plugin_display_parameters.display_stardist.value:
+                    plugin.viewer.value.add_labels(
+                        
+                            star_labels,
+                            
+                                name='StarDist',
+                                scale=scale_out,
+                                opacity=0.5,
+                                visible=plugin_display_parameters.display_stardist.value,
+                            
+                    )
+              if plugin_display_parameters.display_unet.value:
+                    plugin.viewer.value.add_labels(
+                        
+                            unet_mask,
+                            
+                                name='VollSeg Binary',
+                                scale=scale_out,
+                                opacity=0.5,
+                                visible=plugin_display_parameters.display_unet.value,
+                            
+                    )
+              if plugin_display_parameters.display_markers.value:
+                    plugin.viewer.value.add_labels(
+                        
+                            Markers,
+                            
+                                name='Markers',
+                                scale=scale_out,
+                                opacity=0.5,
+                                visible=plugin_display_parameters.display_markers.value,
+                            
+                    )
+
+              if plugin_display_parameters.display_skeleton.value:      
+                    plugin.viewer.value.add_labels(
+                        
+                            Skeleton,
+                            
+                                name='Skeleton',
+                                scale=scale_out,
+                                opacity=0.5,
+                                visible=plugin_display_parameters.display_skeleton.value,
+                            
+                    )
+              if plugin_display_parameters.display_denoised.value:      
+                    if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
+                            plugin.viewer.value.add_image(
+                                
+                                    denoised_image,
+                                
+                                        name='Denoised Image',
+                                        scale=scale_out,
+                                        visible=plugin_display_parameters.display_denoised.value,
+                                    
+                                )
     def return_segment_unet_time(pred):
         
         
                      
                      
               res, scale_out, t, x = pred
-              unet_mask, denoised_image = zip(*res)
+              unet_mask, skeleton, denoised_image = zip(*res)
               
               unet_mask = np.asarray(unet_mask)
               unet_mask = unet_mask > 0
               unet_mask = np.moveaxis(unet_mask, 0, t)
               unet_mask = np.reshape(unet_mask, x.shape)
               
+              skeleton = np.asarray(skeleton)
+              skeleton = skeleton > 0
+              skeleton = np.moveaxis(skeleton, 0, t)
+              skeleton = np.reshape(skeleton, x.shape)
+
               denoised_image = np.asarray(denoised_image)
               denoised_image = np.moveaxis(denoised_image, 0, t)
               denoised_image = np.reshape(denoised_image, x.shape)
               for layer in list(plugin.viewer.value.layers):
                   
-                  if 'VollSeg Binary' in layer.name:
+                  if any('VollSeg Binary','Denoised Image', 'Skeleton')  in layer.name:
                            plugin.viewer.value.layers.remove(layer)
-                  if 'Denoised Image' in layer.name:
-                           plugin.viewer.value.layers.remove(layer)     
-                           
-              plugin.viewer.value.add_labels(
-                  
-                      unet_mask, name ='VollSeg Binary',
-                          scale= scale_out,
-                          opacity=0.5,
-                          visible=plugin_display_parameters.display_unet.value)
+                   
+
+              if plugin_display_parameters.display_unet.value:
+                    plugin.viewer.value.add_labels(
+                        
+                            unet_mask, name ='VollSeg Binary',
+                                scale= scale_out,
+                                opacity=0.5,
+                                visible=plugin_display_parameters.display_unet.value)
+              if plugin_display_parameters.display_skeleton.value:
+                    plugin.viewer.value.add_labels(
+                        
+                            skeleton, name ='Skeleton',
+                                scale= scale_out,
+                                opacity=0.5,
+                                visible=plugin_display_parameters.display_skeleton.value)
+
               if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
-                  plugin.viewer.value.add_image(
-                      
-                          denoised_image,
-                       
-                              name='Denoised Image',
-                              scale=scale_out,
-                              visible=plugin_display_parameters.display_denoised.value,
-                          
-                      )
-              
-              
+
+                  if plugin_display_parameters.display_denoised.value:
+                        plugin.viewer.value.add_image(
+                            
+                                denoised_image,
+                            
+                                    name='Denoised Image',
+                                    scale=scale_out,
+                                    visible=plugin_display_parameters.display_denoised.value,
+                                
+                            )
     def return_segment_unet(pred):
             
               res, scale_out = pred
-              unet_mask, denoised_image = res
+              unet_mask, skeleton, denoised_image = res
               for layer in list(plugin.viewer.value.layers):
                   
-                  if 'VollSeg Binary' in layer.name:
+                  if any('VollSeg Binary','Denoised Image','Skeleton')  in layer.name:
                            plugin.viewer.value.layers.remove(layer)
-                  if 'Denoised Image' in layer.name:
-                           plugin.viewer.layers.value.remove(layer)
-                           
-                           
-              plugin.viewer.value.add_labels(
-                  
-                      unet_mask, name ='VollSeg Binary',
-                          scale= scale_out,
-                          opacity=0.5,
-                          visible=plugin_display_parameters.display_unet.value)
+                       
+              if plugin_display_parameters.display_unet.value:             
+                    plugin.viewer.value.add_labels(
+                        
+                            unet_mask, name ='VollSeg Binary',
+                                scale= scale_out,
+                                opacity=0.5,
+                                visible=plugin_display_parameters.display_unet.value)
+              if plugin_display_parameters.display_skeleton.value:
+                    plugin.viewer.value.add_labels(
+                        
+                            skeleton, name ='Skeleton',
+                                scale= scale_out,
+                                opacity=0.5,
+                                visible=plugin_display_parameters.display_skeleton.value)            
               if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
-                 plugin.viewer.value.add_image(
-                     
-                         denoised_image,
-                      
-                             name='Denoised Image',
-                             scale=scale_out,
-                             visible=plugin_display_parameters.display_denoised.value,
-                         
-                     )
-      
+
+                 if  plugin_display_parameters.display_denoised.value:
+                        plugin.viewer.value.add_image(
+                            
+                                denoised_image,
+                            
+                                    name='Denoised Image',
+                                    scale=scale_out,
+                                    visible=plugin_display_parameters.display_denoised.value,
+                                
+                            )
           
-        
+
+
     @thread_worker(connect = {"returned": return_segment_time } )         
-    def _VollSeg_time( model_star, model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
+    def _VollSeg_time( model_star, model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x, y):
        
       
        pre_res = []
@@ -1936,6 +1973,8 @@ def plugin_wrapper_vollseg():
                        model_star,
                        axes=axes_reorder,
                        noise_model=noise_model,
+                       roi_model = model_roi,
+                       roi_image = y,
                        prob_thresh=plugin_star_parameters.prob_thresh.value,
                        nms_thresh=plugin_star_parameters.nms_thresh.value,
                        min_size_mask=plugin_extra_parameters.min_size_mask.value,
@@ -1943,9 +1982,13 @@ def plugin_wrapper_vollseg():
                        min_size=plugin_extra_parameters.min_size.value,
                        max_size=plugin_extra_parameters.max_size.value,
                        n_tiles=plugin_star_parameters.n_tiles.value,
+                       donormalize=plugin_star_parameters.norm_image.value,
+                       lower_perc=plugin_star_parameters.perc_low.value, 
+                       upper_perc=plugin_star_parameters.perc_high.value,
                        UseProbability=plugin_extra_parameters.prob_map_watershed.value,
                        dounet=plugin_extra_parameters.dounet.value,
                        RGB = plugin_extra_parameters.isRGB.value,
+                       iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value
                    ))
                    
        pred = pre_res, scale_out, t, x
@@ -1953,24 +1996,29 @@ def plugin_wrapper_vollseg():
               
               
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
-    def _Unet_time( model_unet, x_reorder, axes_reorder, noise_model, scale_out, t, x):
+    def _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x, y):
         
     
         pre_res = []
         for  count, _x in enumerate(x_reorder):
              
             yield count
-            pre_res.append(VollSeg(_x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
+            pre_res.append(VollSeg(_x, unet_model = model_unet, roi_model = model_roi,
+                       roi_image = y, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                                min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value, donormalize=plugin_star_parameters.norm_image.value,
+                       lower_perc=plugin_star_parameters.perc_low.value, 
+                       upper_perc=plugin_star_parameters.perc_high.value,
                        max_size=plugin_extra_parameters.max_size.value, iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
         
         pred = pre_res, scale_out, t, x
         return pred           
               
     @thread_worker(connect = {"returned": return_segment_unet } )         
-    def _Unet( model_unet, x, axes, noise_model, scale_out):
+    def _Unet( model_unet, model_roi, x, axes, noise_model, scale_out):
     
-        res = VollSeg(x, unet_model = model_unet, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+        res = VollSeg(x, unet_model = model_unet, roi_model = model_roi, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, donormalize=plugin_star_parameters.norm_image.value,
+                       lower_perc=plugin_star_parameters.perc_low.value, 
+                       upper_perc=plugin_star_parameters.perc_high.value,  RGB = plugin_extra_parameters.isRGB.value,
         min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value,
                      iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
@@ -1979,7 +2027,7 @@ def plugin_wrapper_vollseg():
         return pred           
              
     @thread_worker (connect = {"returned": return_segment } )        
-    def _Segment(model_star, model_unet, x, axes, noise_model, scale_out):
+    def _Segment(model_star, model_unet,  model_roi, x, axes, noise_model, scale_out, y):
     
         
         res = VollSeg(
@@ -1988,6 +2036,8 @@ def plugin_wrapper_vollseg():
             model_star,
             axes=axes,
             noise_model=noise_model,
+            roi_model =  model_roi,
+            roi_image = y,
             prob_thresh=plugin_star_parameters.prob_thresh.value,
             nms_thresh=plugin_star_parameters.nms_thresh.value,
             min_size_mask=plugin_extra_parameters.min_size_mask.value,
@@ -1997,6 +2047,10 @@ def plugin_wrapper_vollseg():
             n_tiles=plugin_star_parameters.n_tiles.value,
             UseProbability=plugin_extra_parameters.prob_map_watershed.value,
             dounet=plugin_extra_parameters.dounet.value,
+            donormalize=plugin_star_parameters.norm_image.value,
+            lower_perc=plugin_star_parameters.perc_low.value, 
+            upper_perc=plugin_star_parameters.perc_high.value,
+            RGB = plugin_extra_parameters.isRGB.value,           
             slice_merge = plugin_extra_parameters.slicemerge.value,
             iou_threshold = plugin_extra_parameters.iouthresh.value
             )   
@@ -2010,9 +2064,10 @@ def plugin_wrapper_vollseg():
     # show/hide model folder picker
     # load config/thresholds for selected pretrained model
     # -> triggered by _model_type_change
-    @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False)
+    @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, plugin.norm_axes, init=False)
     def _model_change_star(model_name_star: str):
 
+       
         if Signal.sender() is not plugin.model_star_none:
                 model_class_star = (
                             StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D if Signal.sender() is plugin.model3d_star else StarDist2D 
@@ -2061,13 +2116,15 @@ def plugin_wrapper_vollseg():
                         else:
                             select_model_star(key_star)
         else:
+             select_model_star(None)
              plugin.call_button.enabled = True
              plugin_star_parameters.star_model_axes.value = ''
              plugin.model_folder_star.line_edit.tooltip = (
                         'Invalid model directory'
                     )
-
-
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False
+    
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_unet(model_name_unet: str):
         
@@ -2112,16 +2169,69 @@ def plugin_wrapper_vollseg():
                         else:
                             select_model_unet(key_unet)
         else:
+                 select_model_unet(None)
                  plugin.call_button.enabled = True
                  plugin_extra_parameters.dounet.value = False
                  plugin_extra_parameters.unet_model_axes.value = ''
                  plugin.model_folder_unet.line_edit.tooltip = (
                         'Invalid model directory'
                     )
+
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False   
+
+
+    @change_handler(plugin.model_roi, plugin.model_roi_none, plugin.model_roi_image, init=False) 
+    def _model_change_roi(model_name_roi: str):
+        
+
+        if Signal.sender() is not plugin.model_roi_none and plugin.model_roi_image:
+                model_class_roi = ( MASKUNET if Signal.sender() is plugin.model_roi else MASKUNET if plugin.model_roi.value is not None and Signal.sender() is None else None ) 
+                if model_class_roi is not None:
+                        if Signal.sender is not None:
+                             model_name = model_name_roi
+                        elif plugin.model_roi.value is not None:
+                            model_name = plugin.model_roi.value
+                        key_roi = model_class_roi, model_name
+                        if key_roi not in model_roi_configs:
+                
+                            @thread_worker
+                            def _get_model_folder():
+                                return get_model_folder(*key_roi)
+                
+                            def _process_model_folder(path):
+                
+                                try:
+                                    model_roi_configs[key_roi] = load_json(str(path / 'config.json'))
+                                    
+                                finally:
+                
+                                        select_model_roi(key_roi)
+                                        plugin.progress_bar.hide()
+                
+                            worker = _get_model_folder()
+                            worker.returned.connect(_process_model_folder)
+                            worker.start()
+                
+                            # delay showing progress bar -> won't show up if model already downloaded
+                            # TODO: hacky -> better way to do this?
+                            time.sleep(0.1)
+                            plugin.call_button.enabled = False
+                            plugin.progress_bar.label = 'Downloading UNET model'
+                            plugin.progress_bar.show()
+                
+                        
+                                 
+        else:
+                 select_model_roi(None)
+                 plugin.model_folder_roi.line_edit.tooltip = (
+                        'Invalid model directory'
+                    )                    
+
     @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
     def _model_change_den(model_name_den: str):
            
-
+            
             if Signal.sender() is not plugin.model_den_none: 
                 model_class_den = ( CARE if Signal.sender() is plugin.model_den else CARE if plugin.model_den.value is not None and Signal.sender() is None else None ) 
             
@@ -2162,12 +2272,15 @@ def plugin_wrapper_vollseg():
                     else:
                         select_model_den(key_den)
             else:
+                     select_model_den(None)
                      plugin.call_button.enabled = True
                      plugin_extra_parameters.den_model_axes.value = ''
                      plugin.model_folder_den.line_edit.tooltip = (
                         'Invalid model directory'
                     )
 
+            if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']:
+                        plugin.call_button.enabled = False
     # load config/thresholds from custom model path
     # -> triggered by _model_type_change
     # note: will be triggered at every keystroke (when typing the path)
@@ -2199,6 +2312,19 @@ def plugin_wrapper_vollseg():
         finally:
             select_model_unet(key)
 
+    @change_handler(plugin.model_folder_roi, init=False)
+    def _model_roi_folder_change(_path: str):
+        path = Path(_path)
+        key = CUSTOM_ROI_MODEL, path
+        try:
+            if not path.is_dir():
+                return
+            model_roi_configs[key] = load_json(str(path / 'config.json'))
+        except FileNotFoundError:
+            pass
+        finally:
+            select_model_roi(key)
+
     @change_handler(plugin.model_folder_den, init=False)
     def _model_den_folder_change(_path: str):
         path = Path(_path)
@@ -2218,27 +2344,34 @@ def plugin_wrapper_vollseg():
     @change_handler(plugin.image, init=False)
     def _image_change(image: napari.layers.Image):
         ndim = get_data(image).ndim
-        
         plugin.image.tooltip = f'Shape: {get_data(image).shape, str(image.name)}'
 
         # dimensionality of selected model: 2, 3, or None (unknown)
-        ndim_model = None
+        ndim_model = 1
+        ndim_model_star = 1
+        ndim_model_unet = 1
+        ndim_model_den = 1 
+
+
         if plugin.star_seg_model_type.value == StarDist2D:
-            ndim_model = 2
+            ndim_model_star = 2
         elif plugin.star_seg_model_type.value == StarDist3D:
-            ndim_model = 3
-        else:
+            ndim_model_star = 3
+        elif plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:
             if model_selected_star in model_star_configs:
                 config = model_star_configs[model_selected_star]
-                ndim_model = config.get('n_dim')
-                
+                ndim_model_star = config.get('n_dim')
+        elif plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:
             if model_selected_unet in model_unet_configs:
                 config = model_unet_configs[model_selected_unet]
-                ndim_model = config.get('n_dim')    
-        #Force channel axes to be last
-        
-        # TODO: guess images axes better...
+                ndim_model_unet = config.get('n_dim')
+        elif plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:
+            if model_selected_den in model_den_configs:
+                config = model_den_configs[model_selected_den]
+                ndim_model_den = config.get('n_dim')
+        ndim_model = max(ndim_model_star,ndim_model_unet, ndim_model_den)
         axes = None
+        
         if ndim == 2:
             axes = 'YX'
             plugin_star_parameters.n_tiles.value = (1,1)
@@ -2251,8 +2384,6 @@ def plugin_wrapper_vollseg():
         else:
             raise NotImplementedError()
         
-               
-        
         if axes == plugin.axes.value:
             # make sure to trigger a changed event, even if value didn't actually change
             plugin.axes.changed(axes)
@@ -2260,32 +2391,43 @@ def plugin_wrapper_vollseg():
             plugin.axes.value = axes
         plugin_star_parameters.n_tiles.changed(plugin_star_parameters.n_tiles.value)
         plugin.norm_axes.changed(plugin.norm_axes.value)
+    # -> triggered by napari (if there are any open images on plugin launch)
+    @change_handler(plugin.model_roi_image, init=False)
+    def _roi_image_change(model_roi_image: napari.layers.Labels):
+        if plugin.model_roi_image.value is not None:
+            plugin.model_roi_image.tooltip = f'Shape: {get_data_label(model_roi_image).shape, str(model_roi_image.name)}'
+        if plugin.model_roi_none == DEFAULTS_MODEL['model_roi_none']:
+                plugin.model_roi_image = None
 
     # -> triggered by _image_change
-    @change_handler(plugin.axes, init=False)
-    def _axes_change(value: str):
-        if value != value.upper():
-            with plugin.axes.changed.blocked():
-                plugin.axes.value = value.upper()
+    @change_handler(plugin.axes,plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type, init=False)
+    def _axes_change():
+        value = plugin.axes.value
         image = plugin.image.value
-        axes = ''
+        axes = plugin.axes.value
         try:
             image is not None or _raise(ValueError('no image selected'))
             axes = axes_check_and_normalize(
                 value, length=get_data(image).ndim, disallowed='S'
             )
-            update('image_axes', True, (axes, image, None))
-            update_unet('image_axes', True, (axes, image, None))
-            update_den('image_axes', True, (axes, image, None))
+            if plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:
+               update('image_axes', True, (axes, image, None))
+            if plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:   
+               update_unet('image_axes', True, (axes, image, None))
+            if plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:   
+               update_den('image_axes', True, (axes, image, None))
         except ValueError as err:
-            update('image_axes', False, (value, image, err))
-            update_unet('image_axes', False, (value, image, err))
-            update_den('image_axes', False, (value, image, err))
+            if plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:
+               update('image_axes', False, (value, image, err))
+            if plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:   
+               update_unet('image_axes', False, (value, image, err))
+            if plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:   
+               update_den('image_axes', False, (value, image, err))
         # finally:
         # widgets_inactive(plugin.timelapse_opts, active=('T' in axes))
 
     # -> triggered by _image_change
-    @change_handler(plugin_star_parameters.n_tiles, init=False)
+    @change_handler(plugin_star_parameters.n_tiles, plugin.norm_axes ,plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type, init=False)
     def _n_tiles_change():
         image = plugin.image.value
         try:
@@ -2300,18 +2442,18 @@ def plugin_wrapper_vollseg():
                 raise ValueError(f'must be a tuple/list of length {len(shape)}')
             if not all(isinstance(t, int) and t >= 1 for t in value):
                 raise ValueError(f'each value must be an integer >= 1')
-            if plugin.star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:    
+            if plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:    
                update('n_tiles', True, (value, image, None))
-            if plugin.unet_seg_model_type !=DEFAULTS_MODEL['model_unet_none']:   
+            if plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:   
                update_unet('n_tiles', True, (value, image, None))
-            if plugin.den_model_type !=DEFAULTS_MODEL['model_den_none']:   
+            if plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:   
                update_den('n_tiles', True, (value, image, None))
         except (ValueError, SyntaxError) as err:
-            if plugin.star_seg_model_type !=DEFAULTS_MODEL['model_star_none']:
+            if plugin.star_seg_model_type.value !=DEFAULTS_MODEL['model_star_none']:
                update('n_tiles', False, (None, image, err))
-            if plugin.unet_seg_model_type !=DEFAULTS_MODEL['model_unet_none']:   
+            if plugin.unet_seg_model_type.value !=DEFAULTS_MODEL['model_unet_none']:   
                update_unet('n_tiles', False, (None, image, err))
-            if plugin.den_model_type !=DEFAULTS_MODEL['model_den_none']:   
+            if plugin.den_model_type.value !=DEFAULTS_MODEL['model_den_none']:   
                update_den('n_tiles', False, (None, image, err))
     # -------------------------------------------------------------------------
 
@@ -2376,7 +2518,7 @@ def plugin_wrapper_vollseg():
     def restore_model_defaults():
         for k, v in DEFAULTS_MODEL.items():
             getattr(plugin, k).value = v
-
+    
     # -------------------------------------------------------------------------
 
     # allow some widgets to shrink because their size depends on user input
@@ -2398,7 +2540,7 @@ def plugin_wrapper_vollseg():
     plugin_extra_parameters.den_model_axes.enabled = False
 
   
-    return plugin, plugin_star_parameters, plugin_extra_parameters
+    return plugin, plugin_extra_parameters, plugin_star_parameters, plugin_stop_parameters, plugin_display_parameters
 
 
 def inrimage_file_reader(path):
@@ -2446,21 +2588,3 @@ def napari_get_reader(path: str):
         return None
 
 
-""" @napari_hook_implementation
-def napari_experimental_provide_dock_widget():
-    return plugin_wrapper_vollseg, dict(name='VollSeg', add_vertical_stretch=True)
-
-
-@napari_hook_implementation
-def napari_provide_sample_data():
-
-    return {
-        'test_image_cell_3d': {
-            'data': lambda: [(test_image_ascadian_3d(), {'name': 'ascadian_embryo_3d'})],
-            'display_name': 'Embryo Cells (3D)',
-        },
-        'test_image_cell_3dt': {
-            'data': lambda: [(test_image_carcinoma_3dt(), {'name': 'carcinoma_cells_3dt'})],
-            'display_name': 'Breast Cancer Cells (3DT)',
-        },
-    }  """
