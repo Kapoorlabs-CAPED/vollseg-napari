@@ -1,4 +1,3 @@
-from vollseg_napari import napari_get_reader
 import numpy as np
 from tifffile import imwrite
 import pytest

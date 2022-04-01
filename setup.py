@@ -38,9 +38,7 @@ setup(
 
       entry_points={'napari.manifest': ['vollseg-napari = vollseg_napari:napari.yaml']},
 
-      #package_data={'vollseg_napari': [ 'resources/*' ]},
-
-      #entry_points={'napari.plugin': 'VollSeg = vollseg_napari'},
+     
       
       dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
 
