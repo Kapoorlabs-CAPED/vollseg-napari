@@ -2,7 +2,7 @@ import numpy as np
 from tifffile import imwrite
 import pytest
 
-from vollseg import UNET, StarDist3D, StarDist2D
+from vollseg import UNET, StarDist3D, StarDist2D,CARE
 from typing import List, Union
 from vollseg_napari import _test_dock_widget
 import napari
@@ -34,16 +34,35 @@ def test_defaults(make_napari_viewer):
     config_star = model_star_configs.get(key_star)
     axes_star = config_star.get(
                             'axes', 'ZYXC'[-len(config_star['net_input_shape']) :])
-    axes_star.replace('C', '')                        
-    if axes_star == fake_plugin.axes.value:
-        valid = True
-    else:
-        valid = False
-    fake_plugin.call_button.value = valid                        
+    
+    valid = update(fake_plugin,fake_plugin_star_parameters, axes_star )
 
-    assert fake_plugin.call_button.value == valid  
-    if 'C' not in axes_star:                
-      assert len(fake_plugin_star_parameters.n_tiles.value) == len(axes_star)
-    else:
-      assert len(fake_plugin_star_parameters.n_tiles.value) + 1 == len(axes_star)    
+    assert valid == True    
         
+    key_den = fake_plugin.den_model_type.value, fake_plugin.model_den.value    
+    fake_plugin.den_model_type.value = CARE    
+    fake_plugin.model_den.value = 'Denoise_carcinoma'
+    model_den_configs = dict()
+    
+    path = 'C:/Users/rando/.keras/models/CARE/'+ fake_plugin.model_den.value + '/' + 'config.json'
+    model_den_configs = dict()
+    model_den_configs[key_den] = load_json(path)
+    config_den = model_den_configs.get(key_den)
+    axes_den = config_den.get(
+                            'axes', 'ZYXC'[-len(config_den['unet_input_shape']) :])
+   
+    valid = update(fake_plugin,fake_plugin_star_parameters, axes_den )
+
+    assert valid == True 
+
+def update(fake_plugin,fake_plugin_star_parameters, axes_model ):
+    valid = False
+    if 'C' not in axes_model:                
+      if len(fake_plugin_star_parameters.n_tiles.value) == len(axes_model) and axes_model == fake_plugin.axes.value:
+          valid = True
+
+    else:
+      if len(fake_plugin_star_parameters.n_tiles.value) + 1 == len(axes_model) and axes_model == fake_plugin.axes.value + 'C':
+          valid = True 
+
+    return valid
