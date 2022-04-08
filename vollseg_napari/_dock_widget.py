@@ -7,21 +7,18 @@ from ctypes.wintypes import RGB
 from napari_plugin_engine import napari_hook_implementation
 from magicgui import magicgui
 from magicgui import widgets as mw
-from magicgui.events import Event, Signal
+from psygnal import Signal
 from magicgui.application import use_app
 import napari
 from napari.qt.threading import thread_worker
-from napari.utils.colormaps import label_colormap
 from typing import List, Union
 import functools
 import time
-from napari.layers import Image, Shapes
-from enum import Enum
 import numpy as np
 from pathlib import Path
 from warnings import warn
-from tifffile import imread, imwrite
-from vollseg import inrimage, h5, spatial_image, test_image_ascadian_3d, test_image_carcinoma_3dt
+from tifffile import imread
+from vollseg import inrimage, h5
 from qtpy.QtWidgets import (
     QWidget,
     QVBoxLayout,
