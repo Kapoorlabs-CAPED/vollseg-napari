@@ -1687,23 +1687,12 @@ def plugin_wrapper_vollseg():
                 Markers = np.asarray(Markers)
                 Markers = np.moveaxis(Markers, 0, t)
                 Markers = np.reshape(Markers, x.shape)     
+
+                name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers','Denoised Image' ) 
                 for layer in list(plugin.viewer.value.layers):
-                    
-                    if  'VollSeg Binary'  in layer.name:
-                             plugin.viewer.value.layers.remove(layer)
-                             
-                    if 'Base Watershed Image'  in layer.name:
-                             plugin.viewer.value.layers.remove(layer)
-                    if  'VollSeg labels'  in layer.name:
-                             plugin.viewer.value.layers.remove(layer)         
-                    if  'StarDist'  in layer.name:
-                             plugin.viewer.value.layers.remove(layer) 
-                    if  'Markers'  in layer.name:
-                             plugin.viewer.value.layers.remove(layer)   
-                    if  'Skeleton'  in layer.name:
-                             plugin.viewer.value.layers.remove(layer) 
-                    if  'Denoised Image'  in layer.name:
-                             plugin.viewer.value.layers.remove(layer)                           
+                    if  any(name in layer.name for name in name_remove):
+                          plugin.viewer.value.layers.remove(layer)
+                                             
         if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
                     if plugin_display_parameters.display_prob.value:
                         plugin.viewer.value.add_image(
@@ -1794,25 +1783,14 @@ def plugin_wrapper_vollseg():
           if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
               
               unet_mask, denoised_image = res
+
+          name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'Markers', 'Skeleton','Denoised Image' ) 
+                    
           for layer in list(plugin.viewer.value.layers):
+
+              if  any(name in layer.name for name in name_remove):
+                          plugin.viewer.value.layers.remove(layer)
               
-              if 'VollSeg Binary'  in layer.name:
-                       plugin.viewer.value.layers.remove(layer)
-
-              if 'Base Watershed Image' in layer.name:
-                  plugin.viewer.value.layers.remove(layer)      
-                     
-
-              if 'VollSeg labels' in layer.name:
-                  plugin.viewer.value.layers.remove(layer)
-              if 'Markers' in layer.name:
-                  plugin.viewer.value.layers.remove(layer)    
-              if 'Skeleton' in layer.name:
-                  plugin.viewer.value.layers.remove(layer)   
-
-              if'Denoised Image'  in layer.name:
-                  plugin.viewer.value.layers.remove(layer)
-
 
           if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
 
@@ -1911,14 +1889,17 @@ def plugin_wrapper_vollseg():
               denoised_image = np.asarray(denoised_image)
               denoised_image = np.moveaxis(denoised_image, 0, t)
               denoised_image = np.reshape(denoised_image, x.shape)
+
+              name_remove = ('VollSeg Binary',  'Skeleton','Denoised Image' ) 
+                    
+
+              
               for layer in list(plugin.viewer.value.layers):
+
+                  if  any(name in layer.name for name in name_remove):
+                          plugin.viewer.value.layers.remove(layer)
                   
-                  if 'VollSeg Binary'  in layer.name:
-                           plugin.viewer.value.layers.remove(layer)
-                  if 'Denoised Image'  in layer.name:
-                           plugin.viewer.value.layers.remove(layer)    
-                  if 'Skeleton'  in layer.name:
-                           plugin.viewer.value.layers.remove(layer)              
+                               
                    
 
               if plugin_display_parameters.display_unet.value:
@@ -1952,14 +1933,14 @@ def plugin_wrapper_vollseg():
             
               res, scale_out = pred
               unet_mask, skeleton, denoised_image = res
+              name_remove = ('VollSeg Binary','Denoised Image','Skeleton'  ) 
+                    
               for layer in list(plugin.viewer.value.layers):
                   
-                  if 'VollSeg Binary'  in layer.name:
-                           plugin.viewer.value.layers.remove(layer)
-                  if 'Denoised Image'  in layer.name:
-                           plugin.viewer.value.layers.remove(layer)         
-                  if 'Skeleton'  in layer.name:
-                           plugin.viewer.value.layers.remove(layer)         
+                  if  any(name in layer.name for name in name_remove):
+                          plugin.viewer.value.layers.remove(layer) 
+
+                          
                        
               if plugin_display_parameters.display_unet.value:             
                     plugin.viewer.value.add_labels(
