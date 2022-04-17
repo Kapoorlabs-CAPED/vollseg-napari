@@ -1678,7 +1678,7 @@ def plugin_wrapper_vollseg():
 
             roi_image = np.moveaxis(roi_image, 0, t)
             
-            roi_image = np.reshape(roi_image, x.shape)
+            roi_image = np.reshape(roi_image, roi_image.shape)
             
         elif  plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
             
@@ -1688,7 +1688,7 @@ def plugin_wrapper_vollseg():
 
             roi_image = np.moveaxis(roi_image, 0, t)
             
-            roi_image = np.reshape(roi_image, x.shape)
+            roi_image = np.reshape(roi_image, roi_image.shape)
         
         if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']: 
                 labels = np.asarray(labels)
