@@ -7,7 +7,7 @@ from ctypes.wintypes import RGB
 from napari_plugin_engine import napari_hook_implementation
 from magicgui import magicgui
 from magicgui import widgets as mw
-from magicgui.events import Event, Signal
+from psygnal import Signal
 from magicgui.application import use_app
 import napari
 from napari.qt.threading import thread_worker

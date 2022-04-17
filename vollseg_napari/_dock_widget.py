@@ -162,6 +162,7 @@ def plugin_wrapper_vollseg():
         display_unet = True,
         display_denoised = True,
         display_markers = True,
+        display_roi = True,
         
     ) 
 
@@ -169,7 +170,6 @@ def plugin_wrapper_vollseg():
     CUSTOM_SEG_MODEL_UNET = 'CUSTOM_SEG_MODEL_UNET'
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     CUSTOM_ROI_MODEL = 'CUSTOM_ROI_MODEL'
-    CUSTOM_ROI_IMAGE = 'CUSTOM_ROI_IMAGE'
     star_seg_model_type_choices = [
         ('2D', StarDist2D),
         ('3D', StarDist3D),
@@ -190,8 +190,7 @@ def plugin_wrapper_vollseg():
     roi_model_type_choices = [
         ('PreTrainedROI', MASKUNET),
         ('NOROI', 'NOROI'),
-        ('Custom ROI', CUSTOM_ROI_MODEL),
-        ('ROI Image', CUSTOM_ROI_IMAGE)
+        ('Custom ROI', CUSTOM_ROI_MODEL)
     ]
 
     @functools.lru_cache(maxsize=None)
@@ -226,7 +225,7 @@ def plugin_wrapper_vollseg():
                 None, name=path_roi.name, basedir=str(path_roi.parent)
             )
         
-        elif roi_model_type !=DEFAULTS_MODEL['model_roi_none'] and plugin.model_roi_image.value is None:
+        elif roi_model_type !=DEFAULTS_MODEL['model_roi_none']  is None:
             return roi_model_type.local_from_pretrained(model_roi)
         else:
             
@@ -468,6 +467,11 @@ def plugin_wrapper_vollseg():
         defaults_display_parameters_button=dict(
             widget_type='PushButton', text='Restore Display Defaults'
         ),
+        display_roi=dict(
+            widget_type='CheckBox',
+            text='Display Roi Results',
+            value=DEFAULTS_DISPLAY_PARAMETERS['display_roi'],
+        ),
         call_button=False,
     )
     def plugin_display_parameters(
@@ -475,9 +479,11 @@ def plugin_wrapper_vollseg():
         display_unet,
         display_stardist,
         display_markers,
+        display_roi,
         display_vollseg,
         display_denoised,
         display_skeleton,
+
         defaults_display_parameters_button,
         
     ):
@@ -571,7 +577,6 @@ def plugin_wrapper_vollseg():
             choices=models_mask,
             value=DEFAULTS_MODEL['model_roi'],
         ),
-        model_roi_image=dict(label='Input Roi Image'),
         model_den_none=dict(widget_type='Label', visible=False, label='No Denoising'),
         model_unet_none=dict(widget_type='Label', visible=False, label='NOUNET'),
         model_star_none=dict(widget_type='Label', visible=False, label='NOSTAR'),
@@ -622,7 +627,6 @@ def plugin_wrapper_vollseg():
         model_unet,
         model_den,
         model_roi,
-        model_roi_image: napari.layers.Labels,
         model_den_none,
         model_unet_none,
         model_star_none,
@@ -653,15 +657,8 @@ def plugin_wrapper_vollseg():
         if model_selected_den is not None:
            model_den = get_model_den(*model_selected_den)
         else: model_den = None   
-        if roi_model_type == DEFAULTS_MODEL['model_roi_none'] or model_roi is not None: 
-            y = None 
-            model_roi_image = None
-        elif model_roi_image is not None and model_roi is None:
-            y = get_data_label(model_roi_image)
-        else:
-            y = None    
+         
         
-        print(model_star, "here")
 
         if model_star is not None:
                 if not axes.replace('T', '').startswith(model_star._axes_out.replace('C', '')):
@@ -733,14 +730,14 @@ def plugin_wrapper_vollseg():
             
 
             if model_star is not None:   
-                worker = _VollSeg_time(model_star, model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x, y)
+                worker = _VollSeg_time(model_star, model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x)
                 worker.returned.connect(return_segment_time)
                 worker.yielded.connect(progress_thread)
                
             if model_star is None:
                    
                         
-                    worker = _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x, y)
+                    worker = _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x)
                     worker.returned.connect(return_segment_unet_time)
                     worker.yielded.connect(progress_thread)
             
@@ -749,7 +746,7 @@ def plugin_wrapper_vollseg():
            
 
                     if model_star is not None: 
-                        worker = _Segment(model_star, model_unet, model_roi, x, axes, model_den,scale_out, y)
+                        worker = _Segment(model_star, model_unet, model_roi, x, axes, model_den,scale_out)
                         worker.returned.connect(return_segment)
                     if model_star is None:
                         
@@ -789,7 +786,6 @@ def plugin_wrapper_vollseg():
         CUSTOM_SEG_MODEL_UNET: plugin.model_folder_unet,
         CUSTOM_DEN_MODEL: plugin.model_folder_den,
         CUSTOM_ROI_MODEL: plugin.model_folder_roi,
-        CUSTOM_ROI_IMAGE: plugin.model_roi_image,
     }
 
     tabs = QTabWidget()
@@ -1517,11 +1513,15 @@ def plugin_wrapper_vollseg():
         plugin_display_parameters.display_denoised.value = active
 
     @change_handler(plugin_display_parameters.display_markers)
-    def _display_den_change(active: bool):
+    def _display_mark_change(active: bool):
         plugin_display_parameters.display_markers.value = active
 
+    @change_handler(plugin_display_parameters.display_roi)
+    def _display_roi_change(active: bool):
+        plugin_display_parameters.display_roi.value = active    
+
     @change_handler(plugin_display_parameters.display_vollseg)
-    def _display_den_change(active: bool):
+    def _display_vollseg_change(active: bool):
         plugin_display_parameters.display_vollseg.value = active
   
     @change_handler(plugin_display_parameters.display_skeleton)
@@ -1616,7 +1616,7 @@ def plugin_wrapper_vollseg():
     def _roi_model_type_change(roi_model_type: Union[str, type]):
         selected = widget_for_modeltype[roi_model_type]
         for w in set(
-            (plugin.model_roi, plugin.model_roi_image, plugin.model_roi_none, plugin.model_folder_roi)
+            (plugin.model_roi,  plugin.model_roi_none, plugin.model_folder_roi)
         ) - {selected}:
             w.hide()
         selected.show()
@@ -1647,7 +1647,7 @@ def plugin_wrapper_vollseg():
     def return_segment_time(pred):
 
         res, scale_out, t, x = pred
-        if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+        if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
 
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = zip(*res)
             
@@ -1656,12 +1656,39 @@ def plugin_wrapper_vollseg():
             denoised_image = np.moveaxis(denoised_image, 0, t)
             
             denoised_image = np.reshape(denoised_image, x.shape)
+
+
             
-        elif  plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+        elif  plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
             
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton = zip(*res)
+
+
+        elif plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+
+            labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, roi_image = zip(*res)
             
+            denoised_image = np.asarray(denoised_image)
+
+            denoised_image = np.moveaxis(denoised_image, 0, t)
             
+            denoised_image = np.reshape(denoised_image, x.shape)
+
+            roi_image = np.asarray(roi_image)
+
+            roi_image = np.moveaxis(roi_image, 0, t)
+            
+            roi_image = np.reshape(roi_image, x.shape)
+            
+        elif  plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+            
+            labels, unet_mask, star_labels, probability_map, Markers, Skeleton, roi_image = zip(*res)
+            
+            roi_image = np.asarray(roi_image)
+
+            roi_image = np.moveaxis(roi_image, 0, t)
+            
+            roi_image = np.reshape(roi_image, x.shape)
         
         if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']: 
                 labels = np.asarray(labels)
@@ -1687,14 +1714,29 @@ def plugin_wrapper_vollseg():
                 Markers = np.asarray(Markers)
                 Markers = np.moveaxis(Markers, 0, t)
                 Markers = np.reshape(Markers, x.shape)     
-
-                name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers','Denoised Image' ) 
+ 
+                name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
                 for layer in list(plugin.viewer.value.layers):
                     if  any(name in layer.name for name in name_remove):
                           plugin.viewer.value.layers.remove(layer)
                                              
+        if plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+
+                    if plugin_display_parameters.display_roi.value:
+                             
+                              plugin.viewer.value.add_labels(
+                            
+                                roi_image,
+                            
+                                    name='Roi', scale= scale_out, opacity=0.5,  visible = plugin_display_parameters.display_roi.value
+                            
+                        )
+
+
         if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
                     if plugin_display_parameters.display_prob.value:
+
+                        
                         plugin.viewer.value.add_image(
                                     
                                         probability_map,
@@ -1773,18 +1815,30 @@ def plugin_wrapper_vollseg():
               
           res, scale_out = pred
          
-          if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+          if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
 
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
               
-          elif plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+          elif plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
               labels, unet_mask, star_labels, probability_map, Markers, Skeleton = res
               
-          if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
+          elif plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
               
               unet_mask, denoised_image = res
 
-          name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'Markers', 'Skeleton','Denoised Image' ) 
+          if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, roi_image = res
+              
+          elif plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, roi_image = res
+              
+          elif plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+              
+              unet_mask, denoised_image, roi_image = res
+
+
+          name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' ) 
                     
           for layer in list(plugin.viewer.value.layers):
 
@@ -1792,6 +1846,17 @@ def plugin_wrapper_vollseg():
                           plugin.viewer.value.layers.remove(layer)
               
 
+          if plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+
+                    if plugin_display_parameters.display_roi.value:
+                             
+                              plugin.viewer.value.add_labels(
+                            
+                                roi_image,
+                            
+                                    name='Roi', scale= scale_out, opacity=0.5,  visible = plugin_display_parameters.display_roi.value
+                            
+                        )
           if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
 
               if plugin_display_parameters.display_prob.value:
@@ -1972,7 +2037,7 @@ def plugin_wrapper_vollseg():
 
 
     @thread_worker(connect = {"returned": return_segment_time } )         
-    def _VollSeg_time( model_star, model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x, y):
+    def _VollSeg_time( model_star, model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x):
        
       
        pre_res = []
@@ -1987,7 +2052,6 @@ def plugin_wrapper_vollseg():
                        axes=axes_reorder,
                        noise_model=noise_model,
                        roi_model = model_roi,
-                       roi_image = y,
                        prob_thresh=plugin_star_parameters.prob_thresh.value,
                        nms_thresh=plugin_star_parameters.nms_thresh.value,
                        min_size_mask=plugin_extra_parameters.min_size_mask.value,
@@ -2009,7 +2073,7 @@ def plugin_wrapper_vollseg():
               
               
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
-    def _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x, y):
+    def _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x):
         
     
         pre_res = []
@@ -2017,7 +2081,7 @@ def plugin_wrapper_vollseg():
              
             yield count
             pre_res.append(VollSeg(_x, unet_model = model_unet, roi_model = model_roi,
-                       roi_image = y, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
+                       n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
                                 min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value, donormalize=plugin_star_parameters.norm_image.value,
                        lower_perc=plugin_star_parameters.perc_low.value, 
                        upper_perc=plugin_star_parameters.perc_high.value,
@@ -2040,7 +2104,7 @@ def plugin_wrapper_vollseg():
         return pred           
              
     @thread_worker (connect = {"returned": return_segment } )        
-    def _Segment(model_star, model_unet,  model_roi, x, axes, noise_model, scale_out, y):
+    def _Segment(model_star, model_unet,  model_roi, x, axes, noise_model, scale_out):
     
         
         res = VollSeg(
@@ -2050,7 +2114,7 @@ def plugin_wrapper_vollseg():
             axes=axes,
             noise_model=noise_model,
             roi_model =  model_roi,
-            roi_image = y,
+          
             prob_thresh=plugin_star_parameters.prob_thresh.value,
             nms_thresh=plugin_star_parameters.nms_thresh.value,
             min_size_mask=plugin_extra_parameters.min_size_mask.value,
@@ -2194,11 +2258,11 @@ def plugin_wrapper_vollseg():
                         plugin.call_button.enabled = False   
 
 
-    @change_handler(plugin.model_roi, plugin.model_roi_none, plugin.model_roi_image, init=False) 
+    @change_handler(plugin.model_roi, plugin.model_roi_none, init=False) 
     def _model_change_roi(model_name_roi: str):
         
 
-        if Signal.sender() is not plugin.model_roi_none and plugin.model_roi_image:
+        if Signal.sender() is not plugin.model_roi_none:
                 model_class_roi = ( MASKUNET if Signal.sender() is plugin.model_roi else MASKUNET if plugin.model_roi.value is not None and Signal.sender() is None else None ) 
                 if model_class_roi is not None:
                         if Signal.sender is not None:
@@ -2404,13 +2468,7 @@ def plugin_wrapper_vollseg():
             plugin.axes.value = axes
         plugin_star_parameters.n_tiles.changed(plugin_star_parameters.n_tiles.value)
         plugin.norm_axes.changed(plugin.norm_axes.value)
-    # -> triggered by napari (if there are any open images on plugin launch)
-    @change_handler(plugin.model_roi_image, init=False)
-    def _roi_image_change(model_roi_image: napari.layers.Labels):
-        if plugin.model_roi_image.value is not None:
-            plugin.model_roi_image.tooltip = f'Shape: {get_data_label(model_roi_image).shape, str(model_roi_image.name)}'
-        if plugin.model_roi_none == DEFAULTS_MODEL['model_roi_none']:
-                plugin.model_roi_image = None
+
 
     # -> triggered by _image_change
     @change_handler(plugin.axes,plugin.unet_seg_model_type, plugin.star_seg_model_type, plugin.den_model_type, plugin.roi_model_type, init=False)
