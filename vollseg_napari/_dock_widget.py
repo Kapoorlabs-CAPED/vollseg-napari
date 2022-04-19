@@ -42,11 +42,7 @@ def plugin_wrapper_vollseg():
         image = image.data[0] if image.multiscale else image.data
         # enforce dense numpy array in case we are given a dask array etc
         return np.asarray(image)
-    def get_data_label(image):
-        if image is not None:
-                image = image.data
-                # enforce dense numpy array in case we are given a dask array etc
-                return np.asarray(image).astype('uint16')
+
 
     def change_handler(*widgets, init=True, debug=DEBUG):
         def decorator_change_handler(handler):
@@ -1648,7 +1644,7 @@ def plugin_wrapper_vollseg():
 
         res, scale_out, t, x = pred
         if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and  plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
-
+ 
             labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = zip(*res)
             
             denoised_image = np.asarray(denoised_image)
