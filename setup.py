@@ -58,11 +58,13 @@ setup(
       ],
 
     install_requires=[
-        'vollseg',
-        'napari>=0.4.13',
-         'typing-extensions>=3.10.0.0'
-        'magicgui',
-        'tensorflow-gpu>=2.7.0',
-        'keras>=2.8'
+        "vollseg",
+        'tensorflow;  platform_system!="Darwin" or platform_machine!="arm64"',
+        'tensorflow-macos;  platform_system=="Darwin" and platform_machine=="arm64"',
+        "napari>=0.4.13",
+        "magicgui>=0.4.0",
     ],
+    extras_require={
+        "test": ["pytest", "pytest-qt", "napari[pyqt]>=0.4.13"],
+    },
 )
