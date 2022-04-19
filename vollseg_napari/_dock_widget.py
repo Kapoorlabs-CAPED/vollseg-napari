@@ -951,14 +951,12 @@ def plugin_wrapper_vollseg():
                 (axes_model_den, config_den) = _model(True)
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
-                    print('in no tiling with C')
                     # check if image axes and n_tiles are compatible
                     widgets_valid(plugin_star_parameters.n_tiles, valid=False)
                     err = 'number of tiles must be 1 for C axis'
                     plugin_star_parameters.n_tiles.tooltip = err
                     _restore()
                 elif not _no_tiling_for_axis(axes_image, n_tiles, 'T'):
-                    print('in no tiling with T')
                     # check if image axes and n_tiles are compatible
                     widgets_valid(plugin_star_parameters.n_tiles, valid=False)
                     err = 'number of tiles must be 1 for T axis'
