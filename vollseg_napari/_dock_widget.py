@@ -3,7 +3,6 @@
 Created on Wed Dec  8 16:15:34 2021
 @author: vkapoor
 '''
-from ctypes.wintypes import RGB
 from napari_plugin_engine import napari_hook_implementation
 from magicgui import magicgui
 from magicgui import widgets as mw
@@ -23,8 +22,7 @@ from qtpy.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QTabWidget,
-    QSizePolicy,
-    QPushButton
+    QSizePolicy
 )
 
 
