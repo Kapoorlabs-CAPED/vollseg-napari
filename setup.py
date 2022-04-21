@@ -20,7 +20,7 @@ setup(
     description='Irregular cell shape segmentation using VollSeg',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/kapoorlab/vollseg',
+    url='https://github.com/kapoorlab/vollseg-napari',
     project_urls={
         'Source Code': 'https://github.com/kapoorlab/vollseg-napari',
         'Documentation': 'https://github.com/kapoorlab/vollseg-napari',
