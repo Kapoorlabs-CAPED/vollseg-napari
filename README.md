@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/vollseg-napari.svg)](https://pypi.org/project/vollseg-napari)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/vollseg-napari)](https://napari-hub.org/plugins/vollseg-napari)
-
+[![codecov](https://codecov.io/gh/kapoorlab/napari-vollseg/branch/main/graph/badge.svg)](https://codecov.io/gh/kapoorlab/napari-vollseg)
 This project provides the [napari](https://napari.org/) plugin for [VollSeg](https://github.com/kapoorlab/vollseg), a deep learning based 2D and 3D segmentation tool for irregular shaped cells. VollSeg has originally been developed (see [papers](http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html)) for the segmentation of densely packed membrane labelled cells in challenging images with low signal-to-noise ratios. The plugin allows to apply pretrained and custom trained models from within napari.
 For detailed demo of the plugin see these [videos](youtu.be/W_gKrLWKNpQ) and a short video about the [parameter selection](https://www.youtube.com/watch?v=7tQMn_u8_7s&t=1s) 
 
