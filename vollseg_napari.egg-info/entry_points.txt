@@ -1,3 +1,2 @@
 [napari.manifest]
 vollseg-napari = vollseg_napari:napari.yaml
-

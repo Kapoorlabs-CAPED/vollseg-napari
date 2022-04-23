@@ -1,5 +1,10 @@
 vollseg
 napari>=0.4.13
-typing-extensions>=3.10.0.0magicgui
+magicgui
 tensorflow-gpu>=2.7.0
 keras>=2.8
+
+[test]
+pytest
+pytest-qt
+napari[pyqt]>=0.4.13

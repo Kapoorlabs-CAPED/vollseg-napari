@@ -1,4 +1,7 @@
+LICENCE.txt
+MANIFEST.in
 README.md
+pyproject.toml
 setup.py
 vollseg_napari/__init__.py
 vollseg_napari/_dock_widget.py
@@ -13,6 +16,9 @@ vollseg_napari.egg-info/dependency_links.txt
 vollseg_napari.egg-info/entry_points.txt
 vollseg_napari.egg-info/requires.txt
 vollseg_napari.egg-info/top_level.txt
+vollseg_napari/_tests/__init__.py
+vollseg_napari/_tests/test_open_sample_data.py
+vollseg_napari/_tests/test_open_sample_models.py
 vollseg_napari/resources/oneat.jpg
 vollseg_napari/resources/oneat_1.jpg
 vollseg_napari/resources/vollseg_logo_napari.png

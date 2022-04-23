@@ -3,6 +3,7 @@
 Created on Wed Dec  8 16:15:34 2021
 @author: vkapoor
 '''
+
 from napari_plugin_engine import napari_hook_implementation
 from magicgui import magicgui
 from magicgui import widgets as mw
@@ -633,6 +634,8 @@ def plugin_wrapper_vollseg():
         defaults_model_button,
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
+        
+        
         x = get_data(image)
         
         nonlocal worker 
@@ -1829,7 +1832,10 @@ def plugin_wrapper_vollseg():
               
               unet_mask, denoised_image, roi_image = res
 
-
+          elif plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none'] and plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none'] and plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none']:
+              
+              unet_mask = res
+             
           name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' ) 
                     
           for layer in list(plugin.viewer.value.layers):
@@ -1849,6 +1855,19 @@ def plugin_wrapper_vollseg():
                                     name='Roi', scale= scale_out, opacity=0.5,  visible = plugin_display_parameters.display_roi.value
                             
                         )
+          if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:
+
+                    if plugin_display_parameters.display_unet.value:
+                            plugin.viewer.value.add_labels(
+                                
+                                    unet_mask,
+                                    
+                                        name='VollSeg Binary',
+                                        scale=scale_out,
+                                        opacity=0.5,
+                                        visible=plugin_display_parameters.display_unet.value,
+                                    
+                            )     
           if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
 
               if plugin_display_parameters.display_prob.value:

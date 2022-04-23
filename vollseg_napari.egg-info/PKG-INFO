@@ -1,15 +1,15 @@
 Metadata-Version: 2.1
 Name: vollseg-napari
-Version: 2.2.0
+Version: 2.2.4
 Summary: Irregular cell shape segmentation using VollSeg
-Home-page: https://github.com/kapoorlab/vollseg
+Home-page: https://github.com/kapoorlab/vollseg-napari
 Author: Varun Kapoor
 Author-email: varun.kapoor@kapoorlabs.org
 License: BSD 3-Clause License
 Project-URL: Source Code, https://github.com/kapoorlab/vollseg-napari
 Project-URL: Documentation, https://github.com/kapoorlab/vollseg-napari
 Project-URL: Bug Tracker, https://github.com/kapoorlab/vollseg-napari/issues
-Project-URL: User Support, https://forum.image.sc/tag/vollseg
+Project-URL: User Support, https://forum.image.sc/tag/vollseg-napari
 Project-URL: Twitter, https://twitter.com/entracod
 Platform: UNKNOWN
 Classifier: Development Status :: 4 - Beta
@@ -23,6 +23,8 @@ Classifier: Programming Language :: Python :: 3.9
 Classifier: Framework :: napari
 Requires-Python: >=3.7
 Description-Content-Type: text/markdown
+Provides-Extra: test
+License-File: LICENCE.txt
 
 # VollSeg Napari Plugin
 
@@ -30,7 +32,7 @@ Description-Content-Type: text/markdown
 
 
 This project provides the [napari](https://napari.org/) plugin for [VollSeg](https://github.com/kapoorlab/vollseg), a deep learning based 2D and 3D segmentation tool for irregular shaped cells. VollSeg has originally been developed (see [papers](http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html)) for the segmentation of densely packed membrane labelled cells in challenging images with low signal-to-noise ratios. The plugin allows to apply pretrained and custom trained models from within napari.
-
+For detailed demo of the plugin see these [videos](youtu.be/W_gKrLWKNpQ) and a short video about the [parameter selection](https://www.youtube.com/watch?v=7tQMn_u8_7s&t=1s) 
 
 
 ## Installation & Usage

@@ -25,7 +25,7 @@ setup(
         'Source Code': 'https://github.com/kapoorlab/vollseg-napari',
         'Documentation': 'https://github.com/kapoorlab/vollseg-napari',
         'Bug Tracker': 'https://github.com/kapoorlab/vollseg-napari/issues',
-        'User Support': 'https://forum.image.sc/tag/vollseg',
+        'User Support': 'https://forum.image.sc/tag/vollseg-napari',
         'Twitter': 'https://twitter.com/entracod',
     },
     author='Varun Kapoor',
@@ -63,6 +63,7 @@ setup(
         'tensorflow-macos;  platform_system=="Darwin" and platform_machine=="arm64"',
         "napari>=0.4.13",
         "magicgui>=0.4.0",
+        "numpy==1.20.0"
     ],
     extras_require={
         "test": ["pytest", "pytest-qt", "napari[pyqt]>=0.4.13"],

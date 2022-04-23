@@ -16,7 +16,9 @@ def test_defaults(make_napari_viewer):
     fake_viewer = make_napari_viewer()
     fake_viewer.open_sample(plugin='vollseg-napari', sample='carcinoma_cells_3dt')
     
-    image = get_data(fake_viewer.layers[0])[2,:]
+    #get a slice in time and it is a TZYX shape
+    image = get_data(fake_viewer.layers[0])[0:1,:]
+    threed_image = image[0,:]
 
     name = 'test_3d'
     fake_viewer.add_image(image, name = name )
@@ -53,9 +55,15 @@ def test_defaults(make_napari_viewer):
     axes_den = config_den.get(
                             'axes', 'ZYXC'[-len(config_den['unet_input_shape']) :])
    
-    valid = update(fake_plugin_star_parameters, model_star, model_den, image )
+    valid_star = update(fake_plugin_star_parameters, model_star, model_den, image )
 
-    assert valid == True 
+
+    fake_plugin_star_parameters.n_tiles.value = (4,4,4)
+    valid_unet = update_single(fake_plugin_star_parameters, model_den, threed_image ) 
+    valid_star_unet =  update_duo(fake_plugin_star_parameters,model_star, threed_image ) 
+    assert valid_star == True
+    assert valid_unet == True 
+    assert valid_star_unet == True
 
 def update(fake_plugin_star_parameters, star_model, noise_model, image ):
 
@@ -67,3 +75,27 @@ def update(fake_plugin_star_parameters, star_model, noise_model, image ):
       valid = False
 
     return valid
+
+def update_single(fake_plugin_star_parameters, unet_model, image ):
+
+
+    res = VollSeg(image, unet_model = unet_model, star_model = None, noise_model = None,  n_tiles = fake_plugin_star_parameters.n_tiles.value)
+   
+    if res.shape == image.shape:
+      valid = True
+    else:
+      valid = False
+
+    return valid    
+
+def update_duo(fake_plugin_star_parameters, star_model, image ):
+
+
+    res = VollSeg(image, unet_model = None, star_model = star_model, noise_model = None,  n_tiles = fake_plugin_star_parameters.n_tiles.value)
+   
+    if len(res) == 6:
+      valid = True
+    else:
+      valid = False
+
+    return valid 
