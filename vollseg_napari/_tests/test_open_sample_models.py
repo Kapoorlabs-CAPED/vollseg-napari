@@ -61,9 +61,12 @@ def test_defaults(make_napari_viewer):
     fake_plugin_star_parameters.n_tiles.value = (4,4,4)
     valid_unet = update_single(fake_plugin_star_parameters, model_den, threed_image ) 
     valid_star_unet =  update_duo(fake_plugin_star_parameters,model_star, threed_image ) 
+    print(model_den.config.n_dim)
+    varid_star_den_roi = update_trio(fake_plugin_star_parameters,model_star, model_den, threed_image )
     assert valid_star == True
     assert valid_unet == True 
     assert valid_star_unet == True
+    assert varid_star_den_roi == True
 
 def update(fake_plugin_star_parameters, star_model, noise_model, image ):
 
@@ -94,6 +97,18 @@ def update_duo(fake_plugin_star_parameters, star_model, image ):
     res = VollSeg(image, unet_model = None, star_model = star_model, noise_model = None,  n_tiles = fake_plugin_star_parameters.n_tiles.value)
    
     if len(res) == 6:
+      valid = True
+    else:
+      valid = False
+
+    return valid 
+
+def update_trio(fake_plugin_star_parameters, star_model, noise_model, image ):
+
+    print(noise_model.config.n_dim)
+    res = VollSeg(image, roi_model = noise_model, star_model = star_model, noise_model = noise_model,  n_tiles = fake_plugin_star_parameters.n_tiles.value)
+    
+    if len(res) == 8:
       valid = True
     else:
       valid = False
