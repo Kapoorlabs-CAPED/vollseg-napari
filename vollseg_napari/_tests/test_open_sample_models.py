@@ -17,14 +17,14 @@ def test_defaults(make_napari_viewer):
     fake_viewer.open_sample(plugin='vollseg-napari', sample='carcinoma_cells_3dt')
     
     #get a slice in time and it is a TZYX shape
-    image = get_data(fake_viewer.layers[0])[0:1,:]
+    image = get_data(fake_viewer.layers[0])[0:2,0:10, 0:30, 0:30]
     threed_image = image[0,:]
     twod_image = threed_image[0,:]
     name = 'test_3d'
     fake_viewer.add_image(image, name = name )
     
     #Test the pre-trained models if they are compatiable with the images they are supposed to work on 
-    fake_plugin_star_parameters.n_tiles.value = (1,4,4,4)
+    fake_plugin_star_parameters.n_tiles.value = (1,1,1,1)
     fake_plugin_star_parameters.star_model_axes.value = 'ZYX'
     fake_plugin.star_seg_model_type.value = StarDist3D
     fake_plugin.unet_seg_model_type.value ='NOUNET'
@@ -63,7 +63,7 @@ def test_defaults(make_napari_viewer):
     valid_star = update(fake_plugin_star_parameters, model_star, model_den, image )
 
 
-    fake_plugin_star_parameters.n_tiles.value = (4,4,4)
+    fake_plugin_star_parameters.n_tiles.value = (1,1,1)
     valid_unet = update_single(fake_plugin_star_parameters,fake_plugin_extra_parameters, model_den, threed_image) 
     valid_star_unet =  update_duo(fake_plugin_star_parameters,model_star, threed_image ) 
     varid_star_den_roi = update_trio(fake_plugin_star_parameters,model_star, model_den, threed_image)
