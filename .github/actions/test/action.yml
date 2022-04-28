@@ -36,13 +36,7 @@ runs:
         python -W ignore -c "import sys; sys.path.remove(''); import vollseg_napari; print(f'pytest_dir={vollseg_napari.__path__[0]}')" >> $GITHUB_ENV
     # run tests inside the installed vollseg_napari package
 
-    - name: Get data
-      shell: bash
-      working-directory: vollseg_napari
-      run: |
-        wget -q -O carcinoma_cells_3dt.tif  https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif
-          
-    
+
 
     - name: Test with pytest
       uses: GabrielBB/xvfb-action@v1

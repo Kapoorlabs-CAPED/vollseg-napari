@@ -31,7 +31,7 @@ def test_defaults(make_napari_viewer):
     fake_plugin.model3d_star.value = 'Carcinoma_cells'
     key_star = fake_plugin.star_seg_model_type.value, fake_plugin.model3d_star.value
     model_path = get_model_folder( fake_plugin.star_seg_model_type.value, fake_plugin.model3d_star.value)
-    model_star = fake_plugin.star_seg_model_type.value(None, name=fake_plugin.model3d_star.value, basedir=str(model_path).removesuffix(fake_plugin.model3d_star.value))
+    model_star = fake_plugin.star_seg_model_type.value(None, name=fake_plugin.model3d_star.value, basedir=remove_suffix(str(model_path),fake_plugin.model3d_star.value))
     path = str(model_path) + '/' + 'config.json'
     model_star_configs = dict()
     model_star_configs[key_star] = load_json(path)
@@ -44,9 +44,9 @@ def test_defaults(make_napari_viewer):
     fake_plugin.den_model_type.value = CARE    
     fake_plugin.model_den.value = 'Denoise_carcinoma'
     fake_plugin_extra_parameters.den_model_axes.value = 'ZYX'
-    model_den_configs = dict()
+  
     model_path = get_model_folder(fake_plugin.den_model_type.value, fake_plugin.model_den.value)
-    model_den = fake_plugin.den_model_type.value(None, name=fake_plugin.model_den.value, basedir=str(model_path).removesuffix(fake_plugin.model_den.value))
+    model_den = fake_plugin.den_model_type.value(None, name=fake_plugin.model_den.value, basedir=remove_suffix(str(model_path),fake_plugin.model_den.value))
     path = str(model_path) + '/' + 'config.json'
     model_den_configs = dict()
     model_den_configs[key_den] = load_json(path)
@@ -58,7 +58,7 @@ def test_defaults(make_napari_viewer):
     fake_plugin.roi_model_type.value = MASKUNET    
     fake_plugin.model_roi.value = 'Xenopus_Cell_Tissue_Segmentation'
     model_path = get_model_folder(fake_plugin.roi_model_type.value, fake_plugin.model_roi.value)
-    model_roi = fake_plugin.roi_model_type.value(None, name=fake_plugin.model_roi.value, basedir=str(model_path).removesuffix(fake_plugin.model_roi.value))
+    model_roi = fake_plugin.roi_model_type.value(None, name=fake_plugin.model_roi.value, basedir=remove_suffix(str(model_path),fake_plugin.model_roi.value))
     valid_star = update(fake_plugin_star_parameters, model_star, model_den, image )
 
 
@@ -73,6 +73,11 @@ def test_defaults(make_napari_viewer):
     assert valid_star_unet == True
     assert varid_star_den_roi == True
     assert valid_roi == True
+
+def remove_suffix(input_string, suffix):
+    if suffix and input_string.endswith(suffix):
+        return input_string[:-len(suffix)]
+    return input_string
 
 def update(fake_plugin_star_parameters, star_model, noise_model, image ):
 
