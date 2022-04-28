@@ -1,7 +1,8 @@
-from vollseg import test_image_carcinoma_3dt
+from vollseg import data
+
 
 def test_open(make_napari_viewer):
     viewer = make_napari_viewer()
   
-    viewer.add_image(test_image_carcinoma_3dt())
+    viewer.add_image(data.get_test_data())
    
