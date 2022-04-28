@@ -2,7 +2,7 @@ import numpy as np
 from tifffile import imwrite
 import pytest
 
-from vollseg import UNET, StarDist3D, StarDist2D,CARE, MASKUNET,test_image_carcinoma_3dt, data
+from vollseg import UNET, StarDist3D, StarDist2D,CARE, MASKUNET,test_image_carcinoma_3dt, get_data
 from typing import List, Union
 from vollseg_napari import _test_dock_widget
 import napari
@@ -15,7 +15,7 @@ def test_defaults(make_napari_viewer):
     fake_plugin, fake_plugin_star_parameters, fake_plugin_extra_parameters, fake_plugin_display_parameters,  fake_plugin_stop_parameters, get_data = fake_plugin_master
     fake_viewer = make_napari_viewer()
     #get a slice in time and it is a TZYX shape
-    image = data.get_test_data()[0:2,0:10, 0:30, 0:30]
+    image = get_data.get_test_data()[0:2,0:10, 0:30, 0:30]
     threed_image = image[0,:]
     twod_image = threed_image[0,:]
     name = 'test_3d'
@@ -29,7 +29,7 @@ def test_defaults(make_napari_viewer):
     fake_plugin.roi_model_type.value ='NOROI'
     fake_plugin.model3d_star.value = 'Carcinoma_cells'
     key_star = fake_plugin.star_seg_model_type.value, fake_plugin.model3d_star.value
-    model_path = data.get_stardist_modelpath()
+    model_path = get_data.get_stardist_modelpath()
     model_star = fake_plugin.star_seg_model_type.value(None, name=fake_plugin.model3d_star.value, basedir= str(model_path))
     path = str(model_path) + '/' + 'config.json'
     model_star_configs = dict()
@@ -44,7 +44,7 @@ def test_defaults(make_napari_viewer):
     fake_plugin.model_den.value = 'Denoise_carcinoma'
     fake_plugin_extra_parameters.den_model_axes.value = 'ZYX'
   
-    model_path = data.get_denoising_modelpath()
+    model_path = get_data.get_denoising_modelpath()
     model_den = fake_plugin.den_model_type.value(None, name=fake_plugin.model_den.value, basedir=str(model_path))
     path = str(model_path) + '/' + 'config.json'
     model_den_configs = dict()
@@ -56,7 +56,7 @@ def test_defaults(make_napari_viewer):
     key_mask = fake_plugin.roi_model_type.value, fake_plugin.model_roi.value    
     fake_plugin.roi_model_type.value = MASKUNET    
     fake_plugin.model_roi.value = 'Xenopus_Cell_Tissue_Segmentation'
-    model_path = data.get_maskunet_modelpath()
+    model_path = get_data.get_maskunet_modelpath()
     model_roi = fake_plugin.roi_model_type.value(None, name=fake_plugin.model_roi.value, basedir=str(model_path))
     valid_star = update(fake_plugin_star_parameters, model_star, model_den, image )
 
