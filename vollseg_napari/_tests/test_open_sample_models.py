@@ -1,13 +1,8 @@
-import numpy as np
-from tifffile import imwrite
-import pytest
+
 import vollseg
-from vollseg import UNET, StarDist3D, StarDist2D,CARE, MASKUNET,test_image_carcinoma_3dt
+from vollseg import UNET, StarDist3D, StarDist2D,CARE, MASKUNET
 from typing import List, Union
 from vollseg_napari import _test_dock_widget
-import napari
-from csbdeep.utils import load_json
-from vollseg.pretrained import  get_model_folder
 from vollseg import VollSeg
 def test_defaults(make_napari_viewer):
      
@@ -53,11 +48,11 @@ def test_defaults(make_napari_viewer):
 
 
     fake_plugin_star_parameters.n_tiles.value = (1,1,1)
-    valid_unet = update_single(fake_plugin_star_parameters,fake_plugin_extra_parameters, model_den, threed_image) 
+    valid_unet = update_single(fake_plugin_star_parameters, model_den, threed_image) 
     valid_star_unet =  update_duo(fake_plugin_star_parameters,model_star, threed_image ) 
     varid_star_den_roi = update_trio(fake_plugin_star_parameters,model_star, model_den, threed_image)
     fake_plugin_extra_parameters.unet_model_axes.value = 'YX'
-    valid_roi = update_quad(fake_plugin_star_parameters,fake_plugin_extra_parameters,model_roi,twod_image )
+    valid_roi = update_quad(fake_plugin_star_parameters,model_roi,twod_image )
     assert valid_star == True
     assert valid_unet == True 
     assert valid_star_unet == True
@@ -77,7 +72,7 @@ def update(fake_plugin_star_parameters, star_model, noise_model, image ):
 
     return valid
 
-def update_single(fake_plugin_star_parameters,fake_plugin_extra_parameters, unet_model, image ):
+def update_single(fake_plugin_star_parameters, unet_model, image ):
 
 
     res = VollSeg(image, unet_model = unet_model,  star_model = None, noise_model = None, roi_model = None,  n_tiles = fake_plugin_star_parameters.n_tiles.value, axes = 'ZYX')
@@ -112,7 +107,7 @@ def update_trio(fake_plugin_star_parameters, star_model, noise_model, image ):
 
     return valid 
 
-def update_quad(fake_plugin_star_parameters,fake_plugin_extra_parameters, noise_model, image ):
+def update_quad(fake_plugin_star_parameters, noise_model, image ):
 
     res = VollSeg(image, roi_model = noise_model, n_tiles = fake_plugin_star_parameters.n_tiles.value, axes = 'YX')
   
