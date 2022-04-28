@@ -63,7 +63,7 @@ setup(
         'tensorflow-macos;  platform_system=="Darwin" and platform_machine=="arm64"',
         "napari>=0.4.13",
         "magicgui>=0.4.0",
-        "numpy==1.20.0"
+        "numpy==1.21.0"
     ],
     extras_require={
         "test": ["pytest", "pytest-qt", "napari[pyqt]>=0.4.13"],
