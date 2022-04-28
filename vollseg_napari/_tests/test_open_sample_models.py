@@ -32,12 +32,7 @@ def test_defaults(make_napari_viewer):
     key_star = fake_plugin.star_seg_model_type.value, fake_plugin.model3d_star.value
     model_path = vollseg.get_data.get_stardist_modelpath()
     model_star = fake_plugin.star_seg_model_type.value(None, name=fake_plugin.model3d_star.value, basedir= str(model_path))
-    path = str(model_path) + '/' + 'config.json'
-    model_star_configs = dict()
-    model_star_configs[key_star] = load_json(path)
-    config_star = model_star_configs.get(key_star)
-    axes_star = config_star.get(
-                            'axes', 'ZYXC'[-len(config_star['net_input_shape']) :])
+    
     
         
     key_den = fake_plugin.den_model_type.value, fake_plugin.model_den.value    
@@ -47,12 +42,7 @@ def test_defaults(make_napari_viewer):
   
     model_path = vollseg.get_data.get_denoising_modelpath()
     model_den = fake_plugin.den_model_type.value(None, name=fake_plugin.model_den.value, basedir=str(model_path))
-    path = str(model_path) + '/' + 'config.json'
-    model_den_configs = dict()
-    model_den_configs[key_den] = load_json(path)
-    config_den = model_den_configs.get(key_den)
-    axes_den = config_den.get(
-                            'axes', 'ZYXC'[-len(config_den['unet_input_shape']) :])
+   
    
     key_mask = fake_plugin.roi_model_type.value, fake_plugin.model_roi.value    
     fake_plugin.roi_model_type.value = MASKUNET    
@@ -74,10 +64,7 @@ def test_defaults(make_napari_viewer):
     assert varid_star_den_roi == True
     assert valid_roi == True
 
-def remove_suffix(input_string, suffix):
-    if suffix and input_string.endswith(suffix):
-        return input_string[:-len(suffix)]
-    return input_string
+
 
 def update(fake_plugin_star_parameters, star_model, noise_model, image ):
 
