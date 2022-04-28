@@ -37,9 +37,15 @@ runs:
     # run tests inside the installed vollseg_napari package
 
     - name: Get data
-      run: wget -0 carcinoma_cells_3dt.tif  https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif
+      working-directory: vollseg_napari
+      run: wget -q -0 carcinoma_cells_3dt.tif  https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif
           
-
+    - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            vollseg_napari/carcinoma_cells_3dt
+          key: full-data
     - name: Test with pytest
       uses: GabrielBB/xvfb-action@v1
       with:
