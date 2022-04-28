@@ -1,5 +1,7 @@
+from vollseg import test_image_carcinoma_3dt
+
 def test_open(make_napari_viewer):
     viewer = make_napari_viewer()
   
-    viewer.open_sample(plugin='vollseg-napari', sample='carcinoma_cells_3dt')
+    viewer.add_image(test_image_carcinoma_3dt())
    

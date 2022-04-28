@@ -2,7 +2,7 @@ import numpy as np
 from tifffile import imwrite
 import pytest
 
-from vollseg import UNET, StarDist3D, StarDist2D,CARE, MASKUNET
+from vollseg import UNET, StarDist3D, StarDist2D,CARE, MASKUNET,test_image_carcinoma_3dt
 from typing import List, Union
 from vollseg_napari import _test_dock_widget
 import napari
@@ -15,9 +15,8 @@ def test_defaults(make_napari_viewer):
     fake_plugin, fake_plugin_star_parameters, fake_plugin_extra_parameters, fake_plugin_display_parameters,  fake_plugin_stop_parameters, get_data = fake_plugin_master
     fake_viewer = make_napari_viewer()
     fake_viewer.open_sample(plugin='vollseg-napari', sample='carcinoma_cells_3dt')
-    
     #get a slice in time and it is a TZYX shape
-    image = get_data(fake_viewer.layers[0])[0:2,0:10, 0:30, 0:30]
+    image = test_image_carcinoma_3dt()[0:2,0:10, 0:30, 0:30]
     threed_image = image[0,:]
     twod_image = threed_image[0,:]
     name = 'test_3d'
