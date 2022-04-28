@@ -37,7 +37,8 @@ runs:
     # run tests inside the installed vollseg_napari package
 
     - name: Get data
-        uses: wei/wget@v1
+      uses: wei/wget@v1
+      with:
         run: wget  https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif
           
 
