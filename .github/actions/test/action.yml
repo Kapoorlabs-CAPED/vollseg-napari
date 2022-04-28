@@ -37,9 +37,7 @@ runs:
     # run tests inside the installed vollseg_napari package
 
     - name: Get data
-      uses: wei/wget@v1
-      with:
-        run: wget -0 carcinoma_cells_3dt.tif  https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif
+      run: wget -0 carcinoma_cells_3dt.tif  https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif
           
 
     - name: Test with pytest
