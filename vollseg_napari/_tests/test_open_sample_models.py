@@ -10,8 +10,8 @@ def test_defaults(make_napari_viewer):
     fake_plugin, fake_plugin_star_parameters, fake_plugin_extra_parameters, fake_plugin_display_parameters,  fake_plugin_stop_parameters, get_data = fake_plugin_master
     fake_viewer = make_napari_viewer()
     #get a slice in time and it is a TZYX shape
-    
-    image = vollseg.get_data.get_test_data()[0:,0:10, 0:30, 0:30]
+    image = vollseg.get_data.get_test_data()
+    image = vollseg.get_data.get_test_data()[0:2,image.shape[1] - 5:image.shape[1] + 5, image.shape[2] - 5:image.shape[2] + 5, image.shape[3] - 5:image.shape[3] + 5]
     threed_image = image[0,:]
     twod_image = threed_image[0,:]
     name = 'test_3d'
