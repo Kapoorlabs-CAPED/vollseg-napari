@@ -43,8 +43,8 @@ runs:
         wget -q -O carcinoma_cells_3dt.tif  https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif
           
     - name: Cache
-        uses: actions/cache@v2
-        with:
+      uses: actions/cache@v2
+      with:
           path: |
             vollseg_napari/carcinoma_cells_3dt
           key: carcinoma_cells_3dt
