@@ -1,4 +1,4 @@
-
+import numpy as np
 import vollseg
 from vollseg import UNET, StarDist3D, StarDist2D,CARE, MASKUNET
 from typing import List, Union
@@ -11,14 +11,15 @@ def test_defaults(make_napari_viewer):
     fake_viewer = make_napari_viewer()
     #get a slice in time and it is a TZYX shape
     image = vollseg.get_data.get_test_data()
-    image = vollseg.get_data.get_test_data()[0:2,image.shape[1] - 5:image.shape[1] + 5, image.shape[2] - 5:image.shape[2] + 5, image.shape[3] - 5:image.shape[3] + 5]
+    
+    image = np.asarray(vollseg.get_data.get_test_data()[0:2,image.shape[1] - 5:image.shape[1] + 5, image.shape[2] - 5:image.shape[2] + 5, image.shape[3] - 5:image.shape[3] + 5])
     threed_image = image[0,:]
     twod_image = threed_image[0,:]
     name = 'test_3d'
     fake_viewer.add_image(image, name = name )
     
     #Test the pre-trained models if they are compatiable with the images they are supposed to work on 
-    fake_plugin_star_parameters.n_tiles.value = (1,1,1,1)
+    fake_plugin_star_parameters.n_tiles.value = (1,2,2,2)
     fake_plugin_star_parameters.star_model_axes.value = 'ZYX'
     fake_plugin.star_seg_model_type.value = StarDist3D
     fake_plugin.unet_seg_model_type.value ='NOUNET'
@@ -47,7 +48,7 @@ def test_defaults(make_napari_viewer):
     valid_star = update(fake_plugin_star_parameters, model_star, model_den, image )
 
 
-    fake_plugin_star_parameters.n_tiles.value = (1,1,1)
+    fake_plugin_star_parameters.n_tiles.value = (1,2,2)
     valid_unet = update_single(fake_plugin_star_parameters, model_den, threed_image) 
     valid_star_unet =  update_duo(fake_plugin_star_parameters,model_star, threed_image ) 
     varid_star_den_roi = update_trio(fake_plugin_star_parameters,model_star, model_den, threed_image)
