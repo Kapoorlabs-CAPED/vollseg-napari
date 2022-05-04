@@ -1,0 +1,7 @@
+Requirement already satisfied: magicgui in /home/varunkapoor/anaconda3/envs/naparienv/lib/python3.9/site-packages (0.3.3)
+Requirement already satisfied: docstring-parser in /home/varunkapoor/anaconda3/envs/naparienv/lib/python3.9/site-packages (from magicgui) (0.13)
+Requirement already satisfied: psygnal>=0.2.0 in /home/varunkapoor/anaconda3/envs/naparienv/lib/python3.9/site-packages (from magicgui) (0.2.0)
+Requirement already satisfied: qtpy>=1.7.0 in /home/varunkapoor/anaconda3/envs/naparienv/lib/python3.9/site-packages (from magicgui) (2.0.0)
+Requirement already satisfied: typing-extensions in /home/varunkapoor/anaconda3/envs/naparienv/lib/python3.9/site-packages (from magicgui) (4.0.1)
+Requirement already satisfied: packaging in /home/varunkapoor/anaconda3/envs/naparienv/lib/python3.9/site-packages (from qtpy>=1.7.0->magicgui) (21.3)
+Requirement already satisfied: pyparsing!=3.0.5,>=2.0.2 in /home/varunkapoor/anaconda3/envs/naparienv/lib/python3.9/site-packages (from packaging->qtpy>=1.7.0->magicgui) (3.0.6)
