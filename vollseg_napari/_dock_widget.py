@@ -1710,10 +1710,7 @@ def plugin_wrapper_vollseg():
                 Markers = np.moveaxis(Markers, 0, t)
                 Markers = np.reshape(Markers, x.shape)     
  
-                name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
-                for layer in list(plugin.viewer.value.layers):
-                    if  any(name in layer.name for name in name_remove):
-                          plugin.viewer.value.layers.remove(layer)
+              
                                              
         if plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
 
@@ -1836,13 +1833,7 @@ def plugin_wrapper_vollseg():
               
               unet_mask = res
              
-          name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' ) 
-                    
-          for layer in list(plugin.viewer.value.layers):
-
-              if  any(name in layer.name for name in name_remove):
-                          plugin.viewer.value.layers.remove(layer)
-              
+         
 
           if plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
 
@@ -1966,17 +1957,6 @@ def plugin_wrapper_vollseg():
               denoised_image = np.moveaxis(denoised_image, 0, t)
               denoised_image = np.reshape(denoised_image, x.shape)
 
-              name_remove = ('VollSeg Binary',  'Skeleton','Denoised Image' ) 
-                    
-
-              
-              for layer in list(plugin.viewer.value.layers):
-
-                  if  any(name in layer.name for name in name_remove):
-                          plugin.viewer.value.layers.remove(layer)
-                  
-                               
-                   
 
               if plugin_display_parameters.display_unet.value:
                     plugin.viewer.value.add_labels(
@@ -2009,14 +1989,6 @@ def plugin_wrapper_vollseg():
             
               res, scale_out = pred
               unet_mask, skeleton, denoised_image = res
-              name_remove = ('VollSeg Binary','Denoised Image','Skeleton'  ) 
-                    
-              for layer in list(plugin.viewer.value.layers):
-                  
-                  if  any(name in layer.name for name in name_remove):
-                          plugin.viewer.value.layers.remove(layer) 
-
-                          
                        
               if plugin_display_parameters.display_unet.value:             
                     plugin.viewer.value.add_labels(
