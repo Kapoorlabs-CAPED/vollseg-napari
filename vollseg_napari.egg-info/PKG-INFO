@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vollseg-napari
-Version: 2.2.5
+Version: 2.2.7
 Summary: Irregular cell shape segmentation using VollSeg
 Home-page: https://github.com/kapoorlab/vollseg-napari
 Author: Varun Kapoor
@@ -11,7 +11,6 @@ Project-URL: Documentation, https://github.com/kapoorlab/vollseg-napari
 Project-URL: Bug Tracker, https://github.com/kapoorlab/vollseg-napari/issues
 Project-URL: User Support, https://forum.image.sc/tag/vollseg-napari
 Project-URL: Twitter, https://twitter.com/entracod
-Platform: UNKNOWN
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Science/Research
 Classifier: Topic :: Scientific/Engineering
@@ -38,7 +37,7 @@ License-File: LICENCE.txt
 
 
 This project provides the [napari](https://napari.org/) plugin for [VollSeg](https://github.com/kapoorlab/vollseg), a deep learning based 2D and 3D segmentation tool for irregular shaped cells. VollSeg has originally been developed (see [papers](http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html)) for the segmentation of densely packed membrane labelled cells in challenging images with low signal-to-noise ratios. The plugin allows to apply pretrained and custom trained models from within napari.
-For detailed demo of the plugin see these [videos](youtu.be/W_gKrLWKNpQ) and a short video about the [parameter selection](https://www.youtube.com/watch?v=7tQMn_u8_7s&t=1s) 
+For detailed demo of the plugin see these [videos](https://www.youtube.com/watch?v=W_gKrLWKNpQ) and a short video about the [parameter selection](https://www.youtube.com/watch?v=7tQMn_u8_7s&t=1s) 
 
 
 ## Installation & Usage
@@ -91,6 +90,4 @@ VollSeg comes with different options to combine CARE based denoising with UNET, 
 
 - The [image.sc forum](https://forum.image.sc/tag/vollseg) is the best place to start getting help and support. Make sure to use the tag `vollseg`, since we are monitoring all questions with this tag.
 - If you have technical questions or found a bug, feel free to [open an issue](https://github.com/kapoorlab/vollseg-napari/issues).
-
-
 
