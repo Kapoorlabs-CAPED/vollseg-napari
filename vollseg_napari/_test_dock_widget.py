@@ -3,6 +3,7 @@
 Created on Wed Dec  8 16:15:34 2021
 @author: vkapoor
 '''
+
 from napari_plugin_engine import napari_hook_implementation
 from magicgui import magicgui
 from magicgui import widgets as mw
@@ -37,10 +38,11 @@ def plugin_wrapper_vollseg():
     DEBUG = False
                 
     def get_data(image):
-        image = image.data[0] if image.multiscale else image.data
-        # enforce dense numpy array in case we are given a dask array etc
-        return np.asarray(image)
-
+       
+          image = image.data[0] if image.multiscale else image.data
+          # enforce dense numpy array in case we are given a dask array etc
+          return np.asarray(image)
+        
 
     def change_handler(*widgets, init=True, debug=DEBUG):
         def decorator_change_handler(handler):
@@ -89,11 +91,11 @@ def plugin_wrapper_vollseg():
         for m in _models_den
     ]
      
-    _models_mask, _aliases_mask = get_registered_models(MASKUNET)
+    _models_roi, _aliases_roi = get_registered_models(MASKUNET)
     # use first alias for model selection (if alias exists)
-    models_mask = [
-        ((_aliases_mask[m][0] if len(_aliases_mask[m]) > 0 else m), m)
-        for m in _models_mask
+    models_roi = [
+        ((_aliases_roi[m][0] if len(_aliases_roi[m]) > 0 else m), m)
+        for m in _models_roi
     ]  
    
    
@@ -115,7 +117,7 @@ def plugin_wrapper_vollseg():
         roi_model_type = MASKUNET,
         model2d_star=models2d_star[0][0],
         model_unet=models_unet[0][0],
-        model_roi = models_mask[0][0],
+        model_roi = models_roi[0][0],
         model3d_star=models3d_star[0][0],
         model_den=models_den[0][0],
         model_den_none='NODEN',
@@ -165,8 +167,8 @@ def plugin_wrapper_vollseg():
     CUSTOM_DEN_MODEL = 'CUSTOM_DEN_MODEL'
     CUSTOM_ROI_MODEL = 'CUSTOM_ROI_MODEL'
     star_seg_model_type_choices = [
-        ('2D', StarDist2D),
-        ('3D', StarDist3D),
+        ('PreTrained2D', StarDist2D),
+        ('PreTrained3D', StarDist3D),
         ('NOSTAR', 'NOSTAR'),
         ('Custom STAR', CUSTOM_SEG_MODEL_STAR),
     ]
@@ -176,13 +178,13 @@ def plugin_wrapper_vollseg():
         ('Custom UNET', CUSTOM_SEG_MODEL_UNET),
     ]
     den_model_type_choices = [
-        ('DenoiseCARE', CARE),
+        ('PreTrained', CARE),
         ('NODEN', 'NODEN'),
         ('Custom CARE', CUSTOM_DEN_MODEL),
     ]
 
     roi_model_type_choices = [
-        ('PreTrainedROI', MASKUNET),
+        ('PreTrained', MASKUNET),
         ('NOROI', 'NOROI'),
         ('Custom ROI', CUSTOM_ROI_MODEL)
     ]
@@ -213,16 +215,15 @@ def plugin_wrapper_vollseg():
             path_roi.is_dir() or _raise(
                 FileNotFoundError(f'{path_roi} is not a directory')
             )
-            config_roi = model_roi_configs[(roi_model_type, model_roi)]
             model_class_roi = MASKUNET 
             return model_class_roi(
                 None, name=path_roi.name, basedir=str(path_roi.parent)
             )
         
-        elif roi_model_type !=DEFAULTS_MODEL['model_roi_none']  is None:
+        elif roi_model_type !=DEFAULTS_MODEL['model_roi_none']:
             return roi_model_type.local_from_pretrained(model_roi)
+
         else:
-            
             return None
 
 
@@ -233,7 +234,6 @@ def plugin_wrapper_vollseg():
             path_unet.is_dir() or _raise(
                 FileNotFoundError(f'{path_unet} is not a directory')
             )
-            config_unet = model_unet_configs[(unet_seg_model_type, model_unet)]
             model_class_unet = UNET
             return model_class_unet(
                 None, name=path_unet.name, basedir=str(path_unet.parent)
@@ -568,7 +568,7 @@ def plugin_wrapper_vollseg():
             widget_type='ComboBox',
             visible=False,
             label='Pre-trained ROI Model',
-            choices=models_mask,
+            choices=models_roi,
             value=DEFAULTS_MODEL['model_roi'],
         ),
         model_den_none=dict(widget_type='Label', visible=False, label='No Denoising'),
@@ -633,12 +633,13 @@ def plugin_wrapper_vollseg():
         defaults_model_button,
         progress_bar: mw.ProgressBar,
     ) -> List[napari.types.LayerDataTuple]:
+        
+        
         x = get_data(image)
         
         nonlocal worker 
         axes = axes_check_and_normalize(axes, length=x.ndim)
         progress_bar.label = 'Starting VollSeg'
-        
         if model_selected_star is not None:    
            model_star = get_model_star(*model_selected_star)
         else: model_star = None   
@@ -689,7 +690,7 @@ def plugin_wrapper_vollseg():
 
         elif plugin_star_parameters.n_tiles.value is not None and np.prod(plugin_star_parameters.n_tiles.value) > 1:
             plugin_star_parameters.n_tiles.value = tuple(plugin_star_parameters.n_tiles.value)
-        
+        axes_out = None
         if model_star is not None:
                 # semantic output axes of predictions
                 assert model_star._axes_out[-1] == 'C'
@@ -708,10 +709,9 @@ def plugin_wrapper_vollseg():
                 # semantic output axes of predictions
                 assert model_roi._axes_out[-1] == 'C'
                 axes_out = list(model_roi._axes_out[:-1])        
-                                
         scale_in_dict = dict(zip(axes, image.scale))
         scale_out = [scale_in_dict.get(a, 1.0) for a in axes_out]       
-        if 'T' in axes:
+        if 'T' in axes and axes_out is not None:
             x_reorder = np.moveaxis(x, t, 0)
             
             axes_reorder = axes.replace('T', '')
@@ -743,10 +743,9 @@ def plugin_wrapper_vollseg():
                         worker = _Segment(model_star, model_unet, model_roi, x, axes, model_den,scale_out)
                         worker.returned.connect(return_segment)
                     if model_star is None:
-                        
-                                
                         worker = _Unet(model_unet, model_roi, x, axes, model_den,scale_out)
                         worker.returned.connect(return_segment_unet)
+                        
            
 
 
@@ -820,7 +819,110 @@ def plugin_wrapper_vollseg():
     def widgets_valid(*widgets, valid):
         for widget in widgets:
             widget.native.setStyleSheet('' if valid else 'background-color: red')
-            
+
+
+
+    class MaskUnet_roi_updater:
+                def __init__(self, debug=DEBUG):
+                    from types import SimpleNamespace
+
+                    self.debug = debug
+                    self.valid = SimpleNamespace(
+                        **{
+                            k: False
+                            for k in ('model_roi',)
+                        }
+                    )
+                    self.args = SimpleNamespace()
+                    self.viewer = None
+
+                def __call__(self, k, valid, args=None):
+                    assert k in vars(self.valid)
+                    setattr(self.valid, k, bool(valid))
+                    setattr(self.args, k, args)
+                    self._update()
+
+                def help(self, msg):
+                    if self.viewer is not None:
+                        self.viewer.help = msg
+                    elif len(str(msg)) > 0:
+                        print(f'HELP: {msg}')
+                
+                def _update(self):
+
+                    # try to get a hold of the viewer (can be None when plugin starts)
+                    if self.viewer is None:
+                        # TODO: when is this not safe to do and will hang forever?
+                        # while plugin.viewer.value is None:
+                        #     time.sleep(0.01)
+                        if plugin.viewer.value is not None:
+                            self.viewer = plugin.viewer.value
+                            if DEBUG:
+                                print('GOT viewer')
+
+
+                    def _model(valid):
+                        widgets_valid(
+                            plugin.model_roi, plugin.model_folder_roi.line_edit, valid=valid,
+                        )
+                        if valid:
+                            config_roi = self.args.model_roi
+                            axes_roi = config_roi.get(
+                                'axes', 'ZYXC'[-len(config_roi['unet_input_shape']) :]
+                            )
+                            if 'T' in axes_roi:
+                                raise RuntimeError('model with axis "T" not supported')
+                            plugin.model_folder_roi.line_edit.tooltip = ''
+                            return axes_roi, config_roi
+                        else:
+                            
+                            plugin.model_folder_roi.line_edit.tooltip = (
+                                'Invalid model directory'
+                            )
+
+                    
+
+
+                    def _restore():
+                        widgets_valid(plugin.image, valid=plugin.image.value is not None)
+                    
+                    all_valid = False
+                    for layer in list(plugin.viewer.value.layers):
+                            if isinstance(layer, napari.layers.Image):
+                                all_valid = True
+                                break;   
+
+                    help_msg = ''
+
+                    
+                    if (
+                        self.valid.model_roi
+                    ):
+                       
+                       
+
+                            widgets_valid(
+                              
+                                plugin.model_roi,
+                                plugin.model_folder_roi.line_edit,
+                                valid=all_valid,
+                            )
+                            
+                    else:
+                        
+                      
+                        _model(self.valid.model_roi)
+
+                        _restore()
+
+                    self.help(help_msg)
+                    plugin.call_button.enabled = all_valid
+                    if self.debug:
+                        print(
+                            f'valid ({all_valid}):',
+                            ', '.join([f'{k}={v}' for k, v in vars(self.valid).items()]),
+                        ) 
+
     class Unet_den_updater:
         def __init__(self, debug=DEBUG):
             from types import SimpleNamespace
@@ -949,14 +1051,12 @@ def plugin_wrapper_vollseg():
                 (axes_model_den, config_den) = _model(True)
                 n_tiles = _n_tiles(True)
                 if not _no_tiling_for_axis(axes_image, n_tiles, 'C'):
-                    print('in no tiling with C')
                     # check if image axes and n_tiles are compatible
                     widgets_valid(plugin_star_parameters.n_tiles, valid=False)
                     err = 'number of tiles must be 1 for C axis'
                     plugin_star_parameters.n_tiles.tooltip = err
                     _restore()
                 elif not _no_tiling_for_axis(axes_image, n_tiles, 'T'):
-                    print('in no tiling with T')
                     # check if image axes and n_tiles are compatible
                     widgets_valid(plugin_star_parameters.n_tiles, valid=False)
                     err = 'number of tiles must be 1 for T axis'
@@ -973,7 +1073,6 @@ def plugin_wrapper_vollseg():
                         if 'C' in axes_image
                         else 1
                     )
-                    print('Channels',ch_model_den, ch_image)
                     all_valid = (
                         set(axes_model_den.replace('C', ''))
                         == set(axes_image.replace('C', '').replace('T', ''))
@@ -1405,6 +1504,7 @@ def plugin_wrapper_vollseg():
     update = Updater()
     update_unet = Unet_updater()
     update_den = Unet_den_updater()
+    update_roi = MaskUnet_roi_updater()
 
     def select_model_star(key_star):
         nonlocal model_selected_star
@@ -1439,7 +1539,7 @@ def plugin_wrapper_vollseg():
         if key_roi is not None:
             model_selected_roi = key_roi
             config_roi = model_roi_configs.get(key_roi)
-            plugin.call_button.enabled = True
+            update_roi('model_roi', config_roi is not None, config_roi)
         if plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
            model_selected_roi = None    
     # -------------------------------------------------------------------------
@@ -1617,7 +1717,7 @@ def plugin_wrapper_vollseg():
 
         
 
-        # trigger _model_change_unet
+        # trigger _model_change_roi
         selected.changed(selected.value)
 
     # RadioButtons widget triggers a change event initially (either when 'value' is set in constructor, or via 'persist')
@@ -1709,11 +1809,11 @@ def plugin_wrapper_vollseg():
                 Markers = np.moveaxis(Markers, 0, t)
                 Markers = np.reshape(Markers, x.shape)     
  
-                name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
-                for layer in list(plugin.viewer.value.layers):
-                    if  any(name in layer.name for name in name_remove):
-                          plugin.viewer.value.layers.remove(layer)
-                                             
+              
+        name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
+        for layer in list(plugin.viewer.value.layers):
+                if  any(name in layer.name for name in name_remove):
+                          plugin.viewer.value.layers.remove(layer)                                     
         if plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
 
                     if plugin_display_parameters.display_roi.value:
@@ -1807,126 +1907,142 @@ def plugin_wrapper_vollseg():
     
     def return_segment(pred):
               
-          res, scale_out = pred
-         
-          if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
+        
+                res, scale_out = pred
+                
+                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
 
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
-              
-          elif plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton = res
-              
-          elif plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
-              
-              unet_mask, denoised_image = res
-
-          if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
-
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, roi_image = res
-              
-          elif plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
-              labels, unet_mask, star_labels, probability_map, Markers, Skeleton, roi_image = res
-              
-          elif plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
-              
-              unet_mask, denoised_image, roi_image = res
-
-
-          name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' ) 
+                    labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image = res
                     
-          for layer in list(plugin.viewer.value.layers):
-
-              if  any(name in layer.name for name in name_remove):
-                          plugin.viewer.value.layers.remove(layer)
-              
-
-          if plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
-
-                    if plugin_display_parameters.display_roi.value:
-                             
-                              plugin.viewer.value.add_labels(
-                            
-                                roi_image,
-                            
-                                    name='Roi', scale= scale_out, opacity=0.5,  visible = plugin_display_parameters.display_roi.value
-                            
-                        )
-          if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
-
-              if plugin_display_parameters.display_prob.value:
-                plugin.viewer.value.add_image(
+                elif plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
+                    labels, unet_mask, star_labels, probability_map, Markers, Skeleton = res
                     
-                        probability_map,
-                        
-                            name='Base Watershed Image',
-                            scale=scale_out,
-                            visible=plugin_display_parameters.display_prob.value,
-                        
-                )
-              if plugin_display_parameters.display_vollseg.value:
-                    plugin.viewer.value.add_labels(
-                        
-                            labels,
-                            
-                                name='VollSeg labels', scale= scale_out, opacity=0.5, visible = plugin_display_parameters.display_vollseg.value 
-                        
-                    )
-              if plugin_display_parameters.display_stardist.value:
-                    plugin.viewer.value.add_labels(
-                        
-                            star_labels,
-                            
-                                name='StarDist',
-                                scale=scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_stardist.value,
-                            
-                    )
-              if plugin_display_parameters.display_unet.value:
-                    plugin.viewer.value.add_labels(
-                        
-                            unet_mask,
-                            
-                                name='VollSeg Binary',
-                                scale=scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_unet.value,
-                            
-                    )
-              if plugin_display_parameters.display_markers.value:
-                    plugin.viewer.value.add_labels(
-                        
-                            Markers,
-                            
-                                name='Markers',
-                                scale=scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_markers.value,
-                            
-                    )
+                elif plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']and plugin.roi_model_type.value == DEFAULTS_MODEL['model_roi_none']:
+                    
+                    unet_mask, denoised_image = res
 
-              if plugin_display_parameters.display_skeleton.value:      
-                    plugin.viewer.value.add_labels(
-                        
-                            Skeleton,
-                            
-                                name='Skeleton',
-                                scale=scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_skeleton.value,
-                            
-                    )
-              if plugin_display_parameters.display_denoised.value:      
-                    if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
-                            plugin.viewer.value.add_image(
-                                
-                                    denoised_image,
-                                
-                                        name='Denoised Image',
-                                        scale=scale_out,
-                                        visible=plugin_display_parameters.display_denoised.value,
+                if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+
+                    labels, unet_mask, star_labels, probability_map, Markers, Skeleton, denoised_image, roi_image = res
+                    
+                elif plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none'] and plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+                    labels, unet_mask, star_labels, probability_map, Markers, Skeleton, roi_image = res
+                    
+                elif plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none'] and plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+                    
+                    unet_mask, denoised_image, roi_image = res
+
+                elif plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none'] and plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none'] and plugin.den_model_type.value == DEFAULTS_MODEL['model_den_none']:
+                    
+                    unet_mask = res
+                    
+                
+                name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
+                for layer in list(plugin.viewer.value.layers):
+                        if  any(name in layer.name for name in name_remove):
+                          plugin.viewer.value.layers.remove(layer) 
+                if plugin.roi_model_type.value != DEFAULTS_MODEL['model_roi_none']:
+
+                            if plugin_display_parameters.display_roi.value:
+                                    
+                                    plugin.viewer.value.add_labels(
+                                    
+                                        roi_image,
+                                    
+                                            name='Roi', scale= scale_out, opacity=0.5,  visible = plugin_display_parameters.display_roi.value
                                     
                                 )
+                if plugin.unet_seg_model_type.value != DEFAULTS_MODEL['model_unet_none']:
+
+                            if plugin_display_parameters.display_unet.value:
+                                    plugin.viewer.value.add_labels(
+                                        
+                                            unet_mask,
+                                            
+                                                name='VollSeg Binary',
+                                                scale=scale_out,
+                                                opacity=0.5,
+                                                visible=plugin_display_parameters.display_unet.value,
+                                            
+                                    )     
+                if plugin.star_seg_model_type.value != DEFAULTS_MODEL['model_star_none']:
+
+                    if plugin_display_parameters.display_prob.value:
+                        plugin.viewer.value.add_image(
+                            
+                                probability_map,
+                                
+                                    name='Base Watershed Image',
+                                    scale=scale_out,
+                                    visible=plugin_display_parameters.display_prob.value,
+                                
+                        )
+                    if plugin_display_parameters.display_vollseg.value:
+                            plugin.viewer.value.add_labels(
+                                
+                                    labels,
+                                    
+                                        name='VollSeg labels', scale= scale_out, opacity=0.5, visible = plugin_display_parameters.display_vollseg.value 
+                                
+                            )
+                    if plugin_display_parameters.display_stardist.value:
+                            plugin.viewer.value.add_labels(
+                                
+                                    star_labels,
+                                    
+                                        name='StarDist',
+                                        scale=scale_out,
+                                        opacity=0.5,
+                                        visible=plugin_display_parameters.display_stardist.value,
+                                    
+                            )
+                    if plugin_display_parameters.display_unet.value:
+                            plugin.viewer.value.add_labels(
+                                
+                                    unet_mask,
+                                    
+                                        name='VollSeg Binary',
+                                        scale=scale_out,
+                                        opacity=0.5,
+                                        visible=plugin_display_parameters.display_unet.value,
+                                    
+                            )
+                    if plugin_display_parameters.display_markers.value:
+                            plugin.viewer.value.add_labels(
+                                
+                                    Markers,
+                                    
+                                        name='Markers',
+                                        scale=scale_out,
+                                        opacity=0.5,
+                                        visible=plugin_display_parameters.display_markers.value,
+                                    
+                            )
+
+                    if plugin_display_parameters.display_skeleton.value:      
+                            plugin.viewer.value.add_labels(
+                                
+                                    Skeleton,
+                                    
+                                        name='Skeleton',
+                                        scale=scale_out,
+                                        opacity=0.5,
+                                        visible=plugin_display_parameters.display_skeleton.value,
+                                    
+                            )
+                    if plugin_display_parameters.display_denoised.value:      
+                            if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
+                                    plugin.viewer.value.add_image(
+                                        
+                                            denoised_image,
+                                        
+                                                name='Denoised Image',
+                                                scale=scale_out,
+                                                visible=plugin_display_parameters.display_denoised.value,
+                                            
+                                        )
+
+                                  
     def return_segment_unet_time(pred):
         
         
@@ -1949,18 +2065,10 @@ def plugin_wrapper_vollseg():
               denoised_image = np.moveaxis(denoised_image, 0, t)
               denoised_image = np.reshape(denoised_image, x.shape)
 
-              name_remove = ('VollSeg Binary',  'Skeleton','Denoised Image' ) 
-                    
-
-              
+              name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
               for layer in list(plugin.viewer.value.layers):
-
-                  if  any(name in layer.name for name in name_remove):
+                        if  any(name in layer.name for name in name_remove):
                           plugin.viewer.value.layers.remove(layer)
-                  
-                               
-                   
-
               if plugin_display_parameters.display_unet.value:
                     plugin.viewer.value.add_labels(
                         
@@ -1988,47 +2096,48 @@ def plugin_wrapper_vollseg():
                                     visible=plugin_display_parameters.display_denoised.value,
                                 
                             )
+                     
+
+
     def return_segment_unet(pred):
             
-              res, scale_out = pred
-              unet_mask, skeleton, denoised_image = res
-              name_remove = ('VollSeg Binary','Denoised Image','Skeleton'  ) 
+                      
+                    res, scale_out = pred
+                    unet_mask, skeleton, denoised_image = res
+                    name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
+                    for layer in list(plugin.viewer.value.layers):
+                        if  any(name in layer.name for name in name_remove):
+                          plugin.viewer.value.layers.remove(layer)
                     
-              for layer in list(plugin.viewer.value.layers):
-                  
-                  if  any(name in layer.name for name in name_remove):
-                          plugin.viewer.value.layers.remove(layer) 
-
-                          
-                       
-              if plugin_display_parameters.display_unet.value:             
-                    plugin.viewer.value.add_labels(
-                        
-                            unet_mask, name ='VollSeg Binary',
-                                scale= scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_unet.value)
-              if plugin_display_parameters.display_skeleton.value:
-                    plugin.viewer.value.add_labels(
-                        
-                            skeleton, name ='Skeleton',
-                                scale= scale_out,
-                                opacity=0.5,
-                                visible=plugin_display_parameters.display_skeleton.value)            
-              if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
-
-                 if  plugin_display_parameters.display_denoised.value:
-                        plugin.viewer.value.add_image(
-                            
-                                denoised_image,
-                            
-                                    name='Denoised Image',
-                                    scale=scale_out,
-                                    visible=plugin_display_parameters.display_denoised.value,
+                    
+                    if plugin_display_parameters.display_unet.value:             
+                            plugin.viewer.value.add_labels(
                                 
-                            )
-          
+                                    unet_mask, name ='VollSeg Binary',
+                                        scale= scale_out,
+                                        opacity=0.5,
+                                        visible=plugin_display_parameters.display_unet.value)
+                    if plugin_display_parameters.display_skeleton.value:
+                            plugin.viewer.value.add_labels(
+                                
+                                    skeleton, name ='Skeleton',
+                                        scale= scale_out,
+                                        opacity=0.5,
+                                        visible=plugin_display_parameters.display_skeleton.value)            
+                    if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
 
+                        if  plugin_display_parameters.display_denoised.value:
+                                plugin.viewer.value.add_image(
+                                    
+                                        denoised_image,
+                                    
+                                            name='Denoised Image',
+                                            scale=scale_out,
+                                            visible=plugin_display_parameters.display_denoised.value,
+                                        
+                                    )
+               
+              
 
     @thread_worker(connect = {"returned": return_segment_time } )         
     def _VollSeg_time( model_star, model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x):
@@ -2068,8 +2177,6 @@ def plugin_wrapper_vollseg():
               
     @thread_worker(connect = {"returned": return_segment_unet_time } )         
     def _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, noise_model, scale_out, t, x):
-        
-    
         pre_res = []
         for  count, _x in enumerate(x_reorder):
              
@@ -2093,14 +2200,13 @@ def plugin_wrapper_vollseg():
         min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value,
                      iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
-
+                    
         pred = res, scale_out
         return pred           
              
     @thread_worker (connect = {"returned": return_segment } )        
     def _Segment(model_star, model_unet,  model_roi, x, axes, noise_model, scale_out):
     
-        
         res = VollSeg(
             x,
             model_unet,
@@ -2132,7 +2238,232 @@ def plugin_wrapper_vollseg():
 
           
               
-  
+    # show/hide model folder picker
+    # load config/thresholds for selected pretrained model
+    # -> triggered by _model_type_change
+    @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, plugin.norm_axes, init=False)
+    def _model_change_star(model_name_star: str):
+
+       
+        if Signal.sender() is not plugin.model_star_none:
+                model_class_star = (
+                            StarDist2D if Signal.sender() is plugin.model2d_star else StarDist3D if Signal.sender() is plugin.model3d_star else StarDist2D 
+                            if  plugin.model2d_star.value is not None and Signal.sender() is None else StarDist3D if plugin.model3d_star.value is not None and Signal.sender() is None else None
+                        )
+        
+                if model_class_star is not None:
+                        if Signal.sender is not None:
+                                model_name = model_name_star
+                        elif plugin.model2d_star.value is not None:
+                            model_name = plugin.model2d_star.value
+                        elif plugin.model3d_star.value is not None:
+                            model_name = plugin.model3d_star.value       
+                        
+                        key_star = model_class_star, model_name
+                        if key_star not in model_star_configs:
+                            @thread_worker
+                            def _get_model_folder():
+                                return get_model_folder(*key_star)
+                
+                            def _process_model_folder(path):
+                                try:
+                                    model_star_configs[key_star] = load_json(str(path / 'config.json'))
+                                    try:
+                                        # not all models have associated thresholds
+                                        model_star_threshs[key_star] = load_json(
+                                            str(path / 'thresholds.json')
+                                        )
+                                    except FileNotFoundError:
+                                        pass
+                                finally:
+                                    select_model_star(key_star)
+                                    plugin.progress_bar.hide()
+                
+                            worker = _get_model_folder()
+                            worker.returned.connect(_process_model_folder)
+                            worker.start()
+                
+                            # delay showing progress bar -> won't show up if model already downloaded
+                            # TODO: hacky -> better way to do this?
+                            time.sleep(0.1)
+                            plugin.call_button.enabled = False
+                            plugin.progress_bar.label = 'Downloading StarDist model'
+                            plugin.progress_bar.show()
+
+                        else:
+                            select_model_star(key_star)
+        else:
+             select_model_star(None)
+             plugin.call_button.enabled = True
+             plugin_star_parameters.star_model_axes.value = ''
+             plugin.model_folder_star.line_edit.tooltip = (
+                        'Invalid model directory'
+                    )
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']  and plugin.roi_model_type.value ==DEFAULTS_MODEL['model_roi_none']:
+                        plugin.call_button.enabled = False
+    
+    @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
+    def _model_change_unet(model_name_unet: str):
+        
+        
+        if Signal.sender() is not plugin.model_unet_none:
+                model_class_unet = ( UNET if Signal.sender() is plugin.model_unet else UNET if plugin.model_unet.value is not None and Signal.sender() is None else None ) 
+                
+                if model_class_unet is not None:
+                        plugin_extra_parameters.dounet.value = True  
+                        if Signal.sender is not None:
+                             model_name = model_name_unet
+                        elif plugin.model_unet.value is not None:
+                            model_name = plugin.model_unet.value
+                        key_unet = model_class_unet, model_name
+                        if key_unet not in model_unet_configs:
+                
+                            @thread_worker
+                            def _get_model_folder():
+                                return get_model_folder(*key_unet)
+                
+                            def _process_model_folder(path):
+                
+                                try:
+                                    model_unet_configs[key_unet] = load_json(str(path / 'config.json'))
+                                    
+                                finally:
+                
+                                        select_model_unet(key_unet)
+                                        plugin.progress_bar.hide()
+                
+                            worker = _get_model_folder()
+                            worker.returned.connect(_process_model_folder)
+                            worker.start()
+                
+                            # delay showing progress bar -> won't show up if model already downloaded
+                            # TODO: hacky -> better way to do this?
+                            time.sleep(0.1)
+                            plugin.call_button.enabled = False
+                            plugin.progress_bar.label = 'Downloading UNET model'
+                            plugin.progress_bar.show()
+                
+                        else:
+                            select_model_unet(key_unet)
+        else:
+                 select_model_unet(None)
+                 plugin.call_button.enabled = True
+                 plugin_extra_parameters.dounet.value = False
+                 plugin_extra_parameters.unet_model_axes.value = ''
+                 plugin.model_folder_unet.line_edit.tooltip = (
+                        'Invalid model directory'
+                    )
+
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']  and plugin.roi_model_type.value ==DEFAULTS_MODEL['model_roi_none']:
+                        plugin.call_button.enabled = False   
+
+
+    @change_handler(plugin.model_roi, plugin.model_roi_none, init=False) 
+    def _model_change_roi(model_name_roi: str):
+        
+
+        if Signal.sender() is not plugin.model_roi_none:
+                model_class_roi = ( MASKUNET if Signal.sender() is plugin.model_roi else MASKUNET if plugin.model_roi.value is not None and Signal.sender() is None else None ) 
+              
+                if model_class_roi is not None:
+                        if Signal.sender is not None:
+                             model_name = model_name_roi
+                        elif plugin.model_roi.value is not None:
+                            model_name = plugin.model_roi.value
+                        key_roi = model_class_roi, model_name
+                        
+                        if key_roi not in model_roi_configs:
+                
+                            @thread_worker
+                            def _get_model_folder():
+                                return get_model_folder(*key_roi)
+                
+                            def _process_model_folder(path):
+                
+                                try:
+                                    model_roi_configs[key_roi] = load_json(str(path / 'config.json'))
+                                    
+                                finally:
+                
+                                        select_model_roi(key_roi)
+                                        plugin.progress_bar.hide()
+                
+                            worker = _get_model_folder()
+                            worker.returned.connect(_process_model_folder)
+                            worker.start()
+                
+                            # delay showing progress bar -> won't show up if model already downloaded
+                            # TODO: hacky -> better way to do this?
+                            time.sleep(0.1)
+                            plugin.call_button.enabled = False
+                            plugin.progress_bar.label = 'Downloading Roi model'
+                            plugin.progress_bar.show()
+                        
+                        else:
+                             select_model_roi(key_roi)        
+                                 
+        else:
+                 select_model_roi(None)
+                 plugin.model_folder_roi.line_edit.tooltip = (
+                        'Invalid model directory'
+                    )  
+
+        if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']  and plugin.roi_model_type.value ==DEFAULTS_MODEL['model_roi_none']:
+                        plugin.call_button.enabled = False                                
+
+    @change_handler(plugin.model2d_star, plugin.model3d_star, plugin.model_star_none, plugin.model_unet, plugin.model_unet_none,plugin.model_den, plugin.model_den_none, init=False) 
+    def _model_change_den(model_name_den: str):
+           
+            
+            if Signal.sender() is not plugin.model_den_none: 
+                model_class_den = ( CARE if Signal.sender() is plugin.model_den else CARE if plugin.model_den.value is not None and Signal.sender() is None else None ) 
+            
+                if model_class_den is not None:
+
+                    if Signal.sender is not None:
+                       model_name = model_name_den
+                    elif plugin.model_unet.value is not None:
+                       model_name = plugin.model_unet.value
+                    key_den = model_class_den, model_name
+                    if key_den not in model_den_configs:
+            
+                        @thread_worker
+                        def _get_model_folder():
+                            return get_model_folder(*key_den)
+            
+                        def _process_model_folder(path):
+            
+                            try:
+                                model_den_configs[key_den] = load_json(str(path / 'config.json'))
+
+                            finally:
+            
+                                    select_model_den(key_den)
+                                    plugin.progress_bar.hide()
+            
+                        worker = _get_model_folder()
+                        worker.returned.connect(_process_model_folder)
+                        worker.start()
+            
+                        # delay showing progress bar -> won't show up if model already downloaded
+                        # TODO: hacky -> better way to do this?
+                        time.sleep(0.1)
+                        plugin.call_button.enabled = False
+                        plugin.progress_bar.label = 'Downloading Denoising model'
+                        plugin.progress_bar.show()
+            
+                    else:
+                        select_model_den(key_den)
+            else:
+                     select_model_den(None)
+                     plugin.call_button.enabled = True
+                     plugin_extra_parameters.den_model_axes.value = ''
+                     plugin.model_folder_den.line_edit.tooltip = (
+                        'Invalid model directory'
+                    )
+
+            if plugin.unet_seg_model_type.value ==DEFAULTS_MODEL['model_unet_none'] and plugin.star_seg_model_type.value ==DEFAULTS_MODEL['model_star_none'] and plugin.den_model_type.value ==DEFAULTS_MODEL['model_den_none']  and plugin.roi_model_type.value ==DEFAULTS_MODEL['model_roi_none']:
+                        plugin.call_button.enabled = False
     # load config/thresholds from custom model path
     # -> triggered by _model_type_change
     # note: will be triggered at every keystroke (when typing the path)
@@ -2203,8 +2534,6 @@ def plugin_wrapper_vollseg():
         ndim_model_star = 1
         ndim_model_unet = 1
         ndim_model_den = 1 
-
-
         if plugin.star_seg_model_type.value == StarDist2D:
             ndim_model_star = 2
         elif plugin.star_seg_model_type.value == StarDist3D:
@@ -2243,6 +2572,7 @@ def plugin_wrapper_vollseg():
             plugin.axes.value = axes
         plugin_star_parameters.n_tiles.changed(plugin_star_parameters.n_tiles.value)
         plugin.norm_axes.changed(plugin.norm_axes.value)
+ 
 
 
     # -> triggered by _image_change
@@ -2368,13 +2698,7 @@ def plugin_wrapper_vollseg():
     # -------------------------------------------------------------------------
 
     # allow some widgets to shrink because their size depends on user input
-    plugin.image.native.setMinimumWidth(120)
-    plugin.model2d_star.native.setMinimumWidth(120)
-    plugin.model3d_star.native.setMinimumWidth(120)
-
-    plugin.model_unet.native.setMinimumWidth(120)
-
-    plugin.model_den.native.setMinimumWidth(120)
+   
 
     plugin.label_head.native.setOpenExternalLinks(True)
     # make reset button smaller
@@ -2386,6 +2710,7 @@ def plugin_wrapper_vollseg():
     plugin_extra_parameters.den_model_axes.enabled = False
 
   
+    
     return plugin, plugin_star_parameters, plugin_extra_parameters, plugin_display_parameters, plugin_stop_parameters, get_data
 
 
