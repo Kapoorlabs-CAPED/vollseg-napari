@@ -2534,8 +2534,6 @@ def plugin_wrapper_vollseg():
         ndim_model_star = 1
         ndim_model_unet = 1
         ndim_model_den = 1 
-
-
         if plugin.star_seg_model_type.value == StarDist2D:
             ndim_model_star = 2
         elif plugin.star_seg_model_type.value == StarDist3D:
