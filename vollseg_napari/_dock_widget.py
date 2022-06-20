@@ -500,11 +500,11 @@ def plugin_wrapper_vollseg():
 
         return plugin_stop_parameters    
 
-    logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
+    kapoorlabslogo = abspath(__file__, 'resources/kapoorlogo.png')
     
     @magicgui(
         label_head=dict(
-            widget_type='Label', label=f'<h1><img src="{logo}"></h1>'
+            widget_type='Label', label= f'<h1><img src="{kapoorlabslogo}"></h1>'
         ),
         image=dict(label='Input Image'),
         axes=dict(widget_type='LineEdit', label='Image Axes',value=DEFAULTS_MODEL['axes']),
@@ -759,9 +759,9 @@ def plugin_wrapper_vollseg():
     plugin_star_parameters.n_tiles.value = DEFAULTS_STAR_PARAMETERS['n_tiles']
 
    
-    kapoorlabslogo = abspath(__file__, 'resources/kapoorlogo.png')
     
-    plugin.label_head.value = f'<h1><img src="{kapoorlabslogo}"></h1><br>Citation <tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
+    
+    plugin.label_head.value = f'<br>Citation <tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
     plugin.label_head.native.setSizePolicy(
         QSizePolicy.MinimumExpanding, QSizePolicy.Fixed
     )
