@@ -501,10 +501,10 @@ def plugin_wrapper_vollseg():
         return plugin_stop_parameters    
 
     logo = abspath(__file__, 'resources/vollseg_logo_napari.png')
-
+    
     @magicgui(
         label_head=dict(
-            widget_type='Label', label=f'<h1><img src="{logo}">VollSeg</h1>'
+            widget_type='Label', label=f'<h1><img src="{logo}"></h1>'
         ),
         image=dict(label='Input Image'),
         axes=dict(widget_type='LineEdit', label='Image Axes',value=DEFAULTS_MODEL['axes']),
@@ -757,7 +757,11 @@ def plugin_wrapper_vollseg():
             
     plugin.axes.value = ''
     plugin_star_parameters.n_tiles.value = DEFAULTS_STAR_PARAMETERS['n_tiles']
-    plugin.label_head.value = '<small>VollSeg segmentation for 2D and 3D images.<br>If you are using this in your research please <a href="https://github.com/kapoorlab/vollseg#how-to-cite" style="color:gray;">cite us</a>.</small><br><br><tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
+
+   
+    kapoorlabslogo = abspath(__file__, 'resources/kapoorlogo.png')
+    
+    plugin.label_head.value = f'<h1><img src="{kapoorlabslogo}"></h1><br>Citation <tt><a href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html" style="color:gray;">VollSeg Scipy</a></tt>'
     plugin.label_head.native.setSizePolicy(
         QSizePolicy.MinimumExpanding, QSizePolicy.Fixed
     )

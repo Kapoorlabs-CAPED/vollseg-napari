@@ -9,7 +9,6 @@ vollseg_napari/_sample_data.py
 vollseg_napari/_test_dock_widget.py
 vollseg_napari/_version.py
 vollseg_napari/napari.yaml
-vollseg_napari/version.py
 vollseg_napari.egg-info/PKG-INFO
 vollseg_napari.egg-info/SOURCES.txt
 vollseg_napari.egg-info/dependency_links.txt
