@@ -8,6 +8,9 @@ contributions:
   - id: vollseg-napari.test_image_ascadian_3d
     title: Ascadian (3D) sample
     python_name: vollseg_napari._sample_data:_test_image_cell_3d
+  - id: vollseg-napari.test_image_arabidopsis_3d
+    title: Arabidopsis (3D) sample
+    python_name: vollseg_napari._sample_data:_test_image_arabidopsis_3d 
   - id: vollseg-napari.test_image_carcinoma_3dt
     title: Carcinome (3D + time) sample
     python_name: vollseg_napari._sample_data:_test_image_cell_3dt
@@ -18,6 +21,9 @@ contributions:
   - key: ascadian_embryo_3d
     display_name: Embryo Cells (3D)
     command: vollseg-napari.test_image_ascadian_3d
+  - key: arabidopsis_3d
+    display_name: Arabidopsis (3D)
+    command: vollseg-napari.test_image_arabidopsis_3d  
   - key: carcinoma_cells_3dt
     display_name: Breast Cancer Cells (3DT)
     command: vollseg-napari.test_image_carcinoma_3dt
