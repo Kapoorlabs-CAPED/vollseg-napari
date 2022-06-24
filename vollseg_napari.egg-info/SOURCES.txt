@@ -19,6 +19,7 @@ vollseg_napari/_tests/__init__.py
 vollseg_napari/_tests/plugintest.py
 vollseg_napari/_tests/test_open_sample_data.py
 vollseg_napari/_tests/test_open_sample_models.py
+vollseg_napari/resources/kapoorlogo.png
 vollseg_napari/resources/oneat.jpg
 vollseg_napari/resources/oneat_1.jpg
 vollseg_napari/resources/vollseg_logo_napari.png

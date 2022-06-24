@@ -1161,7 +1161,6 @@ def plugin_wrapper_vollseg():
                 widgets_valid(
                     plugin.model_unet, plugin.model_folder_unet.line_edit, valid=valid,
                 )
-                print('unet',plugin.model_unet, plugin.model_folder_unet.line_edit, valid)
                 if valid:
                     config_unet = self.args.model_unet
                     axes_unet = config_unet.get(
@@ -2200,7 +2199,9 @@ def plugin_wrapper_vollseg():
             yield count
             pre_res.append(VollSeg(_x, unet_model = model_unet, roi_model = model_roi,
                        n_tiles=plugin_star_parameters.n_tiles.value, axes = axes_reorder, noise_model = noise_model,  RGB = plugin_extra_parameters.isRGB.value,
-                                min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value, donormalize=plugin_star_parameters.norm_image.value,
+                                min_size_mask=plugin_extra_parameters.min_size_mask.value,
+                                ExpandLabels = plugin_extra_parameters.expand_labels.value,
+                                 seedpool= plugin_extra_parameters.seedpool.value, donormalize=plugin_star_parameters.norm_image.value,
                        lower_perc=plugin_star_parameters.perc_low.value, 
                        upper_perc=plugin_star_parameters.perc_high.value,
                        max_size=plugin_extra_parameters.max_size.value, iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
@@ -2213,6 +2214,7 @@ def plugin_wrapper_vollseg():
     
         res = VollSeg(x, unet_model = model_unet, roi_model = model_roi, n_tiles=plugin_star_parameters.n_tiles.value, axes = axes, noise_model = noise_model, donormalize=plugin_star_parameters.norm_image.value,
                        lower_perc=plugin_star_parameters.perc_low.value, 
+                       ExpandLabels = plugin_extra_parameters.expand_labels.value,
                        upper_perc=plugin_star_parameters.perc_high.value,  RGB = plugin_extra_parameters.isRGB.value,
         min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value,
