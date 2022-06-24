@@ -147,6 +147,7 @@ def plugin_wrapper_vollseg():
         seedpool = True,
         iouthresh = 0.5,
         prob_map_watershed=True,
+        expand_labels = True,
     )
     
     DEFAULTS_DISPLAY_PARAMETERS = dict(
@@ -366,6 +367,11 @@ def plugin_wrapper_vollseg():
             text='Use Probability Map (watershed)',
             value=DEFAULTS_VOLL_PARAMETERS['prob_map_watershed'],
         ),
+        expand_labels=dict(
+            widget_type='CheckBox',
+            text='Expand Labels (U-Net)',
+            value=DEFAULTS_VOLL_PARAMETERS['expand_labels'],
+        ),
         dounet=dict(
             widget_type='CheckBox',
             text='Use UNET for binary mask (else denoised)',
@@ -407,6 +413,7 @@ def plugin_wrapper_vollseg():
         min_size,
         max_size,
         prob_map_watershed,
+        expand_labels,
         dounet,
         isRGB,
         seedpool,
@@ -1585,6 +1592,10 @@ def plugin_wrapper_vollseg():
     def _prob_map_watershed_change(active: bool):
         plugin_extra_parameters.prob_map_watershed.value = active
    
+    @change_handler(plugin_extra_parameters.expand_labels)
+    def _expand_labels_change(active: bool):
+        plugin_extra_parameters.expand_labels.value = active
+
 
     @change_handler(plugin_stop_parameters.stop_button)
     def _stop_computation_change(active: bool):   
@@ -1681,6 +1692,7 @@ def plugin_wrapper_vollseg():
         selected.show()
         if plugin.star_seg_model_type.value == DEFAULTS_MODEL['model_star_none']:
                 plugin_extra_parameters.prob_map_watershed.hide()
+
                 plugin_extra_parameters.seedpool.hide()
                 for w in set(plugin_star_parameters):
                     w.hide()
@@ -2170,6 +2182,7 @@ def plugin_wrapper_vollseg():
                        lower_perc=plugin_star_parameters.perc_low.value, 
                        upper_perc=plugin_star_parameters.perc_high.value,
                        UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+                       ExpandLabels = plugin_extra_parameters.expand_labels.value,
                        dounet=plugin_extra_parameters.dounet.value,
                        RGB = plugin_extra_parameters.isRGB.value,
                        iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value
@@ -2227,6 +2240,7 @@ def plugin_wrapper_vollseg():
             max_size=plugin_extra_parameters.max_size.value,
             n_tiles=plugin_star_parameters.n_tiles.value,
             UseProbability=plugin_extra_parameters.prob_map_watershed.value,
+            ExpandLabels = plugin_extra_parameters.expand_labels.value,
             dounet=plugin_extra_parameters.dounet.value,
             donormalize=plugin_star_parameters.norm_image.value,
             lower_perc=plugin_star_parameters.perc_low.value, 
