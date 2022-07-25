@@ -147,7 +147,7 @@ def plugin_wrapper_vollseg():
         seedpool = True,
         iouthresh = 0.5,
         prob_map_watershed=True,
-        expand_labels = True,
+        expand_labels = False,
     )
     
     DEFAULTS_DISPLAY_PARAMETERS = dict(
