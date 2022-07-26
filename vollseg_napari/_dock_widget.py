@@ -18,7 +18,7 @@ import numpy as np
 from pathlib import Path
 from warnings import warn
 from tifffile import imread
-from vollseg import inrimage, h5
+from vollseg import inrimage
 from qtpy.QtWidgets import (
     QWidget,
     QVBoxLayout,
