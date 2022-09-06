@@ -2719,7 +2719,7 @@ def plugin_wrapper_vollseg():
 
     # allow some widgets to shrink because their size depends on user input
    
-
+   
     plugin.label_head.native.setOpenExternalLinks(True)
     # make reset button smaller
     # plugin.defaults_button.native.setMaximumWidth(150)

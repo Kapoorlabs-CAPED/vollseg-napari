@@ -38,10 +38,6 @@ setup(
 
       entry_points={'napari.manifest': ['vollseg-napari = vollseg_napari:napari.yaml']},
 
-     
-      
-      dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
-
       classifiers=[
           'Development Status :: 4 - Beta',
           'Intended Audience :: Science/Research',
