@@ -2754,11 +2754,7 @@ def tifimage_file_reader(path):
     return [(array,)]
 
 
-def h5image_file_reader(path):
-    array = h5.read_h5(path)
-    # return it as a list of LayerData tuples,
-    # here with no optional metadata
-    return [(array,)]
+
 
 
 @napari_hook_implementation(specname='napari_get_reader')
@@ -2766,12 +2762,10 @@ def napari_get_reader(path: str):
     # If we recognize the format, we return the actual reader function
     if isinstance(path, str) and path.endswith('.inr') or path.endswith('.inr.gz'):
         return inrimage_file_reader
-    # if isinstance(path, str) and path.endswith('.klb'):
-    # return klbimage_file_reader
+   
     if isinstance(path, str) and path.endswith('.tif'):
         return tifimage_file_reader
-    if isinstance(path, str) and path.endswith('.h5'):
-        return h5image_file_reader
+  
 
     else:
         # otherwise we return None.
