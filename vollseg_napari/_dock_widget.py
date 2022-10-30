@@ -615,7 +615,7 @@ def plugin_wrapper_vollseg():
         call_button=True,
     )
     def plugin(
-        viewer: napari.Viewer,
+        viewer: Union[napari.Viewer, None],
         label_head,
         image: napari.layers.Image,
         axes,
