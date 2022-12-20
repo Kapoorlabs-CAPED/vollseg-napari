@@ -9,6 +9,12 @@ labels:
   - 3D image
   - Image time series
   - Multi-channel image
+  - Multimodal imaging
+  - Confocal microscopy
+  - Bright-field microscopy
+  - Multi-photon microscopy
+  - Fluorescence microscopy
+  - Electron microscopy
   - Object detection
   - Cell segmentation
   - Model-based segmentation
