@@ -736,8 +736,6 @@ def plugin_wrapper_vollseg():
                 worker.yielded.connect(progress_thread)
                
             if model_star is None:
-                   
-                        
                     worker = _Unet_time( model_unet, model_roi, x_reorder, axes_reorder, model_den, scale_out, t, x)
                     worker.returned.connect(return_segment_unet_time)
                     worker.yielded.connect(progress_thread)
@@ -752,10 +750,6 @@ def plugin_wrapper_vollseg():
                     if model_star is None:
                         worker = _Unet(model_unet, model_roi, x, axes, model_den,scale_out)
                         worker.returned.connect(return_segment_unet)
-                        
-           
-
-
 
         # add a button to the viewew that, when clicked, stops the worker
         
@@ -2167,9 +2161,9 @@ def plugin_wrapper_vollseg():
                        _x,
                        model_unet,
                        model_star,
+                       roi_model = model_roi,
                        axes=axes_reorder,
                        noise_model=noise_model,
-                       roi_model = model_roi,
                        prob_thresh=plugin_star_parameters.prob_thresh.value,
                        nms_thresh=plugin_star_parameters.nms_thresh.value,
                        min_size_mask=plugin_extra_parameters.min_size_mask.value,
@@ -2184,7 +2178,7 @@ def plugin_wrapper_vollseg():
                        ExpandLabels = plugin_extra_parameters.expand_labels.value,
                        dounet=plugin_extra_parameters.dounet.value,
                        RGB = plugin_extra_parameters.isRGB.value,
-                       iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value
+                       slice_merge = plugin_extra_parameters.slicemerge.value
                    ))
                    
        pred = pre_res, scale_out, t, x
@@ -2204,7 +2198,7 @@ def plugin_wrapper_vollseg():
                                  seedpool= plugin_extra_parameters.seedpool.value, donormalize=plugin_star_parameters.norm_image.value,
                        lower_perc=plugin_star_parameters.perc_low.value, 
                        upper_perc=plugin_star_parameters.perc_high.value,
-                       max_size=plugin_extra_parameters.max_size.value, iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value))
+                       max_size=plugin_extra_parameters.max_size.value, slice_merge = plugin_extra_parameters.slicemerge.value))
         
         pred = pre_res, scale_out, t, x
         return pred           
@@ -2218,7 +2212,7 @@ def plugin_wrapper_vollseg():
                        upper_perc=plugin_star_parameters.perc_high.value,  RGB = plugin_extra_parameters.isRGB.value,
         min_size_mask=plugin_extra_parameters.min_size_mask.value, seedpool= plugin_extra_parameters.seedpool.value,
                        max_size=plugin_extra_parameters.max_size.value,
-                     iou_threshold = plugin_extra_parameters.iouthresh.value,slice_merge = plugin_extra_parameters.slicemerge.value)
+                     slice_merge = plugin_extra_parameters.slicemerge.value)
                     
         pred = res, scale_out
         return pred           
