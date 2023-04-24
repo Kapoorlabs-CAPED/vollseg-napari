@@ -2243,7 +2243,6 @@ def plugin_wrapper_vollseg():
             upper_perc=plugin_star_parameters.perc_high.value,
             RGB = plugin_extra_parameters.isRGB.value,           
             slice_merge = plugin_extra_parameters.slicemerge.value,
-            iou_threshold = plugin_extra_parameters.iouthresh.value
             )   
                
         pred = res, scale_out   
