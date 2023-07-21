@@ -58,7 +58,7 @@ setup(
         'tensorflow;  platform_system!="Darwin" or platform_machine!="arm64"',
         'tensorflow-macos;  platform_system=="Darwin" and platform_machine=="arm64"',
         "napari>=0.4.13",
-        "magicgui>=0.4.0"
+        "magicgui>=0.4.0",
         "pyqt6"
     ],
     extras_require={
