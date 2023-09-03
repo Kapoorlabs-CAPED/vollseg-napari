@@ -11,7 +11,7 @@ The method used to segment the dual channels relies on the VollOne method inside
 
 ## Script
 
-The script used for this step are: [script](scripts/spheroid_nuclei_membrane_segmentation.py) and [script](scripts/timelapse_spheroids_joint_segmentation.py). 
+The script used for this step are: (for CZYX) [script](scripts/spheroid_nuclei_membrane_segmentation.py) and (for CTZYX) [script](scripts/timelapse_spheroids_joint_segmentation.py). 
 
 
 
