@@ -4,27 +4,27 @@ on: [push, pull_request]
 
 jobs:
   deploy:
-    runs-on: "ubuntu-latest"
-    if: github.repository == 'Kapoorlabs-CAPED/vollseg-napari' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-
+    # this will run when you have tagged a commit, starting with "v*"
+    # and requires that you have put your twine API key in your
+    # github secrets (see readme for details)
+ 
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'tags')
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v2
-
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          python-version: 3.8
-
-      - name: Install build dependencies
-        run: python -m pip install build wheel
-
-      - name: Build distributions
-        shell: bash -l {0}
-        run: python setup.py sdist bdist_wheel
-
-      - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_PASSWORD }}
+          python-version: "3.x"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U setuptools setuptools_scm wheel twine build
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TWINE_API_KEY }}
+        run: |
+          git tag
+          python -m build .
+          twine upload dist/*
