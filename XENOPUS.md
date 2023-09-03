@@ -1,8 +1,14 @@
 # Xenopus joint Nuclei and Membrane Segmentation
 
-Xenopus model organism is imaged using confocal microscopy in both the nuclei and membrane labelled channels. We adopt different methods for segmenting both the channels using different VollSeg setting for each one of them. This method assumes that one to one correspondence between the nuclei and membrane channel is not always true.
+Xenopus model organism is imaged using confocal microscopy in both the nuclei and membrane labelled channels in 3D. We adopt different methods for segmenting both the channels using different VollSeg setting for each one of them in full dimensionality (3D). This method assumes that one to one correspondence between the nuclei and membrane channel is not always true.
 
+| Raw Xenopus Membrane | Xenopus Membrane Labels 
+|:-------------------:|:--------------------------:|
+| ![Raw Xenopus Membrane](images/xenopus_raw_membrane.png) | ![Xenopus Membrane Labels](images/xenopus_labels_membrane.png) | 
 
+| Raw Xenopus Nuclei | Xenopus Nuclei Labels |
+| :-----------------------:|:-----------------------:|
+![Raw Xenopus Nuclei](images/xenopus_raw_nuclei.png) |![Xenopus Nuclei Labels](images/xenopus_labels_nuclei.png) |
 ## Nuclei Segmentation
 
 For the nuclei channel we have developed a method to segment the whole timelapse sequence that grows from a small region to occupying the full imaging volume. In this mode of experiment the sample is present in the same field of view at the beginning of the experiment as it is at the end of the experiment. This creates a situation where a lot of dark pixels are present in the image during early timepoints whose number decreases as the experiment proceeds. To address that we have a trained model to obtain the 2D region of interest in whicht he segmentation and normalization of the image is performed and a second StarDist model trained in 3D to segment the nuclei pixels. The end result of this algorithm is the instance labels and the region of interest of the timelapse movie.
