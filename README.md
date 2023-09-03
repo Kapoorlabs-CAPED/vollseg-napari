@@ -9,8 +9,12 @@
 [![Twitter Badge](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com/entracod)
 
 
+VollSeg is not just one segmentation algorithm but is a crafted modular segmentation tool for different model organisms and imaging modalities. For some imaged samples just using U-Net may do the job while for others it could be just StarDist and for some others it could be a combination of the two with or without any denoising or region of interest model. The only choice that remains is how to choose the VollSeg combination for your dataset and that is what we answer in our documentation.
+
+
 This project provides the [napari](https://napari.org/) plugin for [VollSeg](https://github.com/kapoorlab/vollseg), a deep learning based 2D and 3D segmentation tool for irregular shaped cells. VollSeg has originally been developed (see [papers](http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html)) for the segmentation of densely packed membrane labelled cells in challenging images with low signal-to-noise ratios. The plugin allows to apply pretrained and custom trained models from within napari.
 For detailed demo of the plugin see these [videos](https://www.youtube.com/watch?v=W_gKrLWKNpQ) and a short video about the [parameter selection](https://www.youtube.com/watch?v=7tQMn_u8_7s&t=1s) 
+
 
 
 ## Installation & Usage
