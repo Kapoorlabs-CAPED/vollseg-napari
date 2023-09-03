@@ -1,0 +1,675 @@
+
+
+<!DOCTYPE html>
+
+
+<html >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>VollSeg Napari Plugin &#8212; Segmentation using VollSeg</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'README';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Confocal and Light Sheet imaged Embryonic cells" href="EMBRYOS.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="None"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+  
+
+<a class="navbar-brand logo" href="#">
+  
+  
+  
+  
+  
+    <p class="title logo__title">Segmentation using VollSeg</p>
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1 current active">
+                <a class="reference internal" href="#">
+                    VollSeg Napari Plugin
+                </a>
+            </li>
+        </ul>
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="EMBRYOS.html">Confocal and Light Sheet imaged Embryonic cells</a></li>
+<li class="toctree-l1"><a class="reference internal" href="XENOPUS.html">Xenopus joint Nuclei and Membrane Segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SPHEROIDS.html">Spheroids joint Nuclei and Membrane Segmentation</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/Kapoorlabs-CAPED/vollseg-napari" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/Kapoorlabs-CAPED/vollseg-napari/issues/new?title=Issue%20on%20page%20%2FREADME.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/README.md" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.md</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script>
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>VollSeg Napari Plugin</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation-usage">Installation &amp; Usage</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-installation">GPU_Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting-support">Troubleshooting &amp; Support</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="vollseg-napari-plugin">
+<h1>VollSeg Napari Plugin<a class="headerlink" href="#vollseg-napari-plugin" title="Permalink to this headline">#</a></h1>
+<p><a class="reference external" href="https://pypi.org/project/vollseg-napari"><img alt="PyPI version" src="https://img.shields.io/pypi/v/vollseg-napari.svg" /></a>
+<a class="reference external" href="https://napari-hub.org/plugins/vollseg-napari"><img alt="napari hub" src="https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/vollseg-napari" /></a>
+<a class="reference external" href="https://github.com/kapoorlab/napari-vollseg/raw/main/LICENSE"><img alt="License" src="https://img.shields.io/pypi/l/napari-metroid.svg?color=green" /></a>
+<a class="reference external" href="https://codecov.io/gh/kapoorlab/napari-vollseg"><img alt="codecov" src="https://codecov.io/gh/kapoorlab/napari-vollseg/branch/main/graph/badge.svg" /></a>
+<a class="reference external" href="https://twitter.com/entracod"><img alt="Twitter Badge" src="https://badgen.net/badge/icon/twitter?icon=twitter&amp;label" /></a></p>
+<p>VollSeg is not just one segmentation algorithm but is a crafted modular segmentation tool for different model organisms and imaging modalities. For some imaged samples just using U-Net may do the job while for others it could be just StarDist and for some others it could be a combination of the two with or without any denoising or region of interest model. The only choice that remains is how to choose the VollSeg combination for your dataset and that is what we answer in our documentation.</p>
+<p>This project provides the <a class="reference external" href="https://napari.org/">napari</a> plugin for <a class="reference external" href="https://github.com/kapoorlab/vollseg">VollSeg</a>, a deep learning based 2D and 3D segmentation tool for irregular shaped cells. VollSeg has originally been developed (see <a class="reference external" href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html">papers</a>) for the segmentation of densely packed membrane labelled cells in challenging images with low signal-to-noise ratios. The plugin allows to apply pretrained and custom trained models from within napari.
+For detailed demo of the plugin see these <a class="reference external" href="https://www.youtube.com/watch?v=W_gKrLWKNpQ">videos</a> and a short video about the <a class="reference external" href="https://www.youtube.com/watch?v=7tQMn_u8_7s&amp;t=1s">parameter selection</a></p>
+<section id="installation-usage">
+<h2>Installation &amp; Usage<a class="headerlink" href="#installation-usage" title="Permalink to this headline">#</a></h2>
+<p>Install the plugin with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">vollseg-napari</span></code> or from within napari via <code class="docutils literal notranslate"><span class="pre">Plugins</span> <span class="pre">&gt;</span> <span class="pre">Install/Uninstall</span> <span class="pre">Package(s)…</span></code>. If you want GPU-accelerated prediction, please read the more detailed <a class="reference external" href="https://github.com/kapoorlab/vollseg-napari#gpu_installation">installation instructions</a> for VollSeg.</p>
+<p>You can activate the plugin in napari via <code class="docutils literal notranslate"><span class="pre">Plugins</span> <span class="pre">&gt;</span> <span class="pre">VollSeg:</span> <span class="pre">VollSeg</span></code>. Example images for testing are provided via <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">&gt;</span> <span class="pre">Open</span> <span class="pre">Sample</span> <span class="pre">&gt;</span> <span class="pre">VollSeg</span></code>.</p>
+<p>If you use this plugin for your research, please <a class="reference external" href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html">cite us</a>.</p>
+</section>
+<section id="gpu-installation">
+<h2>GPU_Installation<a class="headerlink" href="#gpu-installation" title="Permalink to this headline">#</a></h2>
+<p>This package is compatible with Python 3.6 - 3.9.</p>
+<ol class="arabic">
+<li><p>Please first <a class="reference external" href="https://www.tensorflow.org/install">install TensorFlow</a>
+(TensorFlow 2) by following the official instructions.
+For <a class="reference external" href="https://www.tensorflow.org/install/gpu">GPU support</a>, it is very
+important to install the specific versions of CUDA and cuDNN that are
+compatible with the respective version of TensorFlow. (If you need help and can use <code class="docutils literal notranslate"><span class="pre">conda</span></code>, take a look at <a class="reference external" href="https://github.com/CSBDeep/CSBDeep/tree/master/extras#conda-environment">this</a>.)</p></li>
+<li><p><em>VollSeg</em> can then be installed with <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
+<ul>
+<li><p>If you installed TensorFlow 2 (version <em>2.x.x</em>):</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>pip install vollseg
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">#</a></h2>
+<p>VollSeg comes with different options to combine CARE based denoising with UNET, StarDist and segmentation in a region of interest (ROI). We present some examples which are represent optimal combination of these different modes for segmenting different cell types. We summarize this in the table below:</p>
+<table class="colwidths-auto table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Example Image</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Training Data</p></th>
+<th class="head"><p>Trained Model</p></th>
+<th class="head"><p>GT image</p></th>
+<th class="head"><p>Optimal combination</p></th>
+<th class="head"><p>Notebook Code</p></th>
+<th class="head"><p>Model Prediction</p></th>
+<th class="head"><p>Metrics</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_raw.png"  title="Raw Ascadian Embryo" width="200"></p></td>
+<td><p>Light sheet fused from four angles 3D single channel</p></td>
+<td><p><a class="reference external" href="https://figshare.com/articles/dataset/Astec-half-Pm1_Cut_at_2-cell_stage_half_Phallusia_mammillata_embryo_live_SPIM_imaging_stages_6-16_/11309570?backTo=/s/765d4361d1b073beedd5">Training Data ~320 GB</a></p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/6337699">UNET model</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_GT.png" title="GT Ascadian Embryo" width="200"></p></td>
+<td><p>UNET model, slice_merge = False</p></td>
+<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_Ascadian_Embryo.ipynb">Colab Notebook</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_pred.png" title="Prediction Ascadian Embryo" width="200" ></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Metrics_Ascadian.png" title="Metrics Ascadian Embryo" width="200" ></p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Carcinoma_raw.png"  title="Raw Carcinoma" width="200"></p></td>
+<td><p>Confocal microscopy 3D single channel 8 bit</p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/5904082#.Yi8-BnrMJD8">Training Data</a></p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/5910645/">Denoising Model</a> and <a class="reference external" href="https://zenodo.org/record/6354077/">StarDist Model</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Carcinoma_GT.png" title="GT Carcinoma" width="200"></p></td>
+<td><p>StarDist model + Denoising Model, dounet = False</p></td>
+<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_Mamary_gland.ipynb">Colab Notebook</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Carcinoma_pred.png" title="Prediction Carcinoma Cells" width="200" ></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Metrics_carcinoma.png" title="Metrics Carcinoma Cells" width="200" ></p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Xenopus_tissue_raw.png"  title="Raw Xenopus Tissue" width="200"></p></td>
+<td><p>LaserScanningConfocalMicroscopy 2D single channel</p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/6076614#.YjBaNnrMJD8">Dataset</a></p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/6060378/">UNET Model</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Xenopus_tissue_GT.png" title="GT Xenopus Tissue" width="200"></p></td>
+<td><p>UNET model</p></td>
+<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_tissue_segmentation.ipynb">Colab Notebook</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Xenopus_tissue_pred.png" title="Prediction Xenopus Tissue" width="200" ></p></td>
+<td><p>No Metrics</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/microtubule_kymo_raw.png"  title="Raw Microtubule Kymograph" width="200"></p></td>
+<td><p>TIRF + MultiKymograph Fiji tool 2D single channel</p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/6355705/files/Microtubule_edgedetector_training.zip">Training Dataset</a></p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/6355705/">UNET Model</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/microtubule_kymo_GT.png" title="GT Microtubule Kymograph" width="200"></p></td>
+<td><p>UNET model</p></td>
+<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_Microtubule_kymo_segmentation.ipynb">Colab Notebook</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/microtubule_kymo_pred.png" title="Prediction Microtubule Kymographe" width="200" ></p></td>
+<td><p>No Metrics</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/lung_xray_raw.png"  title="Raw Lung Xray" width="200"></p></td>
+<td><p>XRay of Lung 2D single channel</p></td>
+<td><p><a class="reference external" href="https://www.kaggle.com/nikhilpandey360/lung-segmentation-from-chest-x-ray-dataset">Training Dataset</a></p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/6060177/">UNET Model</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/lung_xray_GT.png" title="GT Lung Xray" width="200"></p></td>
+<td><p>UNET model</p></td>
+<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_Microtubule_kymo_segmentation.ipynb">Colab Notebook</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/lung_xray_pred.png" title="Prediction Lung Xray" width="200" ></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Metrics_lung_xray.png" title="Metrics Lung Xray" width="200" ></p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/nuclei_mask_raw.png"  title="Raw Nuclei Mask" width="200"></p></td>
+<td><p>LaserScanningConfocalMicroscopy 2D single channell</p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/6359349/">Test Dataset</a></p></td>
+<td><p>Private</p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/nuclei_mask_GT.png" title="GT Nuclei Mask" width="200"></p></td>
+<td><p>UNET model</p></td>
+<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_Microtubule_kymo_segmentation.ipynb">Colab Notebook</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/nuclei_mask_pred.png" title="Prediction Nuclei Mask" width="200" ></p></td>
+<td><p>No metrics</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/nuclei_raw.png"  title="Raw Nuclei" width="200"></p></td>
+<td><p>LaserScanningConfocalMicroscopy 3D single channell</p></td>
+<td><p><a class="reference external" href="https://zenodo.org/record/6359295/">Test Dataset</a></p></td>
+<td><p>Private</p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/nuclei_GT.png" title="GT Nuclei" width="200"></p></td>
+<td><p>UNET model + StarDist model + ROI model</p></td>
+<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_star_roi.ipynb">Colab Notebook</a></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/nuclei_pred.png" title="Prediction Nuclei" width="200" ></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Metrics_nuclei.png" title="Metrics Nuclei" width="200" ></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="troubleshooting-support">
+<h2>Troubleshooting &amp; Support<a class="headerlink" href="#troubleshooting-support" title="Permalink to this headline">#</a></h2>
+<ul class="simple">
+<li><p>The <a class="reference external" href="https://forum.image.sc/tag/vollseg">image.sc forum</a> is the best place to start getting help and support. Make sure to use the tag <code class="docutils literal notranslate"><span class="pre">vollseg</span></code>, since we are monitoring all questions with this tag.</p></li>
+<li><p>If you have technical questions or found a bug, feel free to <a class="reference external" href="https://github.com/kapoorlab/vollseg-napari/issues">open an issue</a>.</p></li>
+</ul>
+</section>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="right-next"
+       href="EMBRYOS.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Confocal and Light Sheet imaged Embryonic cells</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation-usage">Installation &amp; Usage</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-installation">GPU_Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting-support">Troubleshooting &amp; Support</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Varun Kapoor
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  <p class="copyright">
+    
+      © Copyright 2022.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
