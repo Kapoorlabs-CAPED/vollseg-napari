@@ -348,7 +348,6 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation-usage">Installation &amp; Usage</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-installation">GPU_Installation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting-support">Troubleshooting &amp; Support</a></li>
 </ul>
@@ -374,29 +373,9 @@ document.write(`
 For detailed demo of the plugin see these <a class="reference external" href="https://www.youtube.com/watch?v=W_gKrLWKNpQ">videos</a> and a short video about the <a class="reference external" href="https://www.youtube.com/watch?v=7tQMn_u8_7s&amp;t=1s">parameter selection</a></p>
 <section id="installation-usage">
 <h2>Installation &amp; Usage<a class="headerlink" href="#installation-usage" title="Permalink to this headline">#</a></h2>
-<p>Install the plugin with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">vollseg-napari</span></code> or from within napari via <code class="docutils literal notranslate"><span class="pre">Plugins</span> <span class="pre">&gt;</span> <span class="pre">Install/Uninstall</span> <span class="pre">Package(s)…</span></code>. If you want GPU-accelerated prediction, please read the more detailed <a class="reference external" href="https://github.com/kapoorlab/vollseg-napari#gpu_installation">installation instructions</a> for VollSeg.</p>
+<p>Install the plugin with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">vollseg-napari</span></code> or from within napari via <code class="docutils literal notranslate"><span class="pre">Plugins</span> <span class="pre">&gt;</span> <span class="pre">Install/Uninstall</span> <span class="pre">Package(s)…</span></code>.</p>
 <p>You can activate the plugin in napari via <code class="docutils literal notranslate"><span class="pre">Plugins</span> <span class="pre">&gt;</span> <span class="pre">VollSeg:</span> <span class="pre">VollSeg</span></code>. Example images for testing are provided via <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">&gt;</span> <span class="pre">Open</span> <span class="pre">Sample</span> <span class="pre">&gt;</span> <span class="pre">VollSeg</span></code>.</p>
 <p>If you use this plugin for your research, please <a class="reference external" href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html">cite us</a>.</p>
-</section>
-<section id="gpu-installation">
-<h2>GPU_Installation<a class="headerlink" href="#gpu-installation" title="Permalink to this headline">#</a></h2>
-<p>This package is compatible with Python 3.6 - 3.9.</p>
-<ol class="arabic">
-<li><p>Please first <a class="reference external" href="https://www.tensorflow.org/install">install TensorFlow</a>
-(TensorFlow 2) by following the official instructions.
-For <a class="reference external" href="https://www.tensorflow.org/install/gpu">GPU support</a>, it is very
-important to install the specific versions of CUDA and cuDNN that are
-compatible with the respective version of TensorFlow. (If you need help and can use <code class="docutils literal notranslate"><span class="pre">conda</span></code>, take a look at <a class="reference external" href="https://github.com/CSBDeep/CSBDeep/tree/master/extras#conda-environment">this</a>.)</p></li>
-<li><p><em>VollSeg</em> can then be installed with <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
-<ul>
-<li><p>If you installed TensorFlow 2 (version <em>2.x.x</em>):</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>pip install vollseg
-</pre></div>
-</div>
-</li>
-</ul>
-</li>
-</ol>
 </section>
 <section id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">#</a></h2>
@@ -618,7 +597,6 @@ compatible with the respective version of TensorFlow. (If you need help and can 
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation-usage">Installation &amp; Usage</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-installation">GPU_Installation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting-support">Troubleshooting &amp; Support</a></li>
 </ul>

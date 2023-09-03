@@ -15,30 +15,13 @@ This project provides the [napari](https://napari.org/) plugin for [VollSeg](htt
 For detailed demo of the plugin see these [videos](https://www.youtube.com/watch?v=W_gKrLWKNpQ) and a short video about the [parameter selection](https://www.youtube.com/watch?v=7tQMn_u8_7s&t=1s) 
 
 
-
 ## Installation & Usage
 
-Install the plugin with `pip install vollseg-napari` or from within napari via `Plugins > Install/Uninstall Package(s)…`. If you want GPU-accelerated prediction, please read the more detailed [installation instructions](https://github.com/kapoorlab/vollseg-napari#gpu_installation) for VollSeg.
+Install the plugin with `pip install vollseg-napari` or from within napari via `Plugins > Install/Uninstall Package(s)…`. 
 
 You can activate the plugin in napari via `Plugins > VollSeg: VollSeg`. Example images for testing are provided via `File > Open Sample > VollSeg`.
 
 If you use this plugin for your research, please [cite us](http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html).
-
-## GPU_Installation
-
-This package is compatible with Python 3.6 - 3.9.
-
-1. Please first [install TensorFlow](https://www.tensorflow.org/install)
-(TensorFlow 2) by following the official instructions.
-For [GPU support](https://www.tensorflow.org/install/gpu), it is very
-important to install the specific versions of CUDA and cuDNN that are
-compatible with the respective version of TensorFlow. (If you need help and can use `conda`, take a look at [this](https://github.com/CSBDeep/CSBDeep/tree/master/extras#conda-environment).)
-
-2. *VollSeg* can then be installed with `pip`:
-
-    - If you installed TensorFlow 2 (version *2.x.x*):
-
-          pip install vollseg
 
 
 ## Examples
