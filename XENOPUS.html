@@ -370,7 +370,31 @@ document.write(`
                   
   <section class="tex2jax_ignore mathjax_ignore" id="xenopus-joint-nuclei-and-membrane-segmentation">
 <h1>Xenopus joint Nuclei and Membrane Segmentation<a class="headerlink" href="#xenopus-joint-nuclei-and-membrane-segmentation" title="Permalink to this headline">#</a></h1>
-<p>Xenopus model organism is imaged using confocal microscopy in both the nuclei and membrane labelled channels. We adopt different methods for segmenting both the channels using different VollSeg setting for each one of them. This method assumes that one to one correspondence between the nuclei and membrane channel is not always true.</p>
+<p>Xenopus model organism is imaged using confocal microscopy in both the nuclei and membrane labelled channels in 3D. We adopt different methods for segmenting both the channels using different VollSeg setting for each one of them in full dimensionality (3D). This method assumes that one to one correspondence between the nuclei and membrane channel is not always true.</p>
+<table class="colwidths-auto table">
+<thead>
+<tr class="row-odd"><th class="text-center head"><p>Raw Xenopus Membrane</p></th>
+<th class="text-center head"><p>Xenopus Membrane Labels</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-center"><p><img alt="Raw Xenopus Membrane" src="_images/xenopus_raw_membrane.png" /></p></td>
+<td class="text-center"><p><img alt="Xenopus Membrane Labels" src="_images/xenopus_labels_membrane.png" /></p></td>
+</tr>
+</tbody>
+</table>
+<table class="colwidths-auto table">
+<thead>
+<tr class="row-odd"><th class="text-center head"><p>Raw Xenopus Nuclei</p></th>
+<th class="text-center head"><p>Xenopus Nuclei Labels</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-center"><p><img alt="Raw Xenopus Nuclei" src="_images/xenopus_raw_nuclei.png" /></p></td>
+<td class="text-center"><p><img alt="Xenopus Nuclei Labels" src="_images/xenopus_labels_nuclei.png" /></p></td>
+</tr>
+</tbody>
+</table>
 <section id="nuclei-segmentation">
 <h2>Nuclei Segmentation<a class="headerlink" href="#nuclei-segmentation" title="Permalink to this headline">#</a></h2>
 <p>For the nuclei channel we have developed a method to segment the whole timelapse sequence that grows from a small region to occupying the full imaging volume. In this mode of experiment the sample is present in the same field of view at the beginning of the experiment as it is at the end of the experiment. This creates a situation where a lot of dark pixels are present in the image during early timepoints whose number decreases as the experiment proceeds. To address that we have a trained model to obtain the 2D region of interest in whicht he segmentation and normalization of the image is performed and a second StarDist model trained in 3D to segment the nuclei pixels. The end result of this algorithm is the instance labels and the region of interest of the timelapse movie.</p>

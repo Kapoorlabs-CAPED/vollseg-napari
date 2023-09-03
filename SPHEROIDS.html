@@ -370,7 +370,7 @@ document.write(`
                   
   <section class="tex2jax_ignore mathjax_ignore" id="spheroids-joint-nuclei-and-membrane-segmentation">
 <h1>Spheroids joint Nuclei and Membrane Segmentation<a class="headerlink" href="#spheroids-joint-nuclei-and-membrane-segmentation" title="Permalink to this headline">#</a></h1>
-<p>For segmentation of such cells we developed a new class inside VollSeg called <a class="reference external" href="https://github.com/Kapoorlabs-CAPED/VollSeg/blob/18b33de516e691cbc488e0aedb46b08b2ffd992e/src/vollseg/utils.py#L4612">VollOne</a> that assumes a one-to-one correspondence between the nuclei and membrane labelled cells and used the nuclei segmentation channel to segment also the membranes. The steps in this segmentation approach:</p>
+<p>For segmentation of such cells in 3D we developed a new class inside VollSeg called <a class="reference external" href="https://github.com/Kapoorlabs-CAPED/VollSeg/blob/18b33de516e691cbc488e0aedb46b08b2ffd992e/src/vollseg/utils.py#L4612">VollOne</a> that assumes a one-to-one correspondence between the nuclei and membrane labelled cells and used the nuclei segmentation channel to segment also the membranes. The steps in this segmentation approach:</p>
 <section id="denoising-membrane">
 <h2>Denoising Membrane<a class="headerlink" href="#denoising-membrane" title="Permalink to this headline">#</a></h2>
 <p>In this workflow we train a model to enhance the edges of the membrane channel using a trained CARE model. Optionally this class also accepts a ROI or ProjectionCARE model to create a 2D region of interest that contains the signal.</p>

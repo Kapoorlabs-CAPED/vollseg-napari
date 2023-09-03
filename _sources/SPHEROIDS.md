@@ -1,6 +1,6 @@
 # Spheroids joint Nuclei and Membrane Segmentation
 
-For segmentation of such cells we developed a new class inside VollSeg called [VollOne](https://github.com/Kapoorlabs-CAPED/VollSeg/blob/18b33de516e691cbc488e0aedb46b08b2ffd992e/src/vollseg/utils.py#L4612) that assumes a one-to-one correspondence between the nuclei and membrane labelled cells and used the nuclei segmentation channel to segment also the membranes. The steps in this segmentation approach:
+For segmentation of such cells in 3D we developed a new class inside VollSeg called [VollOne](https://github.com/Kapoorlabs-CAPED/VollSeg/blob/18b33de516e691cbc488e0aedb46b08b2ffd992e/src/vollseg/utils.py#L4612) that assumes a one-to-one correspondence between the nuclei and membrane labelled cells and used the nuclei segmentation channel to segment also the membranes. The steps in this segmentation approach:
 
 ## Denoising Membrane
 In this workflow we train a model to enhance the edges of the membrane channel using a trained CARE model. Optionally this class also accepts a ROI or ProjectionCARE model to create a 2D region of interest that contains the signal. 
