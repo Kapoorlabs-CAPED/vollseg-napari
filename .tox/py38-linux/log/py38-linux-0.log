@@ -1,8 +1,0 @@
-action: py38-linux, msg: getenv
-cwd: /mnt/c/Users/rando/Downloads/vollseg-napari/.tox
-cmd: /home/varunkapoor/anaconda3/envs/naparienv/bin/python -m virtualenv --no-download --python /usr/bin/python3.8 py38-linux
-created virtual environment CPython3.8.10.final.0-64 in 6111ms
-  creator CPython3Posix(dest=/mnt/c/Users/rando/Downloads/vollseg-napari/.tox/py38-linux, clear=False, no_vcs_ignore=False, global=False)
-  seeder FromAppData(download=False, pip=bundle, setuptools=bundle, wheel=bundle, via=copy, app_data_dir=/home/varunkapoor/.local/share/virtualenv)
-    added seed packages: pip==21.3.1, setuptools==60.2.0, wheel==0.37.1
-  activators BashActivator,CShellActivator,FishActivator,NushellActivator,PowerShellActivator,PythonActivator
