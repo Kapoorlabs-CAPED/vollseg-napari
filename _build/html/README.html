@@ -374,7 +374,7 @@ document.write(`
 <a class="reference external" href="https://github.com/kapoorlab/napari-vollseg/raw/main/LICENSE"><img alt="License" src="https://img.shields.io/pypi/l/napari-metroid.svg?color=green" /></a>
 <a class="reference external" href="https://codecov.io/gh/kapoorlab/napari-vollseg"><img alt="codecov" src="https://codecov.io/gh/kapoorlab/napari-vollseg/branch/main/graph/badge.svg" /></a>
 <a class="reference external" href="https://twitter.com/entracod"><img alt="Twitter Badge" src="https://badgen.net/badge/icon/twitter?icon=twitter&amp;label" /></a></p>
-<p>VollSeg is more than just a single segmentation algorithm; it is a meticulously designed modular segmentation tool tailored to diverse model organisms and imaging methods. While a U-Net might suffice for certain image samples, others might benefit from utilizing StarDist, and some could require a blend of both, potentially coupled with denoising or region of interest models. The pivotal decision left to make is how to select the most appropriate VollSeg configuration for your dataset, a question we comprehensively address in our documentation.</p>
+<p>VollSeg is more than just a single segmentation algorithm; it is a meticulously designed modular segmentation tool tailored to diverse model organisms and imaging methods. While a U-Net might suffice for certain image samples, others might benefit from utilizing StarDist, and some could require a blend of both, potentially coupled with denoising or region of interest models. The pivotal decision left to make is how to select the most appropriate VollSeg configuration for your dataset, a question we comprehensively address in our <a class="reference external" href="https://kapoorlabs-caped.github.io/vollseg-napari/">documentation website</a>.</p>
 <p>This project provides the <a class="reference external" href="https://napari.org/">napari</a> plugin for <a class="reference external" href="https://github.com/kapoorlab/vollseg">VollSeg</a>, a deep learning based 2D and 3D segmentation tool for irregular shaped cells. VollSeg has originally been developed (see <a class="reference external" href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html">papers</a>) for the segmentation of densely packed membrane labelled cells in challenging images with low signal-to-noise ratios. The plugin allows to apply pretrained and custom trained models from within napari.
 For detailed demo of the plugin see these <a class="reference external" href="https://www.youtube.com/watch?v=W_gKrLWKNpQ">videos</a> and a short video about the <a class="reference external" href="https://www.youtube.com/watch?v=7tQMn_u8_7s&amp;t=1s">parameter selection</a></p>
 <section id="installation-usage">
@@ -394,81 +394,64 @@ For detailed demo of the plugin see these <a class="reference external" href="ht
 <th class="head"><p>Trained Model</p></th>
 <th class="head"><p>GT image</p></th>
 <th class="head"><p>Optimal combination</p></th>
-<th class="head"><p>Notebook Code</p></th>
 <th class="head"><p>Model Prediction</p></th>
 <th class="head"><p>Metrics</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><img alt="Raw Ascadian Embryo" src="_images/Ascadian_raw.png" /></p></td>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_raw.png"  title="Raw Ascadian Embryo" width="200"></p></td>
 <td><p>Light sheet fused from four angles 3D single channel</p></td>
 <td><p><a class="reference external" href="https://figshare.com/articles/dataset/Astec-half-Pm1_Cut_at_2-cell_stage_half_Phallusia_mammillata_embryo_live_SPIM_imaging_stages_6-16_/11309570?backTo=/s/765d4361d1b073beedd5">Training Data ~320 GB</a></p></td>
 <td><p><a class="reference external" href="https://zenodo.org/record/6337699">UNET model</a></p></td>
-<td><p><img alt="GT Ascadian Embryo" src="_images/Ascadian_GT.png" /></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_GT.png" title="GT Ascadian Embryo" width="200"></p></td>
 <td><p>UNET model, slice_merge = False</p></td>
-<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_Ascadian_Embryo.ipynb">Colab Notebook</a></p></td>
-<td><p><img alt="Prediction Ascadian Embryo" src="_images/Ascadian_pred.png" /></p></td>
-<td><p><img alt="Metrics Ascadian Embryo" src="_images/Metrics_Ascadian.png" /></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Ascadian_pred.png" title="Prediction Ascadian Embryo" width="200" ></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Metrics_Ascadian.png" title="Metrics Ascadian Embryo" width="200" ></p></td>
 </tr>
-<tr class="row-odd"><td><p><img alt="Raw Carcinoma" src="_images/Carcinoma_raw.png" /></p></td>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Carcinoma_raw.png"  title="Raw Carcinoma" width="200"></p></td>
 <td><p>Confocal microscopy 3D single channel 8 bit</p></td>
 <td><p><a class="reference external" href="https://zenodo.org/record/5904082#.Yi8-BnrMJD8">Training Data</a></p></td>
 <td><p><a class="reference external" href="https://zenodo.org/record/5910645/">Denoising Model</a> and <a class="reference external" href="https://zenodo.org/record/6354077/">StarDist Model</a></p></td>
-<td><p><img alt="GT Carcinoma" src="_images/Carcinoma_GT.png" /></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Carcinoma_GT.png" title="GT Carcinoma" width="200"></p></td>
 <td><p>StarDist model + Denoising Model, dounet = False</p></td>
-<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_Mamary_gland.ipynb">Colab Notebook</a></p></td>
-<td><p><img alt="Prediction Carcinoma Cells" src="_images/Carcinoma_pred.png" /></p></td>
-<td><p><img alt="Metrics Carcinoma Cells" src="_images/Metrics_carcinoma.png" /></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Carcinoma_pred.png" title="Prediction Carcinoma Cells" width="200" ></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Metrics_carcinoma.png" title="Metrics Carcinoma Cells" width="200" ></p></td>
 </tr>
-<tr class="row-even"><td><p><img alt="Raw Xenopus Tissue" src="_images/Xenopus_tissue_raw.png" /></p></td>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Xenopus_tissue_raw.png"  title="Raw Xenopus Tissue" width="200"></p></td>
 <td><p>LaserScanningConfocalMicroscopy 2D single channel</p></td>
 <td><p><a class="reference external" href="https://zenodo.org/record/6076614#.YjBaNnrMJD8">Dataset</a></p></td>
 <td><p><a class="reference external" href="https://zenodo.org/record/6060378/">UNET Model</a></p></td>
-<td><p><img alt="GT Xenopus Tissue" src="_images/Xenopus_tissue_GT.png" /></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Xenopus_tissue_GT.png" title="GT Xenopus Tissue" width="200"></p></td>
 <td><p>UNET model</p></td>
-<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_tissue_segmentation.ipynb">Colab Notebook</a></p></td>
-<td><p><img alt="Prediction Xenopus Tissue" src="_images/Xenopus_tissue_pred.png" /></p></td>
+<td><p><img src="https://github.com/kapoorlab/vollseg-napari/blob/main/vollseg_napari/images/Xenopus_tissue_pred.png" title="Prediction Xenopus Tissue" width="200" ></p></td>
 <td><p>No Metrics</p></td>
 </tr>
-<tr class="row-odd"><td><p><img alt="Raw Microtubule Kymograph" src="_images/microtubule_kymo_raw.png" /></p></td>
-<td><p>TIRF + MultiKymograph Fiji tool 2D single channel</p></td>
-<td><p><a class="reference external" href="https://zenodo.org/record/6355705/files/Microtubule_edgedetector_training.zip">Training Dataset</a></p></td>
-<td><p><a class="reference external" href="https://zenodo.org/record/6355705/">UNET Model</a></p></td>
-<td><p><img alt="GT Microtubule Kymograph" src="_images/microtubule_kymo_GT.png" /></p></td>
-<td><p>UNET model</p></td>
-<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_Microtubule_kymo_segmentation.ipynb">Colab Notebook</a></p></td>
-<td><p><img alt="Prediction Microtubule Kymograph" src="_images/microtubule_kymo_pred.png" /></p></td>
-<td><p>No Metrics</p></td>
-</tr>
-<tr class="row-even"><td><p><img alt="Raw Lung Xray" src="_images/lung_xray_raw.png" /></p></td>
-<td><p>XRay of Lung 2D single channel</p></td>
-<td><p><a class="reference external" href="https://www.kaggle.com/nikhilpandey360/lung-segmentation-from-chest-x-ray-dataset">Training Dataset</a></p></td>
-<td><p><a class="reference external" href="https://zenodo.org/record/6060177/">UNET Model</a></p></td>
-<td><p><img alt="GT Lung Xray" src="_images/lung_xray_GT.png" /></p></td>
-<td><p>UNET model</p></td>
-<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_Microtubule_kymo_segmentation.ipynb">Colab Notebook</a></p></td>
-<td><p><img alt="Prediction Lung Xray" src="_images/lung_xray_pred.png" /></p></td>
-<td><p><img alt="Metrics Lung Xray" src="_images/Metrics_lung_xray.png" /></p></td>
-</tr>
-<tr class="row-odd"><td><p><img alt="Raw Nuclei Mask" src="_images/nuclei_mask_raw.png" /></p></td>
-<td><p>LaserScanningConfocalMicroscopy 2D single channel</p></td>
-<td><p><a class="reference external" href="https://zenodo.org/record/6359349/">Test Dataset</a></p></td>
-<td><p>Private</p></td>
-<td><p><img alt="GT Nuclei Mask" src="_images/nuclei_mask_GT.png" /></p></td>
-<td><p>UNET model</p></td>
-<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_Microtubule_kymo_segmentation.ipynb">Colab Notebook</a></p></td>
-<td><p><img alt="Prediction Nuclei Mask" src="_images/nuclei_mask_pred.png" /></p></td>
-<td><p>No Metrics</p></td>
-</tr>
-<tr class="row-even"><td><p><img alt="Raw Nuclei" src="images/nuclei_raw.png" /></p></td>
-<td><p>LaserScanningConfocalMicroscopy 3D single channel</p></td>
-<td><p><a class="reference external" href="https://zenodo.org/record/6359295/">Test Dataset</a></p></td>
-<td><p>Private</p></td>
-<td><p><img alt="GT Nuclei" src="_images/nuclei_GT.png" /></p></td>
-<td><p>UNET model + StarDist model + ROI model</p></td>
-<td><p><a class="reference external" href="https://github.com/kapoorlab/VollSeg/blob/main/examples/Predict/Colab_VollSeg_star_roi.ipynb">Colab Notebook</a></p></td>
-<td><p><img alt="Prediction Nuclei" src="_images/nuclei_pred.png" /></p></td>
-<td><p><img alt="Metrics Nuclei" src="_images/Metrics_nuclei.png" /></p></td>
+<tr class="row-odd"><td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>

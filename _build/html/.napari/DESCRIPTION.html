@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
-    <title>Segmentation of mammary gland cells &#8212; Segmentation using VollSeg</title>
+    <title>VollSeg Napari Plugin &#8212; Segmentation using VollSeg</title>
   
   
   
@@ -19,52 +19,50 @@
   </script>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
-<link href="_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
 
   
-  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
-    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
-    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
-    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css" />
-    <link rel="stylesheet" type="text/css" href="_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/clipboard.min.js"></script>
-    <script src="_static/copybutton.js"></script>
-    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
     <script>let toggleHintShow = 'Click to show';</script>
     <script>let toggleHintHide = 'Click to hide';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
-    <script src="_static/togglebutton.js"></script>
+    <script src="../_static/togglebutton.js"></script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
-    <script src="_static/design-tabs.js"></script>
+    <script src="../_static/design-tabs.js"></script>
     <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
 const thebe_selector = ".thebe,.cell"
 const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
-    <script async="async" src="_static/sphinx-thebe.js"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'MAMMARYGLAND';</script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Xenopus joint Nuclei and Membrane Segmentation" href="XENOPUS.html" />
-    <link rel="prev" title="Confocal and Light Sheet imaged Embryonic cells" href="EMBRYOS.html" />
+    <script async="async" src="../_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '.napari/DESCRIPTION';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="None"/>
   </head>
@@ -92,7 +90,7 @@ const thebe_selector_output = ".output, .cell_output"
     <div class="search-button__overlay"></div>
     <div class="search-button__search-container">
 <form class="bd-search d-flex align-items-center"
-      action="search.html"
+      action="../search.html"
       method="get">
   <i class="fa-solid fa-magnifying-glass"></i>
   <input type="search"
@@ -130,7 +128,7 @@ const thebe_selector_output = ".output, .cell_output"
         <div class="sidebar-primary-item">
   
 
-<a class="navbar-brand logo" href="README.html">
+<a class="navbar-brand logo" href="../README.html">
   
   
   
@@ -140,8 +138,8 @@ const thebe_selector_output = ".output, .cell_output"
       
     
     
-    <img src="_static/kapoorlogo.png" class="logo__image only-light" alt="Logo image"/>
-    <script>document.write(`<img src="_static/kapoorlogo.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+    <img src="../_static/kapoorlogo.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../_static/kapoorlogo.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
   
   
 </a></div>
@@ -150,17 +148,17 @@ const thebe_selector_output = ".output, .cell_output"
         
         <ul class="nav bd-sidenav bd-sidenav__home-link">
             <li class="toctree-l1">
-                <a class="reference internal" href="README.html">
+                <a class="reference internal" href="../README.html">
                     VollSeg Napari Plugin
                 </a>
             </li>
         </ul>
-        <ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="EMBRYOS.html">Confocal and Light Sheet imaged Embryonic cells</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Segmentation of mammary gland cells</a></li>
-<li class="toctree-l1"><a class="reference internal" href="XENOPUS.html">Xenopus joint Nuclei and Membrane Segmentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="SPHEROIDS.html">Spheroids joint Nuclei and Membrane Segmentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="MICROTUBULES.html">Segmentation of Microtubule and Actin Kymographs</a></li>
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../EMBRYOS.html">Confocal and Light Sheet imaged Embryonic cells</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../MAMMARYGLAND.html">Segmentation of mammary gland cells</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../XENOPUS.html">Xenopus joint Nuclei and Membrane Segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SPHEROIDS.html">Spheroids joint Nuclei and Membrane Segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../MICROTUBULES.html">Segmentation of Microtubule and Actin Kymographs</a></li>
 </ul>
 
     </div>
@@ -232,7 +230,7 @@ const thebe_selector_output = ".output, .cell_output"
       
       
       
-      <li><a href="https://github.com/Kapoorlabs-CAPED/vollseg-napari/issues/new?title=Issue%20on%20page%20%2FMAMMARYGLAND.html&body=Your%20issue%20content%20here." target="_blank"
+      <li><a href="https://github.com/Kapoorlabs-CAPED/vollseg-napari/issues/new?title=Issue%20on%20page%20%2F.napari/DESCRIPTION.html&body=Your%20issue%20content%20here." target="_blank"
    class="btn btn-sm btn-source-issues-button dropdown-item"
    title="Open an issue"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -262,7 +260,7 @@ const thebe_selector_output = ".output, .cell_output"
       
       
       
-      <li><a href="_sources/MAMMARYGLAND.md" target="_blank"
+      <li><a href="../_sources/.napari/DESCRIPTION.md" target="_blank"
    class="btn btn-sm btn-download-source-button dropdown-item"
    title="Download source file"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -342,7 +340,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>Segmentation of mammary gland cells</h1>
+    <h1>VollSeg Napari Plugin</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -356,11 +354,16 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article" role="main">
                   
-  <section class="tex2jax_ignore mathjax_ignore" id="segmentation-of-mammary-gland-cells">
-<h1>Segmentation of mammary gland cells<a class="headerlink" href="#segmentation-of-mammary-gland-cells" title="Permalink to this headline">#</a></h1>
-<p>VollSeg specializes with its seed pooling approach to segment irregular shapes of mammary gland cells</p>
-<p><img alt="Mammary Gland Cells" src="_images/Seg_compare-big.png" /></p>
-<p>from human or mouse samples. In the orignal algorithm we use a CARE trained denoising model and either use the U-Net model for semantic segmentation or use a denoising model for the semantic segmentation depending on which model has a better prediction. Denoising model is used to denoise the image first and the result is then passed to the segmentation models. For using combination of (U-Net, CARE and StarDist) model with U-Net as the model for semantic segmentation use this <a class="reference download internal" download="" href="_downloads/55ced61326261fee22b55dba8817fd8e/mammary_gland_us.py"><span class="xref download myst">script</span></a> if you want to use the denoised image as the base image for creating the semantic segmentation map using Otsu threshold set the parameter <code class="docutils literal notranslate"><span class="pre">dounet=False</span></code> in that same script.</p>
+  <section class="tex2jax_ignore mathjax_ignore" id="vollseg-napari-plugin">
+<h1>VollSeg Napari Plugin<a class="headerlink" href="#vollseg-napari-plugin" title="Permalink to this headline">#</a></h1>
+<p><a class="reference external" href="https://pypi.org/project/vollseg-napari"><img alt="PyPI version" src="https://img.shields.io/pypi/v/vollseg-napari.svg" /></a>
+<a class="reference external" href="https://napari-hub.org/plugins/vollseg-napari"><img alt="napari hub" src="https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/vollseg-napari" /></a>
+<a class="reference external" href="https://github.com/kapoorlab/napari-vollseg/raw/main/LICENSE"><img alt="License" src="https://img.shields.io/pypi/l/napari-metroid.svg?color=green" /></a>
+<a class="reference external" href="https://codecov.io/gh/kapoorlab/napari-vollseg"><img alt="codecov" src="https://codecov.io/gh/kapoorlab/napari-vollseg/branch/main/graph/badge.svg" /></a>
+<a class="reference external" href="https://twitter.com/entracod"><img alt="Twitter Badge" src="https://badgen.net/badge/icon/twitter?icon=twitter&amp;label" /></a></p>
+<p>VollSeg is more than just a single segmentation algorithm; it is a meticulously designed modular segmentation tool tailored to diverse model organisms and imaging methods. While a U-Net might suffice for certain image samples, others might benefit from utilizing StarDist, and some could require a blend of both, potentially coupled with denoising or region of interest models. The pivotal decision left to make is how to select the most appropriate VollSeg configuration for your dataset, a question we comprehensively address in our <a class="reference external" href="https://kapoorlabs-caped.github.io/vollseg-napari/">documentation website</a>.</p>
+<p>This project provides the <a class="reference external" href="https://napari.org/">napari</a> plugin for <a class="reference external" href="https://github.com/kapoorlab/vollseg">VollSeg</a>, a deep learning based 2D and 3D segmentation tool for irregular shaped cells. VollSeg has originally been developed (see <a class="reference external" href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html">papers</a>) for the segmentation of densely packed membrane labelled cells in challenging images with low signal-to-noise ratios. The plugin allows to apply pretrained and custom trained models from within napari.
+For detailed demo of the plugin see these <a class="reference external" href="https://www.youtube.com/watch?v=W_gKrLWKNpQ">videos</a> and a short video about the <a class="reference external" href="https://www.youtube.com/watch?v=7tQMn_u8_7s&amp;t=1s">parameter selection</a></p>
 </section>
 
     <script type="text/x-thebe-config">
@@ -376,7 +379,7 @@ document.write(`
         },
         kernelOptions: {
             name: "python3",
-            path: "./."
+            path: "./.napari"
         },
         predefinedOutput: true
     }
@@ -394,24 +397,6 @@ document.write(`
   
     <div class="footer-article-item"><!-- Previous / next buttons -->
 <div class="prev-next-area">
-    <a class="left-prev"
-       href="EMBRYOS.html"
-       title="previous page">
-      <i class="fa-solid fa-angle-left"></i>
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Confocal and Light Sheet imaged Embryonic cells</p>
-      </div>
-    </a>
-    <a class="right-next"
-       href="XENOPUS.html"
-       title="next page">
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Xenopus joint Nuclei and Membrane Segmentation</p>
-      </div>
-      <i class="fa-solid fa-angle-right"></i>
-    </a>
 </div></div>
   
 </div>
@@ -464,8 +449,8 @@ By Varun Kapoor
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
-<script src="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+  <script src="../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
 
   <footer class="bd-footer">
   </footer>
