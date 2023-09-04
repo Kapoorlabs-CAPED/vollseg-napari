@@ -64,7 +64,7 @@ const thebe_selector_output = ".output, .cell_output"
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Spheroids joint Nuclei and Membrane Segmentation" href="SPHEROIDS.html" />
-    <link rel="prev" title="Confocal and Light Sheet imaged Embryonic cells" href="EMBRYOS.html" />
+    <link rel="prev" title="Segmentation of mammary gland cells" href="MAMMARYGLAND.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="None"/>
   </head>
@@ -135,8 +135,14 @@ const thebe_selector_output = ".output, .cell_output"
   
   
   
+    
+    
+      
+    
+    
+    <img src="_static/kapoorlogo.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="_static/kapoorlogo.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
   
-    <p class="title logo__title">Segmentation using VollSeg</p>
   
 </a></div>
         <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
@@ -151,8 +157,10 @@ const thebe_selector_output = ".output, .cell_output"
         </ul>
         <ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="EMBRYOS.html">Confocal and Light Sheet imaged Embryonic cells</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MAMMARYGLAND.html">Segmentation of mammary gland cells</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Xenopus joint Nuclei and Membrane Segmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="SPHEROIDS.html">Spheroids joint Nuclei and Membrane Segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MICROTUBULES.html">Segmentation of Microtubule and Actin Kymographs</a></li>
 </ul>
 
     </div>
@@ -362,7 +370,31 @@ document.write(`
                   
   <section class="tex2jax_ignore mathjax_ignore" id="xenopus-joint-nuclei-and-membrane-segmentation">
 <h1>Xenopus joint Nuclei and Membrane Segmentation<a class="headerlink" href="#xenopus-joint-nuclei-and-membrane-segmentation" title="Permalink to this headline">#</a></h1>
-<p>Xenopus model organism is imaged using confocal microscopy in both the nuclei and membrane labelled channels. We adopt different methods for segmenting both the channels using different VollSeg setting for each one of them. This method assumes that one to one correspondence between the nuclei and membrane channel is not always true.</p>
+<p>Xenopus model organism is imaged using confocal microscopy in both the nuclei and membrane labelled channels in 3D. We adopt different methods for segmenting both the channels using different VollSeg setting for each one of them in full dimensionality (3D). This method assumes that one to one correspondence between the nuclei and membrane channel is not always true.</p>
+<table class="colwidths-auto table">
+<thead>
+<tr class="row-odd"><th class="text-center head"><p>Raw Xenopus Membrane</p></th>
+<th class="text-center head"><p>Xenopus Membrane Labels</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-center"><p><img alt="Raw Xenopus Membrane" src="_images/xenopus_raw_membrane.png" /></p></td>
+<td class="text-center"><p><img alt="Xenopus Membrane Labels" src="_images/xenopus_labels_membrane.png" /></p></td>
+</tr>
+</tbody>
+</table>
+<table class="colwidths-auto table">
+<thead>
+<tr class="row-odd"><th class="text-center head"><p>Raw Xenopus Nuclei</p></th>
+<th class="text-center head"><p>Xenopus Nuclei Labels</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-center"><p><img alt="Raw Xenopus Nuclei" src="_images/xenopus_raw_nuclei.png" /></p></td>
+<td class="text-center"><p><img alt="Xenopus Nuclei Labels" src="_images/xenopus_labels_nuclei.png" /></p></td>
+</tr>
+</tbody>
+</table>
 <section id="nuclei-segmentation">
 <h2>Nuclei Segmentation<a class="headerlink" href="#nuclei-segmentation" title="Permalink to this headline">#</a></h2>
 <p>For the nuclei channel we have developed a method to segment the whole timelapse sequence that grows from a small region to occupying the full imaging volume. In this mode of experiment the sample is present in the same field of view at the beginning of the experiment as it is at the end of the experiment. This creates a situation where a lot of dark pixels are present in the image during early timepoints whose number decreases as the experiment proceeds. To address that we have a trained model to obtain the 2D region of interest in whicht he segmentation and normalization of the image is performed and a second StarDist model trained in 3D to segment the nuclei pixels. The end result of this algorithm is the instance labels and the region of interest of the timelapse movie.</p>
@@ -373,7 +405,7 @@ document.write(`
 </section>
 <section id="script">
 <h2>Script<a class="headerlink" href="#script" title="Permalink to this headline">#</a></h2>
-<p>The scripts used for this step are: <span class="xref myst">membrane segmentation script</span>,  <span class="xref myst">nuclei segmentation script</span></p>
+<p>The scripts used for this step are: <a class="reference download internal" download="" href="_downloads/9ecc78015d8022420774c255edd418ae/cellpose_stardist_membrane.py"><span class="xref download myst">membrane segmentation script</span></a>,  <a class="reference download internal" download="" href="_downloads/13cc3a66dd88931253c08cbf41b40da4/xenopus_nuclei.py"><span class="xref download myst">nuclei segmentation script</span></a></p>
 </section>
 </section>
 
@@ -409,12 +441,12 @@ document.write(`
     <div class="footer-article-item"><!-- Previous / next buttons -->
 <div class="prev-next-area">
     <a class="left-prev"
-       href="EMBRYOS.html"
+       href="MAMMARYGLAND.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Confocal and Light Sheet imaged Embryonic cells</p>
+        <p class="prev-next-title">Segmentation of mammary gland cells</p>
       </div>
     </a>
     <a class="right-next"
