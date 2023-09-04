@@ -27,11 +27,12 @@ If you use this plugin for your research, please [cite us](http://conference.sci
 ## Examples
 
 VollSeg comes with different options to combine CARE based denoising with UNET, StarDist and segmentation in a region of interest (ROI). We present some examples which are represent optimal combination of these different modes for segmenting different cell types. We summarize this in the table below:
-| Example Image | Description | Training Data | Trained Model | GT image   | Optimal combination | Model Prediction | Metrics |
-| --- | --- |--- | --- |--- | --- |--- | --- |
-| ![Raw Ascadian Embryo](images/Ascadian_raw.png)| Light sheet fused from four angles 3D single channel| [Training Data ~320 GB](https://figshare.com/articles/dataset/Astec-half-Pm1_Cut_at_2-cell_stage_half_Phallusia_mammillata_embryo_live_SPIM_imaging_stages_6-16_/11309570?backTo=/s/765d4361d1b073beedd5)| [UNET model](https://zenodo.org/record/6337699) |![GT Ascadian Embryo](images/Ascadian_GT.png) | UNET model, slice_merge = False |![Prediction Ascadian Embryo](images/Ascadian_pred.png) | ![Metrics Ascadian](images/Metrics_Ascadian.png)|
-| ![Raw Carcinoma](images/Carcinoma_raw.png)| Confocal microscopy 3D single channel 8 bit| [Training Data](https://zenodo.org/record/5904082#.Yi8-BnrMJD8)| [Denoising Model](https://zenodo.org/record/5910645/) and [StarDist Model](https://zenodo.org/record/6354077/) |![GT Carcinoma](images/Carcinoma_GT.png) | StarDist model + Denoising Model, dounet = False |![Prediction Carcinoma Cells](images/Carcinoma_pred.png) | ![Metrics Carcinoma Cells](images/Metrics_carcinoma.png)  |
-| ![Raw Xenopus Tissue](images/Xenopus_tissue_raw.png)| LaserScanningConfocalMicroscopy 2D single channel| [Dataset](https://zenodo.org/record/6076614#.YjBaNnrMJD8)| [UNET Model](https://zenodo.org/record/6060378/)  |![GT Xenopus Tissue](images/Xenopus_tissue_GT.png) | UNET model|![Prediction Xenopus Tissue](images/Xenopus_tissue_pred.png) | No Metrics  |
+| Example Image | Description | Training Data | Trained Model |
+| --- | --- |--- | --- |
+| ![Raw Ascadian Embryo](images/Ascadian_raw.png)| Light sheet fused from four angles 3D single channel| [Training Data ~320 GB](https://figshare.com/articles/dataset/Astec-half-Pm1_Cut_at_2-cell_stage_half_Phallusia_mammillata_embryo_live_SPIM_imaging_stages_6-16_/11309570?backTo=/s/765d4361d1b073beedd5)| [UNET model](https://zenodo.org/record/6337699) |
+| ![Raw Carcinoma](images/Carcinoma_raw.png)| Confocal microscopy 3D single channel 8 bit| [Training Data](https://zenodo.org/record/5904082#.Yi8-BnrMJD8)| [Denoising Model](https://zenodo.org/record/5910645/) and [StarDist Model](https://zenodo.org/record/6354077/) |
+| ![Raw Xenopus Tissue](images/Xenopus_tissue_raw.png)| LaserScanningConfocalMicroscopy 2D single channel| [Dataset](https://zenodo.org/record/6076614#.YjBaNnrMJD8)| [UNET Model](https://zenodo.org/record/6060378/)  |
+
 
 
 ## Troubleshooting & Support
