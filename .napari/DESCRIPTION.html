@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
-    <title>pytest cache directory &#8212; Segmentation using VollSeg</title>
+    <title>VollSeg Napari Plugin &#8212; Segmentation using VollSeg</title>
   
   
   
@@ -60,7 +60,7 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="../_static/sphinx-thebe.js"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = '.pytest_cache/README';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '.napari/DESCRIPTION';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -230,7 +230,7 @@ const thebe_selector_output = ".output, .cell_output"
       
       
       
-      <li><a href="https://github.com/Kapoorlabs-CAPED/vollseg-napari/issues/new?title=Issue%20on%20page%20%2F.pytest_cache/README.html&body=Your%20issue%20content%20here." target="_blank"
+      <li><a href="https://github.com/Kapoorlabs-CAPED/vollseg-napari/issues/new?title=Issue%20on%20page%20%2F.napari/DESCRIPTION.html&body=Your%20issue%20content%20here." target="_blank"
    class="btn btn-sm btn-source-issues-button dropdown-item"
    title="Open an issue"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -260,7 +260,7 @@ const thebe_selector_output = ".output, .cell_output"
       
       
       
-      <li><a href="../_sources/.pytest_cache/README.md" target="_blank"
+      <li><a href="../_sources/.napari/DESCRIPTION.md" target="_blank"
    class="btn btn-sm btn-download-source-button dropdown-item"
    title="Download source file"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -340,7 +340,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>pytest cache directory</h1>
+    <h1>VollSeg Napari Plugin</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -354,12 +354,16 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article" role="main">
                   
-  <section class="tex2jax_ignore mathjax_ignore" id="pytest-cache-directory">
-<h1>pytest cache directory<a class="headerlink" href="#pytest-cache-directory" title="Permalink to this headline">#</a></h1>
-<p>This directory contains data from the pytest’s cache plugin,
-which provides the <code class="docutils literal notranslate"><span class="pre">--lf</span></code> and <code class="docutils literal notranslate"><span class="pre">--ff</span></code> options, as well as the <code class="docutils literal notranslate"><span class="pre">cache</span></code> fixture.</p>
-<p><strong>Do not</strong> commit this to version control.</p>
-<p>See <a class="reference external" href="https://docs.pytest.org/en/stable/cache.html">the docs</a> for more information.</p>
+  <section class="tex2jax_ignore mathjax_ignore" id="vollseg-napari-plugin">
+<h1>VollSeg Napari Plugin<a class="headerlink" href="#vollseg-napari-plugin" title="Permalink to this headline">#</a></h1>
+<p><a class="reference external" href="https://pypi.org/project/vollseg-napari"><img alt="PyPI version" src="https://img.shields.io/pypi/v/vollseg-napari.svg" /></a>
+<a class="reference external" href="https://napari-hub.org/plugins/vollseg-napari"><img alt="napari hub" src="https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/vollseg-napari" /></a>
+<a class="reference external" href="https://github.com/kapoorlab/napari-vollseg/raw/main/LICENSE"><img alt="License" src="https://img.shields.io/pypi/l/napari-metroid.svg?color=green" /></a>
+<a class="reference external" href="https://codecov.io/gh/kapoorlab/napari-vollseg"><img alt="codecov" src="https://codecov.io/gh/kapoorlab/napari-vollseg/branch/main/graph/badge.svg" /></a>
+<a class="reference external" href="https://twitter.com/entracod"><img alt="Twitter Badge" src="https://badgen.net/badge/icon/twitter?icon=twitter&amp;label" /></a></p>
+<p>VollSeg is more than just a single segmentation algorithm; it is a meticulously designed modular segmentation tool tailored to diverse model organisms and imaging methods. While a U-Net might suffice for certain image samples, others might benefit from utilizing StarDist, and some could require a blend of both, potentially coupled with denoising or region of interest models. The pivotal decision left to make is how to select the most appropriate VollSeg configuration for your dataset, a question we comprehensively address in our <a class="reference external" href="https://kapoorlabs-caped.github.io/vollseg-napari/">documentation website</a>.</p>
+<p>This project provides the <a class="reference external" href="https://napari.org/">napari</a> plugin for <a class="reference external" href="https://github.com/kapoorlab/vollseg">VollSeg</a>, a deep learning based 2D and 3D segmentation tool for irregular shaped cells. VollSeg has originally been developed (see <a class="reference external" href="http://conference.scipy.org/proceedings/scipy2021/varun_kapoor.html">papers</a>) for the segmentation of densely packed membrane labelled cells in challenging images with low signal-to-noise ratios. The plugin allows to apply pretrained and custom trained models from within napari.
+For detailed demo of the plugin see these <a class="reference external" href="https://www.youtube.com/watch?v=W_gKrLWKNpQ">videos</a> and a short video about the <a class="reference external" href="https://www.youtube.com/watch?v=7tQMn_u8_7s&amp;t=1s">parameter selection</a></p>
 </section>
 
     <script type="text/x-thebe-config">
@@ -375,7 +379,7 @@ which provides the <code class="docutils literal notranslate"><span class="pre">
         },
         kernelOptions: {
             name: "python3",
-            path: "./.pytest_cache"
+            path: "./.napari"
         },
         predefinedOutput: true
     }
