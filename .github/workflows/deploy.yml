@@ -1,15 +1,20 @@
-name: deploy
+# This workflows will upload a Python Package using Twine when a release is created
+# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
 
-on: [push, pull_request]
+name: vollseg_deploy
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Hello KapoorLabs Lab member"
+        default: "Ready to dispach your code to PyPi"
 
 jobs:
+
   deploy:
-    # this will run when you have tagged a commit, starting with "v*"
-    # and requires that you have put your twine API key in your
-    # github secrets (see readme for details)
- 
+
+    #needs: [test]
     runs-on: ubuntu-latest
-    if: contains(github.ref, 'tags')
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python

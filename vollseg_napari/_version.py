@@ -1,8 +1,2 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Dec  8 15:56:55 2021
-
-@author: vkapoor
-"""
-
-__version__='2.4.7'
+__version__ = version = '2.4.7'
+__version_tuple__ = version_tuple = (2, 4, 7)
