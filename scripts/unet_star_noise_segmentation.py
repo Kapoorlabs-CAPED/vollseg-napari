@@ -7,7 +7,9 @@ from pathlib import Path
 def main():
     
     image_dir = '/path/toimagedir'
-    model_dir = '/path/tomodeldir/'
+    unet_model_dir = '/path/to/unet_modeldir/'
+    star_model_dir = '/path/to/stardist_modeldir/'
+    noise_model_dir = '/path/to/noise_modeldir/' 
     save_dir = os.path.join(image_dir, 'VollSeg')
     Path(save_dir).mkdir(exist_ok=True)
     
@@ -15,9 +17,9 @@ def main():
     star_model_name = 'star_nuclei_model_name'
     noise_model_name = 'noise_nuclei_model_name'
 
-    unet_model = UNET(config = None, name = unet_model_name, basedir = model_dir)
-    star_model = StarDist3D(config = None, name = star_model_name, basedir = model_dir)
-    noise_model = CARE(config = None, name = noise_model_name, basedir = model_dir)
+    unet_model = UNET(config = None, name = unet_model_name, basedir = unet_model_dir)
+    star_model = StarDist3D(config = None, name = star_model_name, basedir = star_model_dir)
+    noise_model = CARE(config = None, name = noise_model_name, basedir = noise_model_dir)
     Raw_path = os.path.join(image_dir, '*.tif')
     filesRaw = glob.glob(Raw_path)
     filesRaw.sort
