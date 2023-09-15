@@ -1,19 +1,13 @@
-from vollseg import SmartPatches
+from vollseg import NucleiPatches
 
 
 def main( ):
 
 
-        base_membrane_dir =  'base_membrane_dir' 
-        raw_membrane_dir = 'raw_membrane_dir'
         base_nuclei_dir =  'base_nuclei_dir' 
         raw_nuclei_dir = 'raw_nuclei_dir'
         
 
-        membrane_channel_results_directory = 'membrane_channel_results_directory'
-        membrane_raw_save_dir = 'membrane_raw_save_dir'
-        membrane_real_mask_patch_dir = 'membrane_real_mask_patch_dir'
-        membrane_binary_mask_patch_dir = 'membrane_binary_mask_patch_dir'
         nuclei_channel_results_directory = 'nuclei_channel_results_directory'
         nuclei_raw_save_dir = 'nuclei_raw_save_dir'
         nuclei_real_mask_patch_dir = 'nuclei_real_mask_patch_dir'
@@ -22,22 +16,15 @@ def main( ):
         upper_ratio_fore_to_back=0.9
         patch_size = (8, 128, 128)
         erosion_iterations = 0
-        create_for_channel = 'nuclei'
 
         
-        SmartPatches(base_membrane_dir,
-        raw_membrane_dir,
-        base_nuclei_dir,
+        NucleiPatches(base_nuclei_dir,
         raw_nuclei_dir,
         nuclei_channel_results_directory,
-        membrane_channel_results_directory,
         nuclei_raw_save_dir,
-        membrane_raw_save_dir,
         nuclei_real_mask_patch_dir,
-        membrane_real_mask_patch_dir,
         nuclei_binary_mask_patch_dir,
-        membrane_binary_mask_patch_dir, patch_size, erosion_iterations,
-        create_for_channel = create_for_channel, 
+        patch_size, erosion_iterations,
         lower_ratio_fore_to_back=lower_ratio_fore_to_back,
         upper_ratio_fore_to_back=upper_ratio_fore_to_back)
 

@@ -6,15 +6,18 @@ from vollseg.utils import VollSeg
 from pathlib import Path 
 def main():
     
-    image_dir = '/path/to/image/'
+    image_dir = '/path/to/imagedir/'
     save_dir = os.path.join(image_dir, 'VollSeg')
     Path(save_dir).mkdir(exist_ok=True)
     
-    unet_model_name = 'unet_nuclei_model'
-    star_model_name = 'nuclei_model'
+   
+    star_model_name = 'stardist_model'
+    noise_model_name = 'denoising_model'
+                
+   
+    star_model = StarDist3D(config = None, name = star_model_name, basedir = '/path/stardist/directory/')
+    noise_model = CARE(config = None, name = noise_model_name, basedir = '/path/denoising/directory/')
 
-    unet_model = UNET(config = None, name = unet_model_name, basedir = '/path/to/unet/modeldir/')
-    star_model = StarDist3D(config = None, name = star_model_name, basedir = '/path/to/stardist/modeldir/')
     Raw_path = os.path.join(image_dir, '*.tif')
     filesRaw = glob.glob(Raw_path)
     filesRaw.sort
@@ -22,7 +25,7 @@ def main():
     min_size_mask = 10
     max_size = 10000
     n_tiles = (2,2,2)
-    dounet = True
+    dounet = False
     seedpool = True
     slice_merge = False 
     UseProbability = True
@@ -33,9 +36,9 @@ def main():
     
                     image = imread(fname)
                     Name = os.path.basename(os.path.splitext(fname)[0])
-                    VollSeg( image, 
-                            unet_model = unet_model, 
+                    VollSeg( image,
                             star_model = star_model, 
+                            noise_model = noise_model,
                             seedpool = seedpool, 
                             axes = axes, 
                             min_size = min_size,  
