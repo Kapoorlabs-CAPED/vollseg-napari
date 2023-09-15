@@ -18,7 +18,7 @@ def main():
     unet_model = UNET(config = None, name = unet_model_name, basedir = model_dir)
     star_model = StarDist3D(config = None, name = star_model_name, basedir = model_dir)
     noise_model = CARE(config = None, name = noise_model_name, basedir = model_dir)
-    Raw_path = os.path.join(image_dir, '.tif')
+    Raw_path = os.path.join(image_dir, '*.tif')
     filesRaw = glob.glob(Raw_path)
     filesRaw.sort
     min_size = 10
