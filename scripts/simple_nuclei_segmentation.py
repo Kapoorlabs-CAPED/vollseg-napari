@@ -10,8 +10,8 @@ def main():
     save_dir = os.path.join(image_dir, 'VollSeg')
     Path(save_dir).mkdir(exist_ok=True)
     
-    unet_model_name = 'unet_nuclei_spheroid'
-    star_model_name = 'nuclei_spheroid'
+    unet_model_name = 'unet_nuclei_model'
+    star_model_name = 'nuclei_model'
 
     unet_model = UNET(config = None, name = unet_model_name, basedir = '/path/to/unet/modeldir/')
     star_model = StarDist3D(config = None, name = star_model_name, basedir = '/path/to/stardist/modeldir/')
