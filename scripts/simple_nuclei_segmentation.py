@@ -6,16 +6,15 @@ from vollseg.utils import VollSeg
 from pathlib import Path 
 def main():
     
-    image_dir = '/gpfsstore/rech/jsy/uzj81mi/Test/'
-    model_dir = '/path/tomodeldir/'
+    image_dir = '/path/to/image/'
     save_dir = os.path.join(image_dir, 'VollSeg')
     Path(save_dir).mkdir(exist_ok=True)
     
     unet_model_name = 'unet_nuclei_spheroid'
     star_model_name = 'nuclei_spheroid'
 
-    unet_model = UNET(config = None, name = unet_model_name, basedir = '/gpfsstore/rech/lzc/uzj81mi/Bakal_Models/Unet3D/')
-    star_model = StarDist3D(config = None, name = star_model_name, basedir = '/gpfsstore/rech/lzc/uzj81mi/Bakal_Models/StarDist3D/')
+    unet_model = UNET(config = None, name = unet_model_name, basedir = '/path/to/unet/modeldir/')
+    star_model = StarDist3D(config = None, name = star_model_name, basedir = '/path/to/stardist/modeldir/')
     Raw_path = os.path.join(image_dir, '*.tif')
     filesRaw = glob.glob(Raw_path)
     filesRaw.sort
