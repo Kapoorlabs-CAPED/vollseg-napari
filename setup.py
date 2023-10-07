@@ -5,7 +5,7 @@ from os import path
 
 _dir = path.dirname(__file__)
 
-with open(path.join(_dir,'vollseg_napari','_version.py'), encoding="utf-8") as f:
+with open(path.join(_dir,'src/vollseg_napari','_version.py'), encoding="utf-8") as f:
      exec(f.read())
      print(exec(f.read()))
 with open(path.join(_dir,'README.md'), encoding="utf-8") as f:
