@@ -161,7 +161,6 @@ const thebe_selector_output = ".output, .cell_output"
 <li class="toctree-l1"><a class="reference internal" href="SPHEROIDS.html">Spheroids joint Nuclei and Membrane Segmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="MICROTUBULES.html">Segmentation of Microtubule and Actin Kymographs</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">From Segmentation to Point Clouds</a></li>
-
 </ul>
 
     </div>
@@ -355,10 +354,8 @@ document.write(`
             </div>
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">From Segmentation to Point Clouds</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#autoencoder">Autoencoder</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#autoencoder">Autoencoder</a></li>
 </ul>
-
             </nav>
         </div>
     </div>
@@ -369,15 +366,15 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article" role="main">
                   
-  <section id="from-segmentation-to-point-clouds">
+  <section class="tex2jax_ignore mathjax_ignore" id="from-segmentation-to-point-clouds">
 <h1>From Segmentation to Point Clouds<a class="headerlink" href="#from-segmentation-to-point-clouds" title="Permalink to this headline">#</a></h1>
 <p>Once we have obtained 3D segmentation from any of the chosen VollSeg mode we apply a trained autoencoder model on the segmented result and using the vollseg extension <a class="reference external" href="https://github.com/Kapoorlabs-CAPED/vollseg-napari-trackmate">TrackMate</a> to obtain a point cloud representation of the segmented labels.</p>
-<p>We provide a <a class="reference download internal" download="" href="_downloads/94819689ddd679d92e392ac1ad4bd71e/visualize_point_clouds.py"><span class="xref download myst">script</span></a> to visualize point cloud representation for the input segmentation image (binary) using classical and autoencoder model predictions. We create the point cloud representation after applying a trained autoencoder model on the obtained segmented 3D labels. By using the latent dimensions to obtain the point cloud representation the obtained cell shape attributes are significantly more accurate than just using Marching cubes like algorithms on the segmented labels as shown in this comparision <img alt="comparision" src="_images/point_clouds_compared.png" /></p>
-</section>
+<p>We provide a <a class="reference download internal" download="" href="_downloads/94819689ddd679d92e392ac1ad4bd71e/visualize_point_clouds.py"><span class="xref download myst">script</span></a> to visualize point cloud representation for the input segmentation image (binary) using classical and autoencoder model predictions. We create the point cloud representation after applying a trained autoencoder model on the obtained segmented 3D labels. By using the latent dimensions to obtain the point cloud representation the obtained cell shape attributes are significantly more accurate than just using Marching cubes like algorithms on the segmented labels as shown in this comparision <img alt="comparision" src="_images/point_clouds_compared.png" />.</p>
 <section id="autoencoder">
-<h1>Autoencoder<a class="headerlink" href="#autoencoder" title="Permalink to this headline">#</a></h1>
+<h2>Autoencoder<a class="headerlink" href="#autoencoder" title="Permalink to this headline">#</a></h2>
 <p>This is an algorithm developed by <a class="reference external" href="https://www.sentinal4d.com/">Sentinal</a> AI startup of the UK and they created a <a class="reference external" href="https://github.com/Sentinal4D">pytorch</a> based program to train autoencoder models that
 generate point cloud representations. KapoorLabs created a <a class="reference external" href="https://github.com/Kapoorlabs-CAPED/KapoorLabs-Lightning">Lightning version</a> of their software that allows for multi-GPU training. In this plugin autoencoder model is used to convert the instances to point clouds, users can select our pre-trained models or choose their own prior to applying the model. The computation is then performed on their GPU (recommended) before further analysis is carried out. As this is an expensive computation we also provide a <a class="reference download internal" download="" href="_downloads/d75c20269e9572ea165b1e9f88f4b296/apply_autoencoder.py"><span class="xref download myst">script</span></a> to do the same that can be submitted to the HPC to obtain a master XML file that appends additional shape and dynamic features to the cell feature vectors therby enhancing the basic XML that comes out of TrackMate.</p>
+</section>
 </section>
 
     <script type="text/x-thebe-config">
@@ -438,10 +435,8 @@ generate point cloud representations. KapoorLabs created a <a class="reference e
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">From Segmentation to Point Clouds</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#autoencoder">Autoencoder</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#autoencoder">Autoencoder</a></li>
 </ul>
-
   </nav></div>
 
 </div></div>
