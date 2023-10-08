@@ -1,12 +1,12 @@
-
 format: jb-book
 root: README
 
 chapters:
-    - file: EMBRYOS
-    - file: MAMMARYGLAND
-    - file: XENOPUS
-    - file: SPHEROIDS
-    - file: MICROTUBULES
-    - file: POINTCLOUDS
-    - file: README
+  - file: EMBRYOS
+  - file: MAMMARYGLAND
+  - file: XENOPUS
+  - file: SPHEROIDS
+  - file: MICROTUBULES
+  - file: POINTCLOUDS
+
+
