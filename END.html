@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
-    <title>Segmentation of Microtubule and Actin Kymographs &#8212; Segmentation using VollSeg</title>
+    <title>Heading: END.rst &#8212; Segmentation using VollSeg</title>
   
   
   
@@ -60,11 +60,10 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="_static/sphinx-thebe.js"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'MICROTUBULES';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'END';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="From Segmentation to Point Clouds" href="POINTCLOUDS.html" />
-    <link rel="prev" title="Spheroids joint Nuclei and Membrane Segmentation" href="SPHEROIDS.html" />
+    <link rel="prev" title="Heading: POINTCLOUDS.rst" href="POINTCLOUDS.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="None"/>
   </head>
@@ -151,17 +150,18 @@ const thebe_selector_output = ".output, .cell_output"
         <ul class="nav bd-sidenav bd-sidenav__home-link">
             <li class="toctree-l1">
                 <a class="reference internal" href="README.html">
-                    VollSeg Napari Plugin
+                    Heading: README.rst
                 </a>
             </li>
         </ul>
         <ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="EMBRYOS.html">Heading: EMBRYOS.rst</a></li>
-<li class="toctree-l1"><a class="reference internal" href="MAMMARYGLAND.html">Segmentation of mammary gland cells</a></li>
-<li class="toctree-l1"><a class="reference internal" href="XENOPUS.html">Xenopus joint Nuclei and Membrane Segmentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="SPHEROIDS.html">Spheroids joint Nuclei and Membrane Segmentation</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Segmentation of Microtubule and Actin Kymographs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="POINTCLOUDS.html">From Segmentation to Point Clouds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MAMMARYGLAND.html">Heading: MAMMARYGLAND.rst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="XENOPUS.html">Heading: XENOPUS.rst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SPHEROIDS.html">Heading: SPHEROIDS.rst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MICROTUBULES.html">Heading: MICROTUBULES.rst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="POINTCLOUDS.html">Heading: POINTCLOUDS.rst</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Heading: END.rst</a></li>
 </ul>
 
     </div>
@@ -233,7 +233,7 @@ const thebe_selector_output = ".output, .cell_output"
       
       
       
-      <li><a href="https://github.com/Kapoorlabs-CAPED/vollseg-napari/issues/new?title=Issue%20on%20page%20%2FMICROTUBULES.html&body=Your%20issue%20content%20here." target="_blank"
+      <li><a href="https://github.com/Kapoorlabs-CAPED/vollseg-napari/issues/new?title=Issue%20on%20page%20%2FEND.html&body=Your%20issue%20content%20here." target="_blank"
    class="btn btn-sm btn-source-issues-button dropdown-item"
    title="Open an issue"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -263,7 +263,7 @@ const thebe_selector_output = ".output, .cell_output"
       
       
       
-      <li><a href="_sources/MICROTUBULES.md" target="_blank"
+      <li><a href="_sources/END.rst" target="_blank"
    class="btn btn-sm btn-download-source-button dropdown-item"
    title="Download source file"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -273,7 +273,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="btn__icon-container">
   <i class="fas fa-file"></i>
   </span>
-<span class="btn__text-container">.md</span>
+<span class="btn__text-container">.rst</span>
 </a>
 </li>
       
@@ -343,7 +343,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>Segmentation of Microtubule and Actin Kymographs</h1>
+    <h1>Heading: END.rst</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -357,10 +357,8 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article" role="main">
                   
-  <section class="tex2jax_ignore mathjax_ignore" id="segmentation-of-microtubule-and-actin-kymographs">
-<h1>Segmentation of Microtubule and Actin Kymographs<a class="headerlink" href="#segmentation-of-microtubule-and-actin-kymographs" title="Permalink to this headline">#</a></h1>
-<p>VollSeg extension <a class="reference external" href="https://github.com/Kapoorlabs-CAPED/vollseg-napari-mtrack">mtrack</a> is a Napari plugin available from the Napari <a class="reference external" href="https://www.napari-hub.org/plugins/vollseg-napari-mtrack">hub</a>. This plugin takes a single kymograph or nultiple kymographs of differnet image sizes, segments the edges of the kymographs using a U-Net model. The segmented result is displayed as labels layer and can be manually corrected. Post segmentation the user can choose to fit linear model or a polynomial model to detect multiple growth and shrink events in all the kymographs using RANSAC based fits. These RANSAC based fits are based on our <a class="reference external" href="https://www.nature.com/articles/s41598-018-37767-1">publication</a> where we show the efficiency of this method for quantifying dynamic instability parameters of microtubules and by extension to Actin kymographs. The user will see the detected linear fits as shapes layer in the Napari menu and even they can be manually corrected, with each update to the labels or the shape layer the computed dynamic instability parameters table and plots are updated. Please make sure that your image calibration settings are properly set as the computed results are in physical units than pixel units.</p>
-<p>We provide example microtubule data to test the plugin. To get the example data automatically, install the <a class="reference external" href="https://github.com/Kapoorlabs-CAPED/vollseg-napari-mtrack">mtrack</a> plugin and then click on File -&gt; Open Sample -&gt; Test Microtubule Kymographs.</p>
+  <section id="heading-end-rst">
+<h1>Heading: END.rst<a class="headerlink" href="#heading-end-rst" title="Permalink to this headline">#</a></h1>
 </section>
 
     <script type="text/x-thebe-config">
@@ -395,22 +393,13 @@ document.write(`
     <div class="footer-article-item"><!-- Previous / next buttons -->
 <div class="prev-next-area">
     <a class="left-prev"
-       href="SPHEROIDS.html"
+       href="POINTCLOUDS.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Spheroids joint Nuclei and Membrane Segmentation</p>
+        <p class="prev-next-title">Heading: POINTCLOUDS.rst</p>
       </div>
-    </a>
-    <a class="right-next"
-       href="POINTCLOUDS.html"
-       title="next page">
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">From Segmentation to Point Clouds</p>
-      </div>
-      <i class="fa-solid fa-angle-right"></i>
     </a>
 </div></div>
   
