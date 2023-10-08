@@ -59,7 +59,7 @@ def main():
     star_model_membrane = StarDist3D(config=None, name=star_model_membrane_name, basedir=star_model_dir)
 
 
-    Raw_path = os.path.join(dual_channel_image_dir, '.tif')
+    Raw_path = os.path.join(dual_channel_image_dir, '*.tif')
     filesRaw = glob.glob(Raw_path)
     filesRaw.sort
     min_size = 10
