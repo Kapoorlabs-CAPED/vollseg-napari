@@ -1,4 +1,6 @@
-# From Segmentation to Point Clouds
+# VollSeg Extension : vollseg-napari-trackmate
+
+## From Segmentation to Point Clouds
 
 Once we have obtained 3D segmentation from any of the chosen VollSeg mode we apply a trained autoencoder model on the segmented result and using the vollseg extension [TrackMate] to obtain a point cloud representation of the segmented labels. It is available as a plugin from the Napari [hub].
 
