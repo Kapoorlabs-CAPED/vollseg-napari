@@ -40,3 +40,8 @@ VollSeg comes with different options to combine CARE based denoising with UNET, 
 - The [image.sc forum](https://forum.image.sc/tag/vollseg) is the best place to start getting help and support. Make sure to use the tag `vollseg`, since we are monitoring all questions with this tag.
 - If you have technical questions or found a bug, feel free to [open an issue](https://github.com/kapoorlab/vollseg-napari/issues).
 
+## Authors
+
+- Varun Kapoor <randomaccessiblekapoor@gmail.com>
+- Mari Tolonen
+- Jakub Sedzinski
