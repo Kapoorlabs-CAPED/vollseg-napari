@@ -2,7 +2,7 @@
 
 ## Create training patches
 
-In order to create training data you can point this script to a directory of raw and integer label images and it will create training patches of chosen size: [create_training_patches](scripts/create_training_patches.py) or [create_gneral_training_patches](scripts/create_training_patches.py)
+In order to create training data you can point this script to a directory of raw and integer label images and it will create training patches of chosen size: [create_training_patches](scripts/create_training_patches.py) or [create_general_train_patches](scripts/create_general_train_patches.py)
 
 ## Train VollSeg Model
 To train a vollseg model, you can use this script that will work with the training patches (raw and integer labels) created in the previous step, it will create a directory of binary images too and then train a U-Net model for semantic segmentation and an instance segmentation model using StarDist [train_vollseg](scripts/train_vollseg.py)
