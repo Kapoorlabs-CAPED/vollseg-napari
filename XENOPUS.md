@@ -19,7 +19,7 @@ For the membrane segmetation we have a trained cellpose model that segments the 
 
 ## Script
 
-The scripts used for this step are: [membrane segmentation script](scripts/cellpose_stardist_membrane.py),  [nuclei segmentation script](scripts/xenopus_nuclei.py)
+The scripts used for this step are: [membrane segmentation script with cellpose and stardist](scripts/cellpose_stardist_membrane.py), [membrane segmentation script with cellpose only](scripts/cellpose_membrane.py),  [nuclei segmentation script](scripts/xenopus_nuclei.py)
 
 
 

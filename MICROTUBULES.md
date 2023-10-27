@@ -6,14 +6,14 @@ VollSeg extension [mtrack] is a Napari plugin available from the Napari [hub]. T
 
 We provide example microtubule data to test the plugin. To get the example data automatically, install the [mtrack] plugin and then click on File -> Open Sample -> Test Microtubule Kymographs.
 
+Detailed explanation of this extension plugin can be found at the documentation website of the plugin [documentation]
 
 
 
 
 
 
-
-
+[documentation]: https://kapoorlabs-caped.github.io/vollseg-napari-mtrack
 [mtrack]: https://github.com/Kapoorlabs-CAPED/vollseg-napari-mtrack
 [hub]: https://www.napari-hub.org/plugins/vollseg-napari-mtrack
 [publication]: https://www.nature.com/articles/s41598-018-37767-1

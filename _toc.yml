@@ -8,5 +8,6 @@ chapters:
   - file: SPHEROIDS
   - file: MICROTUBULES
   - file: POINTCLOUDS
+  - file: TRAINING
 
 
