@@ -2058,21 +2058,28 @@ def plugin_wrapper_vollseg():
                      
                      
               res, scale_out, t, x = pred
-              unet_mask, skeleton, denoised_image = zip(*res)
-              
-              unet_mask = np.asarray(unet_mask)
-              unet_mask = unet_mask > 0
-              unet_mask = np.moveaxis(unet_mask, 0, t)
-              unet_mask = np.reshape(unet_mask, x.shape)
-              
-              skeleton = np.asarray(skeleton)
-              skeleton = skeleton > 0
-              skeleton = np.moveaxis(skeleton, 0, t)
-              skeleton = np.reshape(skeleton, x.shape)
 
-              denoised_image = np.asarray(denoised_image)
-              denoised_image = np.moveaxis(denoised_image, 0, t)
-              denoised_image = np.reshape(denoised_image, x.shape)
+              try:
+                unet_mask, skeleton, denoised_image = zip(*res)
+
+                denoised_image = np.asarray(denoised_image)
+                denoised_image = np.moveaxis(denoised_image, 0, t)
+                denoised_image = np.reshape(denoised_image, x.shape)
+
+              except Exception:
+                     
+                unet_mask, skeleton = zip(*res)     
+                unet_mask = np.asarray(unet_mask)
+                unet_mask = unet_mask > 0
+                unet_mask = np.moveaxis(unet_mask, 0, t)
+                unet_mask = np.reshape(unet_mask, x.shape)
+                
+                skeleton = np.asarray(skeleton)
+                skeleton = skeleton > 0
+                skeleton = np.moveaxis(skeleton, 0, t)
+                skeleton = np.reshape(skeleton, x.shape)
+
+              
 
               name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
               for layer in list(plugin.viewer.value.layers):
