@@ -2119,7 +2119,11 @@ def plugin_wrapper_vollseg():
             
                       
                     res, scale_out = pred
-                    unet_mask, skeleton, denoised_image = res
+                    try:
+                       unet_mask, skeleton, denoised_image = res
+                    except Exception:
+                            unet_mask, skeleton = res
+                            denoised_image = None
                     name_remove = ('VollSeg Binary', 'Base Watershed Image','VollSeg labels', 'StarDist', 'Markers', 'Skeleton','Denoised Image', 'Roi' )
                     for layer in list(plugin.viewer.value.layers):
                         if  any(name in layer.name for name in name_remove):
@@ -2143,15 +2147,16 @@ def plugin_wrapper_vollseg():
                     if plugin.den_model_type.value != DEFAULTS_MODEL['model_den_none']:
 
                         if  plugin_display_parameters.display_denoised.value:
-                                plugin.viewer.value.add_image(
-                                    
-                                        denoised_image,
-                                    
-                                            name='Denoised Image',
-                                            scale=scale_out,
-                                            visible=plugin_display_parameters.display_denoised.value,
-                                        
-                                    )
+                                if denoised_image:
+                                        plugin.viewer.value.add_image(
+                                            
+                                                denoised_image,
+                                            
+                                                    name='Denoised Image',
+                                                    scale=scale_out,
+                                                    visible=plugin_display_parameters.display_denoised.value,
+                                                
+                                            )
                
               
 
